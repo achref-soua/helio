@@ -10,6 +10,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { ThemeToggle } from '@/components/theme-toggle';
+import { UserMenu } from '@/components/user-menu';
 
 const NAV_ITEMS = [
   { key: 'dashboard', href: '/', icon: LayoutDashboard },
@@ -85,6 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Sheet>
           <div className="ml-auto flex items-center gap-1">
             <ThemeToggle />
+            <UserMenu />
           </div>
         </header>
         <main className="flex-1 p-6">{children}</main>

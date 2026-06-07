@@ -6,6 +6,7 @@ const STORAGE_STATE = 'test-results/.auth/user.json';
 
 export default defineConfig({
   testDir: './tests',
+  globalSetup: './tests/global-setup.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

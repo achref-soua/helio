@@ -32,6 +32,60 @@
     "title": "Coming soon",
     "body": "This area ships in an upcoming milestone."
   },
+  "onboarding": {
+    "title": "Create your organization",
+    "subtitle": "Where your team, contacts, and journeys live",
+    "orgName": "Organization name",
+    "orgPlaceholder": "Acme Inc.",
+    "slugPreview": "URL slug: {slug}",
+    "defaultWorkspace": "Default",
+    "createAction": "Create organization",
+    "working": "Creating…",
+    "genericError": "Something went wrong. Please try again."
+  },
+  "invite": {
+    "title": "You're invited",
+    "bodyAuthed": "Accept this invitation as {email}",
+    "bodyAnonymous": "Create an account or log in with the invited email address first.",
+    "acceptAction": "Accept invitation",
+    "signupFirst": "Create an account",
+    "loginFirst": "Log in",
+    "returnHint": "Then open the invitation link from your email again.",
+    "working": "Joining…",
+    "genericError": "This invitation can't be accepted. It may have expired."
+  },
+  "members": {
+    "title": "Settings",
+    "subtitle": "Members and access for {org}",
+    "membersTitle": "Members",
+    "membersSubtitle": "People with access to this organization",
+    "pendingTitle": "Pending invitations",
+    "inviteAction": "Invite",
+    "inviteTitle": "Invite a teammate",
+    "inviteSubtitle": "They'll receive an email with a join link.",
+    "inviteSend": "Send invitation",
+    "inviteSent": "Invitation sent",
+    "email": "Email",
+    "role": "Role",
+    "revoke": "Revoke",
+    "working": "Sending…",
+    "genericError": "Something went wrong. Please try again.",
+    "columns": {
+      "member": "Member",
+      "email": "Email",
+      "role": "Role"
+    },
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "editor": "Editor",
+      "viewer": "Viewer"
+    }
+  },
+  "userMenu": {
+    "open": "Open user menu",
+    "signOut": "Sign out"
+  },
   "auth": {
     "loginTitle": "Welcome back",
     "loginSubtitle": "Log in to your workspace",

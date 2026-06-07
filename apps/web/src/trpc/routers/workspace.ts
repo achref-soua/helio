@@ -1,7 +1,7 @@
 import { newId } from '@helio/core';
 import { z } from 'zod';
 
-import { orgProcedure, router } from '../init';
+import { orgProcedure, requireRole, router } from '../init';
 
 const slugSchema = z
   .string()
@@ -17,6 +17,7 @@ export const workspaceRouter = router({
   create: orgProcedure
     .input(z.object({ name: z.string().min(1).max(80), slug: slugSchema }))
     .mutation(async ({ ctx, input }) => {
+      requireRole(ctx.memberRole, 'editor');
       const workspace = await ctx.tenantDb.workspace.create({
         data: {
           id: newId('ws'),

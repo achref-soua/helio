@@ -2,7 +2,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@helio/ui/componen
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
-const SECTIONS = new Set(['contacts', 'segments', 'journeys', 'settings']);
+const SECTIONS = new Set(['contacts', 'segments', 'journeys']);
 
 export default async function SectionPlaceholderPage({
   params,
