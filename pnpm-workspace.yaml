@@ -2,10 +2,13 @@ packages:
   - apps/*
   - packages/*
 allowBuilds:
+  '@parcel/watcher': true
   '@prisma/engines': true
+  '@swc/core': true
   cpu-features: false
   esbuild: true
   lefthook: true
   prisma: true
   protobufjs: false
+  sharp: true
   ssh2: false

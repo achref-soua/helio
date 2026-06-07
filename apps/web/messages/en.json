@@ -1,0 +1,43 @@
+{
+  "app": {
+    "name": "Helio",
+    "tagline": "The open-source growth platform"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "contacts": "Contacts",
+    "segments": "Segments",
+    "journeys": "Journeys",
+    "settings": "Settings",
+    "toggleNavigation": "Toggle navigation"
+  },
+  "theme": {
+    "toggle": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "What's happening across your audience",
+    "cards": {
+      "contacts": "Contacts",
+      "activeJourneys": "Active journeys",
+      "emailsSent": "Emails sent (30d)",
+      "conversionRate": "Conversion rate"
+    },
+    "emptyHint": "Connect a data source or import contacts to light this up."
+  },
+  "placeholder": {
+    "title": "Coming soon",
+    "body": "This area ships in an upcoming milestone."
+  },
+  "errors": {
+    "title": "Something went wrong",
+    "body": "The error has been recorded. Try again, and if it persists check the server logs.",
+    "retry": "Try again",
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "The page you are looking for does not exist.",
+    "backHome": "Back to dashboard"
+  }
+}
