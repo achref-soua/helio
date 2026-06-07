@@ -54,6 +54,11 @@ Allowed types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `perf`,
   - documentation updates (README, docs page, or API spec as relevant),
   - `.env.example` entries for any new environment variable.
 - Rebase on `develop` before merge; CI must be green.
+  > **Note:** hosted GitHub Actions are currently disabled on this repository
+  > (no Actions budget). Until that changes, `task verify` and
+  > `task verify:e2e` run the exact CI commands locally and constitute the
+  > merge gate. The workflows in `.github/workflows/` are kept current and
+  > activate automatically if Actions become available.
 
 ## Code style
 
