@@ -9,6 +9,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "build": "prisma generate",
     "lint": "eslint .",
     "typecheck": "prisma generate && tsc --noEmit",
     "test": "prisma generate && vitest run --coverage",
