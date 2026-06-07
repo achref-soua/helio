@@ -29,6 +29,7 @@ model Organization {
   contacts     Contact[]
   contactLists ContactList[]
   writeKeys    WriteKey[]
+  segments     Segment[]
 
   @@map("organization")
 }
@@ -48,6 +49,7 @@ model Workspace {
   contacts     Contact[]
   contactLists ContactList[]
   writeKeys    WriteKey[]
+  segments     Segment[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -140,6 +142,27 @@ model ContactListMember {
   @@index([contactId])
   @@index([organizationId])
   @@map("contact_list_member")
+}
+
+/// A dynamic audience: a stored AND/OR rule tree (shape owned by
+/// @helio/core's segmentRuleSchema) compiled to a contact predicate at
+/// query time, so membership is always live.
+model Segment {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  name           String
+  description    String?
+  rule           Json
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, name])
+  @@index([organizationId])
+  @@map("segment")
 }
 
 /// Workspace-scoped credential for the event ingestion endpoint. The

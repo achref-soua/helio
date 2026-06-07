@@ -7,7 +7,10 @@ const STORAGE_STATE = 'test-results/.auth/user.json';
 export default defineConfig({
   testDir: './tests',
   globalSetup: './tests/global-setup.ts',
-  fullyParallel: true,
+  // Spec files share one database and several truncate their domain's
+  // tables in beforeAll — run files sequentially so runs stay deterministic.
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? 'github' : 'list',
