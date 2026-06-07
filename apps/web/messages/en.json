@@ -9,7 +9,8 @@
     "segments": "Segments",
     "journeys": "Journeys",
     "settings": "Settings",
-    "toggleNavigation": "Toggle navigation"
+    "toggleNavigation": "Toggle navigation",
+    "emails": "Emails"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -235,6 +236,50 @@
         "UNSUBSCRIBED": "Unsubscribed",
         "BOUNCED": "Bounced",
         "COMPLAINED": "Complained"
+      }
+    }
+  },
+  "emails": {
+    "title": "Email templates",
+    "total": "{count, plural, one {# template} other {# templates}}",
+    "newTemplate": "New template",
+    "createTitle": "Create a template",
+    "editTitle": "Edit template",
+    "editorSubtitle": "Compose with blocks; personalize with {{tokens}}. The preview renders the real email.",
+    "name": "Name",
+    "subject": "Subject",
+    "createAction": "Create template",
+    "saveAction": "Save changes",
+    "cancel": "Cancel",
+    "created": "Template created",
+    "updated": "Template updated",
+    "deleted": "Template deleted",
+    "deleteAction": "Delete {name}",
+    "genericError": "Something went wrong",
+    "emptyTitle": "No templates yet",
+    "emptyBody": "Design a reusable email with the block editor.",
+    "editor": {
+      "addBlock": "Add block",
+      "removeBlock": "Remove block",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "text": "Text",
+      "textPlaceholder": "Write something… use {{firstName|there}} to personalize",
+      "buttonLabel": "Button label",
+      "url": "Link URL",
+      "imageUrl": "Image URL",
+      "imageAlt": "Alt text",
+      "preview": "Preview",
+      "previewEmpty": "Add a block with content to see the rendered email.",
+      "subjectPreview": "Subject: {subject}",
+      "tokensHint": "Personalization: {{firstName}}, {{lastName}}, {{email}}, {{attributes.plan}} — with fallbacks like {{firstName|there}}.",
+      "blocks": {
+        "heading": "Heading",
+        "paragraph": "Paragraph",
+        "button": "Button",
+        "image": "Image",
+        "divider": "Divider",
+        "spacer": "Spacer"
       }
     }
   }
