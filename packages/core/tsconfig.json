@@ -1,0 +1,7 @@
+{
+  "extends": "@helio/config/typescript/base.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src", "tests"]
+}
