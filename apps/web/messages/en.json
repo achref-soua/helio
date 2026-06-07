@@ -32,6 +32,23 @@
     "title": "Coming soon",
     "body": "This area ships in an upcoming milestone."
   },
+  "auth": {
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Log in to your workspace",
+    "signupTitle": "Create your account",
+    "signupSubtitle": "Start growing with Helio",
+    "verifyTitle": "Check your email",
+    "verifyBody": "We sent you a verification link. Click it to activate your account.",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "loginAction": "Log in",
+    "signupAction": "Sign up",
+    "noAccount": "No account yet?",
+    "hasAccount": "Already have an account?",
+    "working": "Working…",
+    "genericError": "Something went wrong. Please try again."
+  },
   "errors": {
     "title": "Something went wrong",
     "body": "The error has been recorded. Try again, and if it persists check the server logs.",
