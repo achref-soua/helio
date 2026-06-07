@@ -1,0 +1,8 @@
+# Secret scanning configuration. Runs pre-commit (lefthook) and in CI.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Documented example configuration and lockfiles contain no real secrets"
+paths = ['''\.env\.example$''', '''pnpm-lock\.yaml$''']
