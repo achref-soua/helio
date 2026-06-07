@@ -2,4 +2,10 @@ packages:
   - apps/*
   - packages/*
 allowBuilds:
+  '@prisma/engines': true
+  cpu-features: false
+  esbuild: true
   lefthook: true
+  prisma: true
+  protobufjs: false
+  ssh2: false
