@@ -1,0 +1,27 @@
+name: Renovate
+
+# Self-hosted Renovate run. NOTE: this repository currently has GitHub
+# Actions disabled (no Actions budget), so this workflow is dormant — the
+# zero-cost alternative that works today is the hosted Renovate App
+# (github.com/apps/renovate), which reads the same renovate.json.
+# To use this workflow when Actions are available, add a RENOVATE_TOKEN
+# repository secret (classic PAT with repo + workflow scopes).
+
+on:
+  schedule:
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Renovate Bot GitHub Action
+        uses: renovatebot/github-action@v46.1.14
+        with:
+          token: ${{ secrets.RENOVATE_TOKEN }}
+          configurationFile: renovate.json

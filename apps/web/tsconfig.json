@@ -1,0 +1,10 @@
+{
+  "extends": "@helio/config/typescript/nextjs.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "src", "tests", "playwright.config.ts", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

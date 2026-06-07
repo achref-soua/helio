@@ -1,0 +1,114 @@
+{
+  "app": {
+    "name": "Helio",
+    "tagline": "The open-source growth platform"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "contacts": "Contacts",
+    "segments": "Segments",
+    "journeys": "Journeys",
+    "settings": "Settings",
+    "toggleNavigation": "Toggle navigation"
+  },
+  "theme": {
+    "toggle": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "What's happening across your audience",
+    "cards": {
+      "contacts": "Contacts",
+      "activeJourneys": "Active journeys",
+      "emailsSent": "Emails sent (30d)",
+      "conversionRate": "Conversion rate"
+    },
+    "emptyHint": "Connect a data source or import contacts to light this up."
+  },
+  "placeholder": {
+    "title": "Coming soon",
+    "body": "This area ships in an upcoming milestone."
+  },
+  "onboarding": {
+    "title": "Create your organization",
+    "subtitle": "Where your team, contacts, and journeys live",
+    "orgName": "Organization name",
+    "orgPlaceholder": "Acme Inc.",
+    "slugPreview": "URL slug: {slug}",
+    "defaultWorkspace": "Default",
+    "createAction": "Create organization",
+    "working": "Creating…",
+    "genericError": "Something went wrong. Please try again."
+  },
+  "invite": {
+    "title": "You're invited",
+    "bodyAuthed": "Accept this invitation as {email}",
+    "bodyAnonymous": "Create an account or log in with the invited email address first.",
+    "acceptAction": "Accept invitation",
+    "signupFirst": "Create an account",
+    "loginFirst": "Log in",
+    "returnHint": "Then open the invitation link from your email again.",
+    "working": "Joining…",
+    "genericError": "This invitation can't be accepted. It may have expired."
+  },
+  "members": {
+    "title": "Settings",
+    "subtitle": "Members and access for {org}",
+    "membersTitle": "Members",
+    "membersSubtitle": "People with access to this organization",
+    "pendingTitle": "Pending invitations",
+    "inviteAction": "Invite",
+    "inviteTitle": "Invite a teammate",
+    "inviteSubtitle": "They'll receive an email with a join link.",
+    "inviteSend": "Send invitation",
+    "inviteSent": "Invitation sent",
+    "email": "Email",
+    "role": "Role",
+    "revoke": "Revoke",
+    "working": "Sending…",
+    "genericError": "Something went wrong. Please try again.",
+    "columns": {
+      "member": "Member",
+      "email": "Email",
+      "role": "Role"
+    },
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "editor": "Editor",
+      "viewer": "Viewer"
+    }
+  },
+  "userMenu": {
+    "open": "Open user menu",
+    "signOut": "Sign out"
+  },
+  "auth": {
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Log in to your workspace",
+    "signupTitle": "Create your account",
+    "signupSubtitle": "Start growing with Helio",
+    "verifyTitle": "Check your email",
+    "verifyBody": "We sent you a verification link. Click it to activate your account.",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "loginAction": "Log in",
+    "signupAction": "Sign up",
+    "noAccount": "No account yet?",
+    "hasAccount": "Already have an account?",
+    "working": "Working…",
+    "genericError": "Something went wrong. Please try again."
+  },
+  "errors": {
+    "title": "Something went wrong",
+    "body": "The error has been recorded. Try again, and if it persists check the server logs.",
+    "retry": "Try again",
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "The page you are looking for does not exist.",
+    "backHome": "Back to dashboard"
+  }
+}

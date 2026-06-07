@@ -1,0 +1,180 @@
+name: helio
+
+# Local development stack.
+#   core profile: Postgres + Redis + Mailpit — everything the app needs day-to-day.
+#   full profile (later phases): adds ClickHouse, Redpanda, Temporal, MinIO.
+# Bring up via `task up` from the repo root.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    profiles: [core, full]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-helio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-helio_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-helio}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    profiles: [core, full]
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    profiles: [core, full]
+    ports:
+      - '${MAILPIT_SMTP_PORT:-1025}:1025' # SMTP — all dev email lands here
+      - '${MAILPIT_UI_PORT:-8025}:8025' # Web UI
+    healthcheck:
+      test: ['CMD', '/mailpit', 'readyz']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── Full profile: event/analytics/orchestration plane ──────────────
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.12
+    profiles: [full]
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-helio}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-helio_dev_password}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-helio}
+    ports:
+      - '${CLICKHOUSE_HTTP_PORT:-8123}:8123'
+      - '${CLICKHOUSE_NATIVE_PORT:-9000}:9000'
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    ulimits:
+      nofile: 262144
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:8123/ping | grep -q Ok']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  redpanda:
+    image: redpandadata/redpanda:v24.3.1
+    profiles: [full]
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --memory=1G
+      - --overprovisioned
+      - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:19092
+    ports:
+      - '${REDPANDA_KAFKA_PORT:-19092}:19092'
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
+    healthcheck:
+      test: ['CMD-SHELL', 'rpk cluster health | grep -q "Healthy:.*true"']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  temporal:
+    image: temporalio/auto-setup:1.26
+    profiles: [full]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: '5432'
+      POSTGRES_USER: ${POSTGRES_USER:-helio}
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:-helio_dev_password}
+      POSTGRES_SEEDS: postgres
+    ports:
+      - '${TEMPORAL_PORT:-7233}:7233'
+    healthcheck:
+      test: ['CMD-SHELL', 'temporal operator cluster health --address temporal:7233 || exit 1']
+      interval: 15s
+      timeout: 10s
+      retries: 16
+
+  temporal-ui:
+    image: temporalio/ui:2.34.0
+    profiles: [full]
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    ports:
+      - '${TEMPORAL_UI_PORT:-8080}:8080'
+
+  minio:
+    image: minio/minio:latest
+    profiles: [full]
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-helio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-helio_dev_password}
+    ports:
+      - '${MINIO_PORT:-9002}:9000'
+      - '${MINIO_CONSOLE_PORT:-9003}:9001'
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  # ── Observability profile ──────────────────────────────────────────
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    profiles: [observability]
+    command: ['--config=/etc/otel/config.yaml']
+    volumes:
+      - ../observability/otel-collector.yaml:/etc/otel/config.yaml:ro
+    ports:
+      - '4317:4317' # OTLP gRPC
+      - '4318:4318' # OTLP HTTP
+
+  prometheus:
+    image: prom/prometheus:latest
+    profiles: [observability]
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - ../observability/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - '${PROMETHEUS_PORT:-9090}:9090'
+
+  grafana:
+    image: grafana/grafana:latest
+    profiles: [observability]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    volumes:
+      - ../observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - '${GRAFANA_PORT:-3001}:3000'
+
+volumes:
+  postgres-data:
+  redis-data:
+  clickhouse-data:
+  redpanda-data:
+  minio-data:

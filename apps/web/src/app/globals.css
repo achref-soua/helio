@@ -1,0 +1,4 @@
+@import '@helio/ui/styles.css';
+
+/* The design system lives outside this app's auto-detected content roots. */
+@source '../../../../packages/ui/src';
