@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Builds
+dist/
+build/
+.next/
+out/
+.turbo/
+storybook-static/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Environment — never commit secrets
+.env
+.env.*
+!.env.example
+
+# Test & coverage artifacts
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+htmlcov/
+.coverage
+
+# Logs & OS noise
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+
+# Local data volumes (compose bind mounts)
+.data/
+
