@@ -3,7 +3,7 @@
 import { Button } from '@helio/ui/components/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@helio/ui/components/sheet';
 import { cn } from '@helio/ui/lib/utils';
-import { LayoutDashboard, Menu, Route, Settings, Sun, Users, Workflow } from 'lucide-react';
+import { LayoutDashboard, Mail, Menu, Route, Settings, Sun, Users, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { key: 'dashboard', href: '/', icon: LayoutDashboard },
   { key: 'contacts', href: '/contacts', icon: Users },
   { key: 'segments', href: '/segments', icon: Route },
+  { key: 'emails', href: '/emails', icon: Mail },
   { key: 'journeys', href: '/journeys', icon: Workflow },
   { key: 'settings', href: '/settings', icon: Settings },
 ] as const;

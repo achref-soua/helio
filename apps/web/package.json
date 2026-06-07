@@ -17,6 +17,7 @@
     "@better-auth/api-key": "^1.6.14",
     "@helio/core": "workspace:*",
     "@helio/db": "workspace:*",
+    "@helio/emails": "workspace:*",
     "@helio/ui": "workspace:*",
     "@opentelemetry/api": "^1.9.1",
     "@tanstack/react-query": "^5.101.0",

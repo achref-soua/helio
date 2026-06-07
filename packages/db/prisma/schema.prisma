@@ -30,6 +30,7 @@ model Organization {
   contactLists ContactList[]
   writeKeys    WriteKey[]
   segments     Segment[]
+  emailTemplates EmailTemplate[]
 
   @@map("organization")
 }
@@ -50,6 +51,7 @@ model Workspace {
   contactLists ContactList[]
   writeKeys    WriteKey[]
   segments     Segment[]
+  emailTemplates EmailTemplate[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -163,6 +165,26 @@ model Segment {
   @@unique([workspaceId, name])
   @@index([organizationId])
   @@map("segment")
+}
+
+/// A reusable email: subject + block document (shape owned by
+/// @helio/core's emailDocumentSchema), rendered by packages/emails.
+model EmailTemplate {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  name           String
+  subject        String
+  document       Json
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, name])
+  @@index([organizationId])
+  @@map("email_template")
 }
 
 /// Workspace-scoped credential for the event ingestion endpoint. The

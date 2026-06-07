@@ -6,7 +6,9 @@ export type {
   Contact,
   ContactList,
   ContactListMember,
+  EmailTemplate,
   Organization,
+  Segment,
   Workspace,
   WriteKey,
 } from './generated/prisma/client';

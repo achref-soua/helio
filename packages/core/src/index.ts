@@ -4,6 +4,15 @@ export {
   type NormalizedContactRow,
   type NormalizeResult,
 } from './contacts';
+export {
+  type EmailBlock,
+  emailBlockSchema,
+  type EmailDocument,
+  emailDocumentSchema,
+  extractTokens,
+  type PersonalizationContact,
+  renderTokens,
+} from './email-doc';
 export { createEnv } from './env';
 export {
   HelioError,
