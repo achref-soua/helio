@@ -6,6 +6,7 @@ export type {
   Contact,
   ContactList,
   ContactListMember,
+  EmailSend,
   EmailTemplate,
   Organization,
   Segment,
@@ -13,5 +14,5 @@ export type {
   WriteKey,
 } from './generated/prisma/client';
 export { Prisma } from './generated/prisma/client';
-export { ContactStatus } from './generated/prisma/enums';
+export { ContactStatus, EmailSendStatus } from './generated/prisma/enums';
 export { forTenant, type TenantClient } from './tenant';
