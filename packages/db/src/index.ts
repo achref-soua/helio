@@ -6,6 +6,7 @@ export type {
   ContactListMember,
   Organization,
   Workspace,
+  WriteKey,
 } from './generated/prisma/client';
 export { ContactStatus } from './generated/prisma/enums';
 export { forTenant, type TenantClient } from './tenant';
