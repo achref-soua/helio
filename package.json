@@ -20,7 +20,7 @@
     "test": "turbo run test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "lefthook install"
+    "prepare": "node -e \"if (!process.env.CI && require('fs').existsSync('.git')) require('child_process').execSync('lefthook install', { stdio: 'inherit' })\""
   },
   "devDependencies": {
     "@commitlint/cli": "^21.0.2",

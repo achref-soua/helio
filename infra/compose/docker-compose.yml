@@ -49,6 +49,96 @@ services:
       timeout: 3s
       retries: 10
 
+  # ── Full profile: event/analytics/orchestration plane ──────────────
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.12
+    profiles: [full]
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-helio}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-helio_dev_password}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-helio}
+    ports:
+      - '${CLICKHOUSE_HTTP_PORT:-8123}:8123'
+      - '${CLICKHOUSE_NATIVE_PORT:-9000}:9000'
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    ulimits:
+      nofile: 262144
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:8123/ping | grep -q Ok']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  redpanda:
+    image: redpandadata/redpanda:v24.3.1
+    profiles: [full]
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --memory=1G
+      - --overprovisioned
+      - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:19092
+    ports:
+      - '${REDPANDA_KAFKA_PORT:-19092}:19092'
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
+    healthcheck:
+      test: ['CMD-SHELL', 'rpk cluster health | grep -q "Healthy:.*true"']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  temporal:
+    image: temporalio/auto-setup:1.26
+    profiles: [full]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: '5432'
+      POSTGRES_USER: ${POSTGRES_USER:-helio}
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:-helio_dev_password}
+      POSTGRES_SEEDS: postgres
+    ports:
+      - '${TEMPORAL_PORT:-7233}:7233'
+    healthcheck:
+      test: ['CMD-SHELL', 'temporal operator cluster health --address temporal:7233 || exit 1']
+      interval: 15s
+      timeout: 10s
+      retries: 16
+
+  temporal-ui:
+    image: temporalio/ui:2.34.0
+    profiles: [full]
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    ports:
+      - '${TEMPORAL_UI_PORT:-8080}:8080'
+
+  minio:
+    image: minio/minio:latest
+    profiles: [full]
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-helio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-helio_dev_password}
+    ports:
+      - '${MINIO_PORT:-9002}:9000'
+      - '${MINIO_CONSOLE_PORT:-9003}:9001'
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
   # ── Observability profile ──────────────────────────────────────────
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
@@ -85,3 +175,6 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  clickhouse-data:
+  redpanda-data:
+  minio-data:

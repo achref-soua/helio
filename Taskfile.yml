@@ -2,6 +2,9 @@ version: '3'
 
 # One-liners for everything. Run `task --list` to see all tasks.
 
+vars:
+  COMPOSE: docker compose --env-file .env -f infra/compose/docker-compose.yml
+
 tasks:
   default:
     desc: List available tasks
@@ -51,10 +54,29 @@ tasks:
         silent: true
       - '{{.COMPOSE}} --profile core up -d --wait'
 
+  up:full:
+    desc: Start the full stack (adds ClickHouse, Redpanda, Temporal, MinIO)
+    cmds:
+      - cmd: test -f .env || cp .env.example .env
+        silent: true
+      - '{{.COMPOSE}} --profile full up -d --wait'
+
+  up:observability:
+    desc: Start the observability stack (OTel collector, Prometheus, Grafana)
+    cmds:
+      - cmd: test -f .env || cp .env.example .env
+        silent: true
+      - '{{.COMPOSE}} --profile observability up -d --wait'
+
   down:
     desc: Stop the local stack (data volumes are kept)
     cmds:
-      - '{{.COMPOSE}} --profile core down'
+      - '{{.COMPOSE}} --profile core --profile full --profile observability down'
+
+  screenshots:
+    desc: Regenerate docs/assets screenshots from a running app (BASE_URL overridable)
+    cmds:
+      - pnpm --filter @helio/web exec tsx scripts/screenshots.ts
 
   logs:
     desc: Tail logs of the local stack (task logs -- <service>)
