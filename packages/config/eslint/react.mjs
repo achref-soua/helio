@@ -13,14 +13,16 @@ export default [
   ...base,
   react.configs.flat.recommended,
   react.configs.flat['jsx-runtime'],
-  reactHooks.configs['recommended-latest'],
+  reactHooks.configs.flat.recommended,
   jsxA11y.flatConfigs.recommended,
   {
     languageOptions: {
       globals: { ...globals.browser },
     },
     settings: {
-      react: { version: 'detect' },
+      // Explicit version: eslint-plugin-react's 'detect' path still calls
+      // context APIs removed in ESLint 10.
+      react: { version: '19.2' },
     },
     rules: {
       'react/prop-types': 'off',
