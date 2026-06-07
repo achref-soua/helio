@@ -1,3 +1,9 @@
+export {
+  contactEmailSchema,
+  normalizeContactRows,
+  type NormalizedContactRow,
+  type NormalizeResult,
+} from './contacts';
 export { createEnv } from './env';
 export {
   HelioError,
