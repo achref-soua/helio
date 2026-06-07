@@ -29,6 +29,7 @@ Marketing automation today forces a bad choice:
 
 > Legend: ✅ shipped · 🚧 in progress · 🗺️ roadmap
 
+- ✅ **Multi-tenant platform core** — organizations & workspaces with Postgres row-level security (cross-tenant access is impossible at the database, not just filtered), role-based access (owner/admin/editor/viewer), email-verified auth with 2FA support, invitations, audit log, REST gateway with OpenAPI 3.1 + problem+json + idempotency + rate limiting
 - 🚧 **Customer data platform** — unified profiles, custom traits, identity resolution, full event timelines, GDPR export/delete
 - 🗺️ **Segmentation** — visual nested AND/OR builder, behavioral segments, RFM, suppression lists, natural-language → segment
 - 🗺️ **Journeys** — visual canvas executing on a durable workflow engine: journeys survive restarts and multi-week waits with no double-sends
@@ -37,7 +38,7 @@ Marketing automation today forces a bad choice:
 - 🗺️ **Analytics & attribution** — funnels, cohorts, revenue attribution, deliverability analytics, real-time dashboards
 - 🗺️ **AI copilot** — describe a journey in a sentence and get a working automation; brand-voice content generation; predictive scoring & churn; send-time optimization
 - 🗺️ **Agent-ready** — an MCP server exposes Helio's capabilities as tools, so external AI agents can drive campaigns programmatically
-- 🚧 **Platform** — multi-tenant workspaces, RBAC, API keys, audit log, REST API + webhooks + SDKs, importers from HubSpot/Mailchimp/Klaviyo
+- 🗺️ **Integrations** — webhooks, SDKs generated from the OpenAPI spec, importers from HubSpot/Mailchimp/Klaviyo
 
 ## Architecture
 
@@ -93,27 +94,31 @@ TypeScript owns the product surface (dashboard, APIs, journey workers on Tempora
 
 ## Quickstart
 
-> Available from **v0.1.0** — the commands below are the contract the first release ships with.
-
 ```bash
 git clone https://github.com/achref-soua/helio.git
 cd helio
-cp .env.example .env
-task up          # full local stack via Docker Compose
+cp .env.example .env       # set BETTER_AUTH_SECRET + API_BOOTSTRAP_TOKEN (openssl rand -hex 32)
+task setup                 # install dependencies + git hooks
+task up                    # Postgres (+pgvector), Redis, Mailpit
+task db:migrate && task db:seed
+pnpm --filter @helio/web dev
 ```
 
-Then open `http://localhost:3000` and log into the seeded demo workspace.
+Open `http://localhost:3000`, sign up, and verify your email at Mailpit (`http://localhost:8025`) — onboarding creates your organization. Dev email never leaves your machine.
 
-### Developing
+### Everything you can run
 
-```bash
-task setup        # install dependencies + git hooks
-task --list       # everything you can run
-task lint         # lint all packages
-task typecheck    # type-check all packages
-task test         # run all test suites
-task format       # Prettier
-```
+| Command                                                                      | What it does                                                                                 |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `task up` / `task up:full` / `task up:observability`                         | core infra / + ClickHouse, Redpanda, Temporal, MinIO / + Prometheus, Grafana, OTel collector |
+| `task db:migrate` · `db:seed` · `db:studio` · `db:reset`                     | schema & data lifecycle                                                                      |
+| `task lint` · `typecheck` · `test` · `format` · `build`                      | the quality pipeline (same as CI)                                                            |
+| `pnpm --filter @helio/web dev` / `@helio/api dev`                            | dashboard :3000 / gateway :4000                                                              |
+| `cd apps/intelligence && uv run uvicorn helio_intelligence.app:app --reload` | intelligence :8000                                                                           |
+| `cd apps/web && pnpm test:e2e`                                               | Playwright suite incl. the full signup→invite→accept journey                                 |
+| `task screenshots`                                                           | regenerate `docs/assets` from a running app                                                  |
+
+Details: [local-dev runbook](docs/runbooks/local-dev.md).
 
 ## Configuration
 
@@ -121,7 +126,15 @@ Every environment variable any service reads is documented in [`.env.example`](.
 
 ## Deployment
 
-Deployment guides (Docker Compose profiles, Kubernetes/Helm, managed cloud) ship alongside the v0.1.0 release.
+Multi-stage, non-root, healthchecked images for all three services live in [`infra/docker/`](infra/docker) and publish to GHCR on every `main` push (Trivy-gated, SBOM attached):
+
+```bash
+docker build -f infra/docker/web.Dockerfile -t helio-web .
+docker build -f infra/docker/api.Dockerfile -t helio-api .
+docker build -f infra/docker/intelligence.Dockerfile -t helio-intelligence .
+```
+
+Compose profiles cover local/self-host topologies; the Helm chart and managed-cloud walkthrough ship with the v1 platform milestone.
 
 ## Roadmap
 
@@ -132,6 +145,11 @@ Deployment guides (Docker Compose profiles, Kubernetes/Helm, managed cloud) ship
 | **v0.3**  | Growth: full journey canvas, SMS & push, landing pages, lead scoring, A/B testing, attribution        |
 | **v0.4**  | AI: copilot, NL→segment, NL→journey, brand-voice generation, predictive scoring, MCP server           |
 | **v1.0**  | Platform: integrations, importers, SSO/SCIM, billing, CRM-lite, docs site, public demo                |
+
+## Documentation
+
+- [Architecture (C4) & trust boundaries](docs/architecture.md) · [Decision log (ADRs)](docs/adr) · [Threat model](docs/threat-model.md)
+- [Local-dev runbook](docs/runbooks/local-dev.md) · [API spec (OpenAPI 3.1)](apps/api/openapi.json)
 
 ## Contributing & policies
 
