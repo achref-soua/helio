@@ -90,3 +90,24 @@ test('delete a contact', async ({ page }) => {
   await expect(page.getByText('Contact deleted')).toBeVisible();
   await expect(page.getByRole('cell', { name: 'manual@example.com' })).toHaveCount(0);
 });
+
+test('cursor pagination yields every row exactly once', async ({ page }) => {
+  // Regression: the pop()-as-cursor idiom used to drop the first row of
+  // every page after the first. 60 contacts spans the 50-row page size.
+  const bulk = Buffer.from(
+    [
+      'Email',
+      ...Array.from({ length: 60 }, (_, i) => `bulk-${String(i).padStart(2, '0')}@example.com`),
+    ].join('\n'),
+  );
+  await page.goto('/contacts');
+  await page.getByRole('button', { name: 'Import CSV' }).click();
+  await page
+    .getByLabel('CSV file')
+    .setInputFiles({ name: 'bulk.csv', mimeType: 'text/csv', buffer: bulk });
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByText(/Imported 60 contacts/)).toBeVisible({ timeout: 15_000 });
+
+  await page.getByRole('button', { name: 'Load more' }).click();
+  await expect(page.getByRole('cell', { name: /bulk-\d\d@example\.com/ })).toHaveCount(60);
+});
