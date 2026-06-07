@@ -1,5 +1,14 @@
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+import { loadEnvFile } from 'node:process';
+
 import { createEnv } from '@helio/core';
 import { z } from 'zod';
+
+// Local dev convenience: the repo-root .env is the single config source.
+// Containers get real env injected and ship no .env file — no-op there.
+const rootEnv = path.resolve(import.meta.dirname, '../../../.env');
+if (existsSync(rootEnv)) loadEnvFile(rootEnv);
 
 export const env = createEnv({
   INGEST_PORT: z.coerce.number().int().default(4100),

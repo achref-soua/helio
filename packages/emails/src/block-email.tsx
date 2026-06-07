@@ -1,3 +1,5 @@
+// Explicit import: consumers compile this file under varying JSX
+// transforms (Next/Vite use automatic; tsx may use classic).
 import type { EmailDocument } from '@helio/core';
 import {
   Body,
@@ -13,6 +15,7 @@ import {
   Section,
   Text,
 } from '@react-email/components';
+import * as React from 'react';
 
 export interface BlockEmailProps {
   document: EmailDocument;
@@ -21,6 +24,8 @@ export interface BlockEmailProps {
   /** Rendered in the footer; legally required for marketing mail. */
   unsubscribeUrl?: string;
   footerText?: string;
+  /** Open-tracking pixel, appended after the footer when set. */
+  pixelUrl?: string;
 }
 
 const styles = {
@@ -48,7 +53,13 @@ const styles = {
 } as const;
 
 /** The single Phase 1 layout: a centered card over a neutral background. */
-export function BlockEmail({ document, previewText, unsubscribeUrl, footerText }: BlockEmailProps) {
+export function BlockEmail({
+  document,
+  previewText,
+  unsubscribeUrl,
+  footerText,
+  pixelUrl,
+}: BlockEmailProps) {
   return (
     <Html lang="en">
       <Head />
@@ -96,6 +107,9 @@ export function BlockEmail({ document, previewText, unsubscribeUrl, footerText }
               ) : null}
             </Text>
           )}
+          {pixelUrl ? (
+            <Img src={pixelUrl} alt="" width={1} height={1} style={{ display: 'block' }} />
+          ) : null}
         </Container>
       </Body>
     </Html>

@@ -15,6 +15,10 @@ export interface RenderEmailOptions {
   subject?: string;
   unsubscribeUrl?: string;
   footerText?: string;
+  /** Open-tracking pixel URL appended to the body. */
+  pixelUrl?: string;
+  /** Rewrites click-through targets (button links) for tracking. */
+  wrapLink?: (url: string) => Promise<string>;
 }
 
 export interface RenderedEmail {
@@ -51,7 +55,8 @@ function personalizeDocument(
  */
 export async function renderEmail(options: RenderEmailOptions): Promise<RenderedEmail> {
   const parsed = emailDocumentSchema.parse(options.document);
-  const document = options.contact ? personalizeDocument(parsed, options.contact) : parsed;
+  let document = options.contact ? personalizeDocument(parsed, options.contact) : parsed;
+  if (options.wrapLink) document = await wrapDocumentLinks(document, options.wrapLink);
   const subject = options.contact
     ? renderTokens(options.subject ?? '', options.contact)
     : (options.subject ?? '');
@@ -61,10 +66,25 @@ export async function renderEmail(options: RenderEmailOptions): Promise<Rendered
     previewText: firstParagraph(document),
     unsubscribeUrl: options.unsubscribeUrl,
     footerText: options.footerText,
+    pixelUrl: options.pixelUrl,
   });
 
   const [html, text] = await Promise.all([render(element), render(element, { plainText: true })]);
   return { subject, html, text };
+}
+
+/** Buttons are the click-through surface; images load, they aren't clicked. */
+async function wrapDocumentLinks(
+  document: EmailDocument,
+  wrap: (url: string) => Promise<string>,
+): Promise<EmailDocument> {
+  return {
+    blocks: await Promise.all(
+      document.blocks.map(async (block) =>
+        block.type === 'button' ? { ...block, url: await wrap(block.url) } : block,
+      ),
+    ),
+  };
 }
 
 function firstParagraph(document: EmailDocument): string | undefined {

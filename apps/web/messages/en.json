@@ -10,7 +10,8 @@
     "journeys": "Journeys",
     "settings": "Settings",
     "toggleNavigation": "Toggle navigation",
-    "emails": "Emails"
+    "emails": "Emails",
+    "campaigns": "Campaigns"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -282,5 +283,46 @@
         "spacer": "Spacer"
       }
     }
+  },
+  "campaigns": {
+    "title": "Campaigns",
+    "total": "{count, plural, one {# campaign} other {# campaigns}}",
+    "newCampaign": "New campaign",
+    "createTitle": "Create a campaign",
+    "createSubtitle": "Pick a template and an audience; sending runs durably on the worker.",
+    "name": "Name",
+    "template": "Template",
+    "pickTemplate": "Pick a template…",
+    "audience": "Audience",
+    "pickAudience": "Pick an audience…",
+    "segmentPrefix": "Segment: {name}",
+    "listPrefix": "List: {name}",
+    "createAction": "Create campaign",
+    "cancel": "Cancel",
+    "created": "Campaign created",
+    "deleted": "Campaign deleted",
+    "sendStarted": "Send started",
+    "send": "Send",
+    "sendAction": "Send {name}",
+    "deleteAction": "Delete {name}",
+    "genericError": "Something went wrong",
+    "counts": "{sent} sent · {failed} failed",
+    "emptyTitle": "No campaigns yet",
+    "emptyBody": "Create one from a template and a segment or list.",
+    "status": {
+      "DRAFT": "Draft",
+      "SENDING": "Sending",
+      "SENT": "Sent",
+      "FAILED": "Failed"
+    }
+  },
+  "unsubscribe": {
+    "title": "Unsubscribe from marketing email",
+    "body": "Stop marketing email to {email}? You can always opt back in later.",
+    "confirm": "Unsubscribe",
+    "doneTitle": "You're unsubscribed",
+    "doneBody": "{email} will no longer receive marketing email.",
+    "invalidTitle": "Link not recognized",
+    "invalidBody": "This unsubscribe link is invalid or no longer applies."
   }
 }

@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [web, api, ingest, tracking, intelligence]
+        service: [web, api, ingest, tracking, workers, intelligence]
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
