@@ -45,6 +45,80 @@ async function main() {
     },
   });
 
+  const demoContacts: Array<{
+    email: string;
+    firstName: string;
+    lastName: string;
+    attributes: Record<string, string>;
+  }> = [
+    {
+      email: 'ada@example.com',
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      attributes: { plan: 'pro', company: 'Analytical Engines' },
+    },
+    {
+      email: 'grace@example.com',
+      firstName: 'Grace',
+      lastName: 'Hopper',
+      attributes: { plan: 'pro', company: 'US Navy' },
+    },
+    {
+      email: 'alan@example.com',
+      firstName: 'Alan',
+      lastName: 'Turing',
+      attributes: { plan: 'free', company: 'Bletchley Park' },
+    },
+    {
+      email: 'katherine@example.com',
+      firstName: 'Katherine',
+      lastName: 'Johnson',
+      attributes: { plan: 'free', company: 'NASA' },
+    },
+    {
+      email: 'edsger@example.com',
+      firstName: 'Edsger',
+      lastName: 'Dijkstra',
+      attributes: { plan: 'trial', company: 'THE' },
+    },
+  ];
+  const contacts = await Promise.all(
+    demoContacts.map((contact) =>
+      prisma.contact.upsert({
+        where: { workspaceId_email: { workspaceId: workspace.id, email: contact.email } },
+        update: {},
+        create: {
+          id: newId('contact'),
+          organizationId: org.id,
+          workspaceId: workspace.id,
+          source: 'seed',
+          ...contact,
+        },
+      }),
+    ),
+  );
+
+  const list = await prisma.contactList.upsert({
+    where: { workspaceId_name: { workspaceId: workspace.id, name: 'Pro customers' } },
+    update: {},
+    create: {
+      id: newId('list'),
+      organizationId: org.id,
+      workspaceId: workspace.id,
+      name: 'Pro customers',
+    },
+  });
+  await prisma.contactListMember.createMany({
+    data: contacts
+      .filter((contact) => (contact.attributes as Record<string, string>).plan === 'pro')
+      .map((contact) => ({
+        listId: list.id,
+        contactId: contact.id,
+        organizationId: org.id,
+      })),
+    skipDuplicates: true,
+  });
+
   await prisma.auditLog.create({
     data: {
       id: newId('audit'),
@@ -57,7 +131,10 @@ async function main() {
     },
   });
 
-  console.log(`Seeded demo data: ${org.slug}/${workspace.slug} (${org.id}, ${workspace.id})`);
+  console.log(
+    `Seeded demo data: ${org.slug}/${workspace.slug} (${org.id}, ${workspace.id}), ` +
+      `${contacts.length} contacts, list "${list.name}"`,
+  );
   await prisma.$disconnect();
 }
 

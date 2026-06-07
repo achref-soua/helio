@@ -11,6 +11,7 @@ import { useState } from 'react';
 
 import { ThemeToggle } from '@/components/theme-toggle';
 import { UserMenu } from '@/components/user-menu';
+import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 
 const NAV_ITEMS = [
   { key: 'dashboard', href: '/', icon: LayoutDashboard },
@@ -85,6 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </SheetContent>
           </Sheet>
           <div className="ml-auto flex items-center gap-1">
+            <WorkspaceSwitcher />
             <ThemeToggle />
             <UserMenu />
           </div>

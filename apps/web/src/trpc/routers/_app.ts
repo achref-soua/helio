@@ -1,4 +1,6 @@
 import { protectedProcedure, publicProcedure, router } from '../init';
+import { contactRouter } from './contact';
+import { contactListRouter } from './contact-list';
 import { workspaceRouter } from './workspace';
 
 export const appRouter = router({
@@ -8,6 +10,8 @@ export const appRouter = router({
     activeOrganizationId: ctx.session.session.activeOrganizationId ?? null,
   })),
   workspace: workspaceRouter,
+  contact: contactRouter,
+  contactList: contactListRouter,
 });
 
 export type AppRouter = typeof appRouter;

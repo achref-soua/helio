@@ -110,5 +110,63 @@
     "notFoundTitle": "Page not found",
     "notFoundBody": "The page you are looking for does not exist.",
     "backHome": "Back to dashboard"
+  },
+  "contacts": {
+    "title": "Contacts",
+    "total": "{count} total",
+    "addAction": "Add contact",
+    "importAction": "Import CSV",
+    "searchPlaceholder": "Search email or name…",
+    "allContacts": "All contacts",
+    "newList": "New list",
+    "newListTitle": "Create a list",
+    "listName": "List name",
+    "createListAction": "Create list",
+    "addToList": "Add {count} to list",
+    "addedToList": "Added {count} contacts to the list",
+    "selectAll": "Select all rows",
+    "selectRow": "Select row",
+    "rowActions": "Contact actions",
+    "editAction": "Edit",
+    "deleteAction": "Delete",
+    "removeFromList": "Remove from list",
+    "loadMore": "Load more",
+    "loading": "Loading…",
+    "empty": "No contacts yet. Add one or import a CSV.",
+    "deleted": "Contact deleted",
+    "updated": "Contact updated",
+    "createdToast": "Contact created",
+    "addTitle": "Add a contact",
+    "editTitle": "Edit contact",
+    "dialogSubtitle": "Email is the unique identifier within a workspace.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "saveAction": "Save changes",
+    "createAction": "Create contact",
+    "working": "Working…",
+    "genericError": "Something went wrong. Please try again.",
+    "columns": {
+      "email": "Email",
+      "name": "Name",
+      "status": "Status",
+      "added": "Added"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "UNSUBSCRIBED": "Unsubscribed",
+      "BOUNCED": "Bounced",
+      "COMPLAINED": "Complained"
+    },
+    "import": {
+      "title": "Import contacts",
+      "subtitle": "CSV with a header row; an email column is required. Extra columns become attributes.",
+      "fileLabel": "CSV file",
+      "summary": "{valid} valid · {invalid} invalid · {duplicates} duplicates in file",
+      "importAction": "Import",
+      "working": "Importing…",
+      "parseError": "Could not parse that file as CSV.",
+      "resultToast": "Imported {created} contacts ({skipped} already existed)",
+      "genericError": "Import failed. Please try again."
+    }
   }
 }
