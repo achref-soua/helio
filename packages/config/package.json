@@ -1,0 +1,47 @@
+{
+  "name": "@helio/config",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared ESLint, TypeScript, Prettier, and Vitest presets for the Helio monorepo.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    "./eslint/base": "./eslint/base.mjs",
+    "./eslint/react": "./eslint/react.mjs",
+    "./prettier": "./prettier/index.mjs",
+    "./vitest": "./vitest/base.mjs",
+    "./typescript/*": "./typescript/*"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "test": "vitest run --coverage"
+  },
+  "peerDependencies": {
+    "eslint": ">=10",
+    "typescript": ">=5.9",
+    "vitest": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    },
+    "vitest": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-simple-import-sort": "^13.0.0",
+    "globals": "^17.6.0",
+    "typescript-eslint": "^8.60.1"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.8",
+    "eslint": "^10.4.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}
