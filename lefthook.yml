@@ -1,0 +1,15 @@
+# Git hooks. Installed automatically by `pnpm install` (prepare script).
+
+pre-commit:
+  parallel: true
+  commands:
+    secrets:
+      run: gitleaks git --pre-commit --staged --redact
+    format:
+      glob: '*.{js,mjs,cjs,ts,tsx,json,md,yml,yaml,css}'
+      run: pnpm prettier --check {staged_files}
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm commitlint --edit {1}

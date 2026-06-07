@@ -1,0 +1,47 @@
+name: Bug report
+description: Something in Helio is broken
+title: '[bug] '
+labels: ['bug', 'triage']
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Helio version
+      description: Release tag or commit SHA you are running
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment type
+      options:
+        - Docker Compose (core profile)
+        - Docker Compose (full profile)
+        - Kubernetes / Helm
+        - Local development
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Redact anything sensitive. Rendered as code automatically.
+      render: shell

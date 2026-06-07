@@ -1,0 +1,45 @@
+version: '3'
+
+# One-liners for everything. Run `task --list` to see all tasks.
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  setup:
+    desc: Install all dependencies and git hooks
+    cmds:
+      - pnpm install
+
+  format:
+    desc: Format the whole repo with Prettier
+    cmds:
+      - pnpm format
+
+  format:check:
+    desc: Check formatting without writing
+    cmds:
+      - pnpm format:check
+
+  lint:
+    desc: Lint all workspace packages
+    cmds:
+      - pnpm lint
+
+  typecheck:
+    desc: Type-check all workspace packages
+    cmds:
+      - pnpm typecheck
+
+  test:
+    desc: Run all test suites
+    cmds:
+      - pnpm test
+
+  build:
+    desc: Build all workspace packages
+    cmds:
+      - pnpm build
