@@ -31,6 +31,7 @@ model Organization {
   writeKeys    WriteKey[]
   segments     Segment[]
   emailTemplates EmailTemplate[]
+  emailSends   EmailSend[]
 
   @@map("organization")
 }
@@ -52,6 +53,7 @@ model Workspace {
   writeKeys    WriteKey[]
   segments     Segment[]
   emailTemplates EmailTemplate[]
+  emailSends   EmailSend[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -107,6 +109,7 @@ model Contact {
   organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   workspace    Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   listMembers  ContactListMember[]
+  emailSends   EmailSend[]
 
   @@unique([workspaceId, email])
   @@index([organizationId])
@@ -205,6 +208,44 @@ model WriteKey {
   @@index([organizationId])
   @@index([workspaceId])
   @@map("write_key")
+}
+
+/// Delivery state of an email send. The send pipeline considers
+/// anything but ACTIVE contacts suppressed before creating one.
+enum EmailSendStatus {
+  QUEUED
+  SENT
+  FAILED
+
+  @@map("email_send_status")
+}
+
+/// One email to one contact. The id doubles as the public tracking
+/// token in pixel/click URLs, so it must stay unguessable-enough
+/// (time-ordered random suffix) and leak nothing on its own.
+model EmailSend {
+  id             String          @id
+  organizationId String          @map("organization_id")
+  workspaceId    String          @map("workspace_id")
+  contactId      String          @map("contact_id")
+  /// Campaign linkage arrives with the campaigns slice (kept FK-less
+  /// until then so the column exists for tracking payloads).
+  campaignId     String?         @map("campaign_id")
+  email          String
+  subject        String
+  status         EmailSendStatus @default(QUEUED)
+  error          String?
+  sentAt         DateTime?       @map("sent_at")
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contact      Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([workspaceId, createdAt])
+  @@index([campaignId])
+  @@map("email_send")
 }
 
 // ───────────────────────── Better-Auth tables ─────────────────────────

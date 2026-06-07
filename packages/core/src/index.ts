@@ -64,3 +64,9 @@ export {
   STRING_OPERATORS,
   type StringOperator,
 } from './segments';
+export {
+  clickRedirectUrl,
+  openPixelUrl,
+  signClickTarget,
+  verifyClickTarget,
+} from './tracking-links';
