@@ -1,0 +1,16 @@
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/coverage
+**/test-results
+**/playwright-report
+**/storybook-static
+**/.venv
+**/__pycache__
+.git
+.env
+.env.*
+!.env.example
+docs/assets
+packages/db/src/generated
