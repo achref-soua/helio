@@ -42,3 +42,16 @@ export {
   unwrap,
   unwrapOr,
 } from './result';
+export {
+  CONTACT_FIELDS,
+  CONTACT_STATUSES,
+  type ContactField,
+  countConditions,
+  type SegmentCondition,
+  segmentConditionSchema,
+  type SegmentRule,
+  type SegmentRuleGroup,
+  segmentRuleSchema,
+  STRING_OPERATORS,
+  type StringOperator,
+} from './segments';

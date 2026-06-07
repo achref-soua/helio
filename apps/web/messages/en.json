@@ -168,5 +168,74 @@
       "resultToast": "Imported {created} contacts ({skipped} already existed)",
       "genericError": "Import failed. Please try again."
     }
+  },
+  "segments": {
+    "title": "Segments",
+    "total": "{count, plural, one {# segment} other {# segments}}",
+    "newSegment": "New segment",
+    "createTitle": "Create a segment",
+    "editTitle": "Edit segment",
+    "editorSubtitle": "Contacts matching the rule are members — always live, no syncing.",
+    "name": "Name",
+    "description": "Description (optional)",
+    "createAction": "Create segment",
+    "saveAction": "Save changes",
+    "cancel": "Cancel",
+    "created": "Segment created",
+    "updated": "Segment updated",
+    "deleted": "Segment deleted",
+    "deleteAction": "Delete {name}",
+    "genericError": "Something went wrong",
+    "previewIncomplete": "Finish the rule to preview matches",
+    "previewLoading": "Counting…",
+    "previewCount": "{count, plural, one {# contact matches} other {# contacts match}}",
+    "memberCount": "{count, plural, one {# member} other {# members}}",
+    "conditionCount": "{count, plural, one {# condition} other {# conditions}}",
+    "emptyTitle": "No segments yet",
+    "emptyBody": "Create a dynamic audience from contact fields and attributes.",
+    "builder": {
+      "groupOp": "Group operator",
+      "matchAll": "Match all",
+      "matchAny": "Match any",
+      "ofTheFollowing": "of the following",
+      "addCondition": "Add condition",
+      "addGroup": "Add group",
+      "removeGroup": "Remove group",
+      "removeCondition": "Remove condition",
+      "target": "Property",
+      "operator": "Operator",
+      "value": "Value",
+      "valuePlaceholder": "Value",
+      "attributeKey": "Attribute name",
+      "attributeKeyPlaceholder": "e.g. plan",
+      "daysPlaceholder": "Days",
+      "fields": {
+        "email": "Email",
+        "firstName": "First name",
+        "lastName": "Last name",
+        "attribute": "Attribute",
+        "status": "Status",
+        "createdAt": "Created"
+      },
+      "operators": {
+        "equals": "equals",
+        "not_equals": "does not equal",
+        "contains": "contains",
+        "not_contains": "does not contain",
+        "starts_with": "starts with",
+        "ends_with": "ends with",
+        "is_set": "is set",
+        "is_not_set": "is not set",
+        "in_last_days": "in the last (days)",
+        "before": "before",
+        "after": "after"
+      },
+      "statuses": {
+        "ACTIVE": "Active",
+        "UNSUBSCRIBED": "Unsubscribed",
+        "BOUNCED": "Bounced",
+        "COMPLAINED": "Complained"
+      }
+    }
   }
 }
