@@ -20,7 +20,9 @@ export default [
       globals: { ...globals.browser },
     },
     settings: {
-      react: { version: 'detect' },
+      // Explicit version: eslint-plugin-react's 'detect' path still calls
+      // context APIs removed in ESLint 10.
+      react: { version: '19.2' },
     },
     rules: {
       'react/prop-types': 'off',
