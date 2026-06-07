@@ -1,0 +1,36 @@
+{
+  "name": "@helio/api",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Helio public REST gateway — OpenAPI 3.1, problem+json errors, rate limiting, idempotency.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage",
+    "openapi": "tsx src/scripts/write-openapi.ts"
+  },
+  "dependencies": {
+    "@helio/core": "workspace:*",
+    "@helio/db": "workspace:*",
+    "@hono/node-server": "^2.0.4",
+    "@hono/zod-openapi": "^1.4.0",
+    "hono": "^4.12.23",
+    "ioredis": "^5.11.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@helio/config": "workspace:*",
+    "@testcontainers/postgresql": "^12.0.1",
+    "@types/ioredis-mock": "^8.2.7",
+    "@types/node": "^25.9.2",
+    "@vitest/coverage-v8": "^4.1.8",
+    "eslint": "^10.4.1",
+    "ioredis-mock": "^8.13.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}

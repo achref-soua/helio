@@ -1,0 +1,18 @@
+import { createEnv } from '@helio/core';
+import { z } from 'zod';
+
+export const env = createEnv({
+  API_PORT: z.coerce.number().int().default(4000),
+  // RLS-bound runtime connection — same role the dashboard uses.
+  DATABASE_URL: z.string().min(1),
+  REDIS_URL: z.string().min(1),
+  /**
+   * Bootstrap bearer token for the Phase 0 gateway. Replaced by per-user
+   * Better-Auth API keys with scopes when the public API surface ships.
+   */
+  API_BOOTSTRAP_TOKEN: z.string().min(24),
+  RATE_LIMIT_MAX: z.coerce.number().int().default(100),
+  RATE_LIMIT_WINDOW_S: z.coerce.number().int().default(60),
+});
+
+export type Env = typeof env;
