@@ -26,6 +26,14 @@ def test_openapi_document_is_served() -> None:
     assert "/healthz" in document["paths"]
 
 
+def test_metrics_expose_request_histogram() -> None:
+    client = TestClient(create_app())
+    client.get("/healthz")
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert "helio_intelligence_http_request_duration_seconds" in response.text
+
+
 def test_settings_respect_environment(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     from helio_intelligence.settings import Settings
 

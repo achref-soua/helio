@@ -4,8 +4,10 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 
 import { bearerAuth } from './middleware/auth';
 import { idempotency } from './middleware/idempotency';
+import { requestLogging } from './middleware/logging';
 import { notFoundResponse, problemResponse } from './middleware/problem';
 import { rateLimit } from './middleware/rate-limit';
+import { metricsRegistry } from './observability';
 import { workspaceRoutes } from './routes/workspaces';
 import type { GatewayDeps, GatewayEnv } from './types';
 
@@ -24,7 +26,13 @@ export function createApp(deps: GatewayDeps) {
     await next();
   });
 
+  app.use('*', requestLogging);
+
   app.get('/healthz', (c) => c.json({ status: 'ok', service: 'api' }));
+
+  app.get('/metrics', async (c) =>
+    c.text(await metricsRegistry.metrics(), 200, { 'content-type': metricsRegistry.contentType }),
+  );
 
   app.get('/readyz', async (c) => {
     const checks: Record<string, 'ok' | 'failed'> = { database: 'failed', redis: 'failed' };

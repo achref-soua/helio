@@ -49,6 +49,39 @@ services:
       timeout: 3s
       retries: 10
 
+  # ── Observability profile ──────────────────────────────────────────
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    profiles: [observability]
+    command: ['--config=/etc/otel/config.yaml']
+    volumes:
+      - ../observability/otel-collector.yaml:/etc/otel/config.yaml:ro
+    ports:
+      - '4317:4317' # OTLP gRPC
+      - '4318:4318' # OTLP HTTP
+
+  prometheus:
+    image: prom/prometheus:latest
+    profiles: [observability]
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - ../observability/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - '${PROMETHEUS_PORT:-9090}:9090'
+
+  grafana:
+    image: grafana/grafana:latest
+    profiles: [observability]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    volumes:
+      - ../observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - '${GRAFANA_PORT:-3001}:3000'
+
 volumes:
   postgres-data:
   redis-data:

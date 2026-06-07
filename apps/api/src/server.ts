@@ -5,6 +5,9 @@ import { Redis } from 'ioredis';
 
 import { createApp } from './app';
 import { env } from './env';
+import { startTracing } from './observability';
+
+await startTracing('helio-api');
 
 const app = createApp({
   prisma: createPrismaClient(env.DATABASE_URL),
