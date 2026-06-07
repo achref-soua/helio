@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+// Connection URLs live outside the schema (Prisma 7):
+//  - Migrate/Studio use the admin adapter from prisma.config.ts
+//    (DATABASE_ADMIN_URL — owns the schema, bypasses RLS).
+//  - Runtime clients are constructed with a driver adapter over
+//    DATABASE_URL (helio_app role, subject to RLS).
+datasource db {
+  provider = "postgresql"
+}
+
+/// Tenant root. Better-Auth's organization plugin owns the auth-facing
+/// fields; domain tables hang off it and are isolated by RLS.
+model Organization {
+  id        String   @id
+  name      String
+  slug      String   @unique
+  logo      String?
+  metadata  String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  workspaces Workspace[]
+  auditLogs  AuditLog[]
+
+  @@map("organization")
+}
+
+/// A working environment inside an organization (e.g. "Production",
+/// "Sandbox"). Most product objects will belong to a workspace.
+model Workspace {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  name           String
+  slug           String
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  auditLogs    AuditLog[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@map("workspace")
+}
+
+/// Append-only audit trail. Every security-relevant action lands here.
+model AuditLog {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String?  @map("workspace_id")
+  actorId        String?  @map("actor_id")
+  action         String
+  targetType     String?  @map("target_type")
+  targetId       String?  @map("target_id")
+  ip             String?
+  metadata       Json?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace?   @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@map("audit_log")
+}

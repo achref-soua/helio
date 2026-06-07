@@ -1,0 +1,8 @@
+{
+  "extends": "@helio/config/typescript/base.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src", "tests", "prisma", "prisma.config.ts"],
+  "exclude": ["src/generated"]
+}

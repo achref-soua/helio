@@ -50,3 +50,6 @@ Thumbs.db
 # Local data volumes (compose bind mounts)
 .data/
 
+# Generated code (rebuilt via prisma generate)
+packages/db/src/generated/
+

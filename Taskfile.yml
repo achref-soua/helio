@@ -43,3 +43,41 @@ tasks:
     desc: Build all workspace packages
     cmds:
       - pnpm build
+
+  up:
+    desc: Start the local core stack (Postgres, Redis, Mailpit)
+    cmds:
+      - cmd: test -f .env || cp .env.example .env
+        silent: true
+      - '{{.COMPOSE}} --profile core up -d --wait'
+
+  down:
+    desc: Stop the local stack (data volumes are kept)
+    cmds:
+      - '{{.COMPOSE}} --profile core down'
+
+  logs:
+    desc: Tail logs of the local stack (task logs -- <service>)
+    cmds:
+      - '{{.COMPOSE}} logs -f {{.CLI_ARGS}}'
+
+  db:migrate:
+    desc: Create/apply database migrations (dev)
+    cmds:
+      - pnpm --filter @helio/db db:migrate
+
+  db:seed:
+    desc: Seed the demo workspace (idempotent)
+    cmds:
+      - pnpm --filter @helio/db db:seed
+
+  db:studio:
+    desc: Open Prisma Studio
+    cmds:
+      - pnpm --filter @helio/db db:studio
+
+  db:reset:
+    desc: Drop, recreate, migrate, and reseed the database
+    prompt: This wipes all local data. Continue?
+    cmds:
+      - pnpm --filter @helio/db exec prisma migrate reset --force
