@@ -28,6 +28,7 @@ model Organization {
   invitations  Invitation[]
   contacts     Contact[]
   contactLists ContactList[]
+  writeKeys    WriteKey[]
 
   @@map("organization")
 }
@@ -46,6 +47,7 @@ model Workspace {
   auditLogs    AuditLog[]
   contacts     Contact[]
   contactLists ContactList[]
+  writeKeys    WriteKey[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -138,6 +140,26 @@ model ContactListMember {
   @@index([contactId])
   @@index([organizationId])
   @@map("contact_list_member")
+}
+
+/// Workspace-scoped credential for the event ingestion endpoint. The
+/// value is a public-ish client-side token (it ships in browser code),
+/// so it only grants writes into its own workspace's event stream.
+model WriteKey {
+  id             String    @id
+  organizationId String    @map("organization_id")
+  workspaceId    String    @map("workspace_id")
+  key            String    @unique
+  name           String
+  createdAt      DateTime  @default(now()) @map("created_at")
+  revokedAt      DateTime? @map("revoked_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([workspaceId])
+  @@map("write_key")
 }
 
 // ───────────────────────── Better-Auth tables ─────────────────────────

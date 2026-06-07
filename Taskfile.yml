@@ -117,3 +117,8 @@ tasks:
     prompt: This wipes all local data. Continue?
     cmds:
       - pnpm --filter @helio/db exec prisma migrate reset --force
+
+  ch:migrate:
+    desc: Apply ClickHouse migrations (requires the full profile)
+    cmds:
+      - pnpm --filter @helio/ingest ch:migrate

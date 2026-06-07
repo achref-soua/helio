@@ -119,6 +119,20 @@ async function main() {
     skipDuplicates: true,
   });
 
+  // Deterministic demo write key: local-only, lets the quickstart and the
+  // SDK snippet work immediately after `task up`. Never reuse in prod.
+  const writeKey = await prisma.writeKey.upsert({
+    where: { key: 'wk_demo_0000000000000000000000000' },
+    update: {},
+    create: {
+      id: newId('wkey'),
+      organizationId: org.id,
+      workspaceId: workspace.id,
+      key: 'wk_demo_0000000000000000000000000',
+      name: 'Demo browser source',
+    },
+  });
+
   await prisma.auditLog.create({
     data: {
       id: newId('audit'),
@@ -133,7 +147,7 @@ async function main() {
 
   console.log(
     `Seeded demo data: ${org.slug}/${workspace.slug} (${org.id}, ${workspace.id}), ` +
-      `${contacts.length} contacts, list "${list.name}"`,
+      `${contacts.length} contacts, list "${list.name}", write key ${writeKey.key}`,
   );
   await prisma.$disconnect();
 }

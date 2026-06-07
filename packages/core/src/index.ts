@@ -12,6 +12,19 @@ export {
   type ProblemDetails,
   toProblemDetails,
 } from './errors';
+export {
+  type EnrichedEvent,
+  type EventBatch,
+  eventBatchSchema,
+  type IdentifyEvent,
+  identifyEventSchema,
+  type PageEvent,
+  pageEventSchema,
+  type TrackedEvent,
+  trackedEventSchema,
+  type TrackEvent,
+  trackEventSchema,
+} from './events';
 export { type Id, idTimestamp, isId, newId } from './id';
 export { hasRole, INVITABLE_ROLES, isRole, type Role, ROLES } from './rbac';
 export {
