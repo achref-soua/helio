@@ -48,7 +48,11 @@ export const contactRouter = router({
         take: input.limit + 1,
         ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
       });
-      const nextCursor = items.length > input.limit ? items.pop()!.id : null;
+      // The +1th row only signals another page; the cursor must be the
+      // last row we keep (skip:1 then resumes at the row we popped).
+      const hasMore = items.length > input.limit;
+      if (hasMore) items.pop();
+      const nextCursor = hasMore ? items.at(-1)!.id : null;
       const total = await ctx.tenantDb.contact.count({
         where: { workspaceId: input.workspaceId },
       });
