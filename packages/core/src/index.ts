@@ -7,6 +7,7 @@ export {
   toProblemDetails,
 } from './errors';
 export { type Id, idTimestamp, isId, newId } from './id';
+export { hasRole, INVITABLE_ROLES, isRole, type Role, ROLES } from './rbac';
 export {
   type Err,
   err,

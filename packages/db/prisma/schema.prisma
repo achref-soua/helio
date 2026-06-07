@@ -165,6 +165,7 @@ model Invitation {
   role           String?
   status         String   @default("pending")
   expiresAt      DateTime @map("expires_at")
+  createdAt      DateTime @default(now()) @map("created_at")
   inviterId      String   @map("inviter_id")
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)

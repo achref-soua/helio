@@ -35,8 +35,12 @@ setup('sign up and verify via Mailpit', async ({ page, request }) => {
     )
     .toBe(true);
 
-  // Visiting the link verifies the address and signs the user in.
+  // Visiting the link verifies the address and signs the user in; with no
+  // organization yet, the dashboard redirects to onboarding.
   await page.goto(link!);
+  await expect(page.getByText('Create your organization')).toBeVisible();
+  await page.getByLabel('Organization name').fill('E2E Org');
+  await page.getByRole('button', { name: 'Create organization' }).click();
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
 
   await page.context().storageState({ path: STORAGE_STATE });

@@ -7,6 +7,7 @@ import { organization, twoFactor } from 'better-auth/plugins';
 
 import { env } from './env';
 import { sendMail } from './mailer';
+import { ac, roles } from './permissions';
 
 /**
  * The auth kernel. Connects with the admin role (ADR-0004): Better-Auth
@@ -14,6 +15,12 @@ import { sendMail } from './mailer';
  * data path goes through the RLS-bound forTenant() client instead.
  */
 const prisma = createPrismaClient(env.DATABASE_ADMIN_URL);
+
+/**
+ * Kernel-side database handle. Exclusively for auth-domain reads that the
+ * RLS app role is deliberately denied (e.g. membership role lookups).
+ */
+export const authDb = prisma;
 
 export const auth = betterAuth({
   baseURL: env.APP_URL,
@@ -41,8 +48,27 @@ export const auth = betterAuth({
       });
     },
   },
+  databaseHooks: {
+    session: {
+      create: {
+        // New sessions start scoped to the user's first organization so
+        // org-scoped pages and procedures work right after login.
+        before: async (session) => {
+          const member = await prisma.member.findFirst({
+            where: { userId: session.userId },
+            orderBy: { createdAt: 'asc' },
+            select: { organizationId: true },
+          });
+          return { data: { ...session, activeOrganizationId: member?.organizationId ?? null } };
+        },
+      },
+    },
+  },
   plugins: [
     organization({
+      ac,
+      roles,
+      creatorRole: 'owner',
       sendInvitationEmail: async (data) => {
         const inviteUrl = `${env.APP_URL}/accept-invitation/${data.id}`;
         await sendMail({
