@@ -32,6 +32,7 @@ model Organization {
   segments     Segment[]
   emailTemplates EmailTemplate[]
   emailSends   EmailSend[]
+  campaigns    Campaign[]
 
   @@map("organization")
 }
@@ -54,6 +55,7 @@ model Workspace {
   segments     Segment[]
   emailTemplates EmailTemplate[]
   emailSends   EmailSend[]
+  campaigns    Campaign[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -128,6 +130,7 @@ model ContactList {
   organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   workspace    Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   members      ContactListMember[]
+  campaigns    Campaign[]
 
   @@unique([workspaceId, name])
   @@index([organizationId])
@@ -164,6 +167,7 @@ model Segment {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  campaigns    Campaign[]
 
   @@unique([workspaceId, name])
   @@index([organizationId])
@@ -184,6 +188,7 @@ model EmailTemplate {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  campaigns    Campaign[]
 
   @@unique([workspaceId, name])
   @@index([organizationId])
@@ -210,6 +215,45 @@ model WriteKey {
   @@map("write_key")
 }
 
+/// Lifecycle of a one-shot email campaign.
+enum CampaignStatus {
+  DRAFT
+  SENDING
+  SENT
+  FAILED
+
+  @@map("campaign_status")
+}
+
+/// A one-shot email blast to a segment or list, executed durably by the
+/// campaign workflow (apps/workers, ADR-0011).
+model Campaign {
+  id             String         @id
+  organizationId String         @map("organization_id")
+  workspaceId    String         @map("workspace_id")
+  name           String
+  templateId     String         @map("template_id")
+  /// Exactly one audience source: a dynamic segment or a static list.
+  segmentId      String?        @map("segment_id")
+  listId         String?        @map("list_id")
+  status         CampaignStatus @default(DRAFT)
+  error          String?
+  sentAt         DateTime?      @map("sent_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  template     EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  segment      Segment?      @relation(fields: [segmentId], references: [id], onDelete: Restrict)
+  list         ContactList?  @relation(fields: [listId], references: [id], onDelete: Restrict)
+  sends        EmailSend[]
+
+  @@unique([workspaceId, name])
+  @@index([organizationId])
+  @@map("campaign")
+}
+
 /// Delivery state of an email send. The send pipeline considers
 /// anything but ACTIVE contacts suppressed before creating one.
 enum EmailSendStatus {
@@ -228,8 +272,6 @@ model EmailSend {
   organizationId String          @map("organization_id")
   workspaceId    String          @map("workspace_id")
   contactId      String          @map("contact_id")
-  /// Campaign linkage arrives with the campaigns slice (kept FK-less
-  /// until then so the column exists for tracking payloads).
   campaignId     String?         @map("campaign_id")
   email          String
   subject        String
@@ -241,10 +283,12 @@ model EmailSend {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   contact      Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  campaign     Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
 
+  /// One send per contact per campaign — activity retries cannot double-send.
+  @@unique([campaignId, contactId])
   @@index([organizationId])
   @@index([workspaceId, createdAt])
-  @@index([campaignId])
   @@map("email_send")
 }
 

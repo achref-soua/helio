@@ -3,6 +3,7 @@ export { compileSegmentRule } from './segments';
 // Prisma namespace (input types, DbNull markers) for callers storing JSON.
 export type {
   AuditLog,
+  Campaign,
   Contact,
   ContactList,
   ContactListMember,
@@ -14,5 +15,5 @@ export type {
   WriteKey,
 } from './generated/prisma/client';
 export { Prisma } from './generated/prisma/client';
-export { ContactStatus, EmailSendStatus } from './generated/prisma/enums';
+export { CampaignStatus, ContactStatus, EmailSendStatus } from './generated/prisma/enums';
 export { forTenant, type TenantClient } from './tenant';

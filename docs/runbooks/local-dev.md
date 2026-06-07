@@ -11,6 +11,7 @@ pnpm --filter @helio/web dev        # dashboard on :3000
 pnpm --filter @helio/api dev        # gateway on :4000
 pnpm --filter @helio/ingest dev     # event ingestion on :4100 (needs up:full)
 pnpm --filter @helio/tracking dev   # open/click tracking on :4200 (needs up:full)
+pnpm --filter @helio/workers dev    # Temporal worker for campaign sends (needs up:full)
 cd apps/intelligence && uv run uvicorn helio_intelligence.app:app --reload   # :8000
 ```
 
@@ -34,6 +35,8 @@ web 3000 · api 4000 · ingest 4100 · tracking 4200 · intelligence 8000 · Pos
 ## Email
 
 All dev mail lands in Mailpit (`http://localhost:8025`). Nothing leaves the machine.
+
+Campaign sends run durably: `task up:full` (Temporal), start the worker, create a campaign in the dashboard, hit Send, and watch the mail arrive in Mailpit — opens/clicks fire through the tracking service into ClickHouse.
 
 ## E2E
 
