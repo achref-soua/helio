@@ -30,6 +30,46 @@ def create_app() -> FastAPI:
         ),
     )
 
+    # The copilot and generators need an LLM (and the copilot the
+    # database). The routes are always registered — they return an
+    # actionable 503 until configured, so the service still boots for
+    # health checks and metrics on a bare deploy.
+    from .copilot_api import create_copilot_router
+    from .generation_api import create_generation_router
+
+    app.include_router(create_copilot_router())
+    app.include_router(create_generation_router())
+
+    if settings.llm_configured and settings.database_url:
+        from .agent import Copilot
+        from .agent.nl_journey import NlJourneyGenerator
+        from .agent.nl_segment import NlSegmentGenerator
+        from .copilot_api import get_copilot
+        from .data import Database, OrgRepository
+        from .generation_api import (
+            get_journey_generator,
+            get_repository,
+            get_segment_generator,
+        )
+        from .llm import create_llm_provider
+
+        database = Database(settings.database_url)
+        repository = OrgRepository(database)
+        provider = create_llm_provider(settings)
+
+        app.dependency_overrides[get_copilot] = lambda: Copilot(
+            provider=provider,
+            repository=repository,
+            temperature=settings.llm_temperature,
+            max_tokens=settings.llm_max_tokens,
+        )
+        app.dependency_overrides[get_segment_generator] = lambda: NlSegmentGenerator(provider)
+        app.dependency_overrides[get_journey_generator] = lambda: NlJourneyGenerator(provider)
+        app.dependency_overrides[get_repository] = lambda: repository
+        app.state.database = database
+    else:
+        app.state.database = None
+
     @app.middleware("http")
     async def observe_requests(request: Request, call_next):  # type: ignore[no-untyped-def]
         started = time.perf_counter()
@@ -63,6 +103,16 @@ def create_app() -> FastAPI:
         # already use the endpoint. Dependency checks land with the first
         # real feature (ClickHouse/Postgres access).
         return {"status": "ok", "service": settings.service_name}
+
+    @app.get("/v1/llm/config")
+    def llm_config() -> dict[str, object]:
+        # Surfaces which provider/model the copilot will use, without ever
+        # echoing the key — handy for the dashboard and for deploy checks.
+        return {
+            "provider": settings.llm_provider,
+            "model": settings.llm_model,
+            "configured": settings.llm_configured,
+        }
 
     log.info("intelligence app created", service=settings.service_name)
     return app

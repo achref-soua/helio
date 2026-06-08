@@ -23,4 +23,7 @@ export const env = createEnv({
   CLICKHOUSE_USER: z.string().min(1).default('helio'),
   CLICKHOUSE_PASSWORD: z.string().min(1).default('helio_dev_password'),
   CLICKHOUSE_DB: z.string().min(1).default('helio'),
+  // The intelligence service (AI copilot). The BFF authenticates the user
+  // and forwards the verified org/workspace; this is the only caller.
+  INTELLIGENCE_URL: z.string().min(1).default('http://localhost:8000'),
 });

@@ -11,6 +11,7 @@ import {
   Menu,
   Route,
   Settings,
+  Sparkles,
   Sun,
   Users,
   Workflow,
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
   { key: 'campaigns', href: '/campaigns', icon: Megaphone },
   { key: 'forms', href: '/forms', icon: FileText },
   { key: 'journeys', href: '/journeys', icon: Workflow },
+  { key: 'copilot', href: '/copilot', icon: Sparkles },
   { key: 'settings', href: '/settings', icon: Settings },
 ] as const;
 

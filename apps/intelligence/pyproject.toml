@@ -10,6 +10,10 @@ dependencies = [
     "pydantic-settings>=2.5",
     "structlog>=24.4",
     "prometheus-client>=0.25.0",
+    "openai>=1.50",
+    "anthropic>=0.39",
+    "asyncpg>=0.30",
+    "mcp>=1.2",
 ]
 
 [dependency-groups]
@@ -19,6 +23,9 @@ dev = [
     "httpx>=0.27",
     "ruff>=0.7",
     "mypy>=1.13",
+    "pytest-asyncio>=0.24",
+    "testcontainers>=4.8",
+    "asyncpg-stubs>=0.30",
 ]
 
 [build-system]
@@ -42,6 +49,10 @@ files = ["src"]
 [tool.pytest.ini_options]
 addopts = "--cov=helio_intelligence --cov-report=term --cov-fail-under=80"
 testpaths = ["tests"]
+asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["src"]
+# Process entrypoints wire real services (DB, LLM, stdio) and are
+# exercised in deployment, not unit tests — like the TS server.ts files.
+omit = ["*/__main__.py"]
