@@ -33,6 +33,7 @@ export class PrismaSendResolver implements SendResolver {
         contactId: true,
         email: true,
         campaignId: true,
+        variant: true,
       },
     });
     const value = row ?? null;

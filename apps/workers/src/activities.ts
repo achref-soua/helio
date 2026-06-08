@@ -155,6 +155,9 @@ export function createActivities(
           result.skipped += 1;
           continue;
         }
+        // A/B: assign the variant at claim time; retries reuse the row,
+        // so a contact can never receive both subjects.
+        const variant = campaign.subjectB ? (Math.random() < 0.5 ? 'a' : 'b') : null;
         const send =
           existing ??
           (await prisma.emailSend.create({
@@ -165,7 +168,8 @@ export function createActivities(
               contactId,
               campaignId,
               email: contact.email,
-              subject: campaign.template.subject,
+              subject: variant === 'b' ? campaign.subjectB! : campaign.template.subject,
+              variant,
             },
           }));
 
@@ -174,7 +178,7 @@ export function createActivities(
           const unsubscribe = unsubscribeUrl(config.appUrl, token);
           const rendered = await renderEmail({
             document: campaign.template.document as unknown as EmailDocument,
-            subject: campaign.template.subject,
+            subject: send.subject,
             contact: {
               email: contact.email,
               firstName: contact.firstName,

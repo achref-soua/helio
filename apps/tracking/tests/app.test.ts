@@ -12,6 +12,7 @@ const SEND: ResolvedSend = {
   contactId: 'contact_1',
   email: 'ada@example.com',
   campaignId: 'cmp_1',
+  variant: 'b',
 };
 
 const resolver: SendResolver = {
@@ -51,6 +52,7 @@ describe('tracking app', () => {
       expect(JSON.parse(producer.published[0]!.properties)).toMatchObject({
         sendId: 'snd_known',
         campaignId: 'cmp_1',
+        variant: 'b',
       });
     });
 

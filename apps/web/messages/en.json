@@ -331,7 +331,11 @@
       "SENT": "Sent",
       "FAILED": "Failed"
     },
-    "engagement": "{opens} opened · {clicks} clicks"
+    "engagement": "{opens} opened · {clicks} clicks",
+    "subjectB": "Subject B (optional A/B test)",
+    "subjectBPlaceholder": "Variant subject — the template's subject is A",
+    "abBadge": "A/B",
+    "variantSplit": "A {a} vs B {b} opens"
   },
   "unsubscribe": {
     "title": "Unsubscribe from marketing email",

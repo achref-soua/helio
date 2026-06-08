@@ -12,6 +12,7 @@ interface DailyRow {
 
 interface CampaignEngagementRow {
   campaign_id: string;
+  variant: string;
   opens: string;
   unique_opens: string;
   clicks: string;
@@ -95,6 +96,7 @@ export const analyticsRouter = router({
           query: `
             SELECT
               JSONExtractString(properties, 'campaignId') AS campaign_id,
+              JSONExtractString(properties, 'variant') AS variant,
               countIf(event = 'Email Opened') AS opens,
               uniqIf(JSONExtractString(properties, 'sendId'), event = 'Email Opened') AS unique_opens,
               countIf(event = 'Email Link Clicked') AS clicks
@@ -102,24 +104,38 @@ export const analyticsRouter = router({
             WHERE workspace_id = {workspaceId:String}
               AND event IN ('Email Opened', 'Email Link Clicked')
               AND campaign_id != ''
-            GROUP BY campaign_id`,
+            GROUP BY campaign_id, variant`,
           query_params: { workspaceId: input.workspaceId },
           format: 'JSONEachRow',
         });
         const rows = (await result.json()) as CampaignEngagementRow[];
-        return {
-          clickhouseUp: true,
-          byCampaign: Object.fromEntries(
-            rows.map((row) => [
-              row.campaign_id,
-              {
-                opens: Number(row.opens),
-                uniqueOpens: Number(row.unique_opens),
-                clicks: Number(row.clicks),
-              },
-            ]),
-          ),
-        };
+        const byCampaign: Record<
+          string,
+          {
+            opens: number;
+            uniqueOpens: number;
+            clicks: number;
+            variants: Record<string, { uniqueOpens: number; clicks: number }>;
+          }
+        > = {};
+        for (const row of rows) {
+          const entry = (byCampaign[row.campaign_id] ??= {
+            opens: 0,
+            uniqueOpens: 0,
+            clicks: 0,
+            variants: {},
+          });
+          entry.opens += Number(row.opens);
+          entry.uniqueOpens += Number(row.unique_opens);
+          entry.clicks += Number(row.clicks);
+          if (row.variant) {
+            entry.variants[row.variant] = {
+              uniqueOpens: Number(row.unique_opens),
+              clicks: Number(row.clicks),
+            };
+          }
+        }
+        return { clickhouseUp: true, byCampaign };
       } catch {
         return { clickhouseUp: false, byCampaign: {} };
       }

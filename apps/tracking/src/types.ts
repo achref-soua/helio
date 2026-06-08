@@ -12,6 +12,7 @@ export interface ResolvedSend {
   contactId: string;
   email: string;
   campaignId: string | null;
+  variant: string | null;
 }
 
 export interface SendResolver {
