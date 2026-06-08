@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server';
 
 import { auth } from '@/lib/auth';
 
+import { BillingPanel } from './billing-panel';
 import { MembersPanel } from './members-panel';
 
 export default async function SettingsPage() {
@@ -41,6 +42,7 @@ export default async function SettingsPage() {
           }))}
         canManage={me?.role === 'owner' || me?.role === 'admin'}
       />
+      <BillingPanel />
     </div>
   );
 }
