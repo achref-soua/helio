@@ -1,8 +1,8 @@
+import { InMemoryEventProducer } from '@helio/bus';
 import { clickRedirectUrl, signClickTarget, verifyClickTarget } from '@helio/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createApp } from '../src/app';
-import { InMemoryEventProducer } from '../src/bus';
 import type { ResolvedSend, SendResolver } from '../src/types';
 
 const SECRET = 'tracking-secret-for-tests-0001';

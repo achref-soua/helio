@@ -1,10 +1,10 @@
 /* eslint-disable no-console -- process entrypoint logs its bind address */
+import { KafkaEventProducer } from '@helio/bus';
 import { createPrismaClient } from '@helio/db';
 import { serve } from '@hono/node-server';
 import { Redis } from 'ioredis';
 
 import { createApp, logger } from './app';
-import { KafkaEventProducer } from './bus';
 import { applyClickHouseMigrations, createClickHouseClient } from './clickhouse';
 import { env } from './env';
 import { PrismaWriteKeyResolver } from './keys';
@@ -14,7 +14,7 @@ import { ClickHouseSink } from './sink';
 await startTracing('helio-ingest');
 
 const brokers = env.KAFKA_BROKERS.split(',').map((broker) => broker.trim());
-const producer = new KafkaEventProducer(brokers, env.EVENTS_TOPIC);
+const producer = new KafkaEventProducer(brokers, env.EVENTS_TOPIC, 'helio-ingest');
 await producer.connect();
 
 const clickhouse = createClickHouseClient({

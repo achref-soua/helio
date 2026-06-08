@@ -2,6 +2,7 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 
 import type { ClickHouseClient } from '@clickhouse/client';
+import { KafkaEventProducer } from '@helio/bus';
 import { buildEventConditionQuery, newId } from '@helio/core';
 import { createPrismaClient, type PrismaClient } from '@helio/db';
 import { ClickHouseContainer, type StartedClickHouseContainer } from '@testcontainers/clickhouse';
@@ -12,7 +13,6 @@ import { pino } from 'pino';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createApp } from '../src/app';
-import { KafkaEventProducer } from '../src/bus';
 import { applyClickHouseMigrations, createClickHouseClient } from '../src/clickhouse';
 import { PrismaWriteKeyResolver } from '../src/keys';
 import { ClickHouseSink } from '../src/sink';
@@ -77,7 +77,7 @@ describe('ingestion pipeline (Redpanda + ClickHouse + Postgres)', () => {
 
     // Bus: real producer + sink against the disposable broker.
     const brokers = [redpanda.getBootstrapServers()];
-    producer = new KafkaEventProducer(brokers, TOPIC);
+    producer = new KafkaEventProducer(brokers, TOPIC, 'pipeline-test');
     await producer.connect();
     sink = new ClickHouseSink(clickhouse, pino({ level: 'silent' }), { brokers, topic: TOPIC });
     await sink.start();
