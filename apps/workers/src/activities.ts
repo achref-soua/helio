@@ -19,6 +19,8 @@ export interface ActivityConfig {
   trackingUrl: string;
   trackingSecret: string;
   unsubscribeSecret: string;
+  /** Optional HMAC key for journey webhook payload signatures. */
+  webhookSecret?: string;
 }
 
 export interface SendBatchResult {

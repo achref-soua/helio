@@ -1,14 +1,19 @@
+import { createHmac } from 'node:crypto';
+
 import {
   clickRedirectUrl,
   type EmailDocument,
+  type FrequencyCap,
   mintUnsubscribeToken,
   newId,
   openPixelUrl,
+  type QuietHours,
+  quietHoursDelayMs,
   type SegmentCondition,
   type SegmentRule,
   unsubscribeUrl,
 } from '@helio/core';
-import { compileSegmentRule, type PrismaClient } from '@helio/db';
+import { compileSegmentRule, type Prisma, type PrismaClient } from '@helio/db';
 import { renderEmail } from '@helio/emails';
 
 import type { ActivityConfig } from './activities';
@@ -110,6 +115,76 @@ export function createJourneyActivities(
         where: { AND: [{ id: contactId }, compileSegmentRule(rule)] },
       });
       return count > 0;
+    },
+
+    /**
+     * Send gate: -1 to skip (frequency cap hit), otherwise milliseconds
+     * to defer for quiet hours (0 = clear to send). Counts SENT mail to
+     * the contact across all sources — campaign blasts included.
+     */
+    async sendGate(
+      contactId: string,
+      quietHours: QuietHours | null,
+      frequencyCap: FrequencyCap | null,
+    ): Promise<number> {
+      if (frequencyCap) {
+        const since = new Date(Date.now() - frequencyCap.perDays * 86_400_000);
+        const recent = await prisma.emailSend.count({
+          where: { contactId, status: 'SENT', sentAt: { gte: since } },
+        });
+        if (recent >= frequencyCap.maxEmails) return -1;
+      }
+      return quietHours ? quietHoursDelayMs(quietHours, new Date()) : 0;
+    },
+
+    /** Merge one trait into the contact's attributes JSON. */
+    async applyTrait(contactId: string, key: string, value: string): Promise<void> {
+      const contact = await prisma.contact.findUnique({
+        where: { id: contactId },
+        select: { attributes: true },
+      });
+      if (!contact) return;
+      const attributes = { ...(contact.attributes as Record<string, unknown>), [key]: value };
+      await prisma.contact.update({
+        where: { id: contactId },
+        data: { attributes: attributes as Prisma.InputJsonValue },
+      });
+    },
+
+    /**
+     * Notify an external system. The payload is HMAC-signed when a
+     * signing secret is configured; non-2xx responses throw so the
+     * Temporal retry policy applies.
+     */
+    async callWebhook(
+      url: string,
+      payload: { journeyId: string; contactId: string; email: string },
+    ): Promise<void> {
+      const body = JSON.stringify({ ...payload, sentAt: new Date().toISOString() });
+      const headers: Record<string, string> = { 'content-type': 'application/json' };
+      if (config.webhookSecret) {
+        headers['x-helio-signature'] = createHmac('sha256', config.webhookSecret)
+          .update(body)
+          .digest('hex');
+      }
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body,
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!response.ok) {
+        throw new Error(`webhook ${url} answered ${response.status}`);
+      }
+    },
+
+    /** Contact email for webhook payloads (kept tiny on purpose). */
+    async contactEmail(contactId: string): Promise<string> {
+      const contact = await prisma.contact.findUnique({
+        where: { id: contactId },
+        select: { email: true },
+      });
+      return contact?.email ?? '';
     },
 
     async completeRun(runId: string): Promise<void> {
