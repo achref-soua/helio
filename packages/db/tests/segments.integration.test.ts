@@ -1,7 +1,13 @@
 import { execSync } from 'node:child_process';
 import path from 'node:path';
 
-import { newId, type SegmentRule, segmentRuleSchema } from '@helio/core';
+import {
+  eventConditionKey,
+  extractEventConditions,
+  newId,
+  type SegmentRule,
+  segmentRuleSchema,
+} from '@helio/core';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -399,5 +405,40 @@ describe('segment rule compilation against Postgres', () => {
         },
       }),
     ).rejects.toThrowError();
+  });
+
+  describe('behavioral conditions with resolved sets', () => {
+    it('applies in/notIn email sets and refuses unresolved rules', async () => {
+      const rule = segmentRuleSchema.parse({
+        kind: 'group',
+        op: 'and',
+        children: [
+          {
+            kind: 'condition',
+            target: 'event',
+            event: 'Opened',
+            operator: 'at_least',
+            count: 1,
+            inLastDays: 30,
+          },
+        ],
+      });
+      const key = eventConditionKey(extractEventConditions(rule)[0]!);
+
+      const inSet = new Map([[key, { mode: 'in' as const, emails: ['ada@acme.com'] }]]);
+      const matchedIn = await forTenant(app, orgId).contact.findMany({
+        where: { AND: [{ workspaceId: wsId }, compileSegmentRule(rule, inSet)] },
+      });
+      expect(matchedIn.map((c) => c.email)).toEqual(['ada@acme.com']);
+
+      const notInSet = new Map([[key, { mode: 'notIn' as const, emails: ['ada@acme.com'] }]]);
+      const matchedNotIn = await forTenant(app, orgId).contact.findMany({
+        where: { AND: [{ workspaceId: wsId }, compileSegmentRule(rule, notInSet)] },
+        orderBy: { email: 'asc' },
+      });
+      expect(matchedNotIn.map((c) => c.email)).toEqual(['alan@other.org', 'grace@acme.com']);
+
+      expect(() => compileSegmentRule(rule)).toThrowError(/resolve them against the event store/);
+    });
   });
 });

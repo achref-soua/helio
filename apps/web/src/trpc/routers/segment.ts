@@ -3,6 +3,8 @@ import { compileSegmentRule, type Prisma } from '@helio/db';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { resolveEventConditions } from '@/lib/segment-events';
+
 import { orgProcedure, requireRole, router } from '../init';
 
 const PREVIEW_SAMPLE_SIZE = 5;
@@ -22,8 +24,9 @@ export const segmentRouter = router({
   preview: orgProcedure
     .input(z.object({ workspaceId: z.string().min(1), rule: segmentRuleSchema }))
     .query(async ({ ctx, input }) => {
+      const eventSets = await resolveEventConditions(input.rule, input.workspaceId);
       const where = {
-        AND: [{ workspaceId: input.workspaceId }, compileSegmentRule(input.rule)],
+        AND: [{ workspaceId: input.workspaceId }, compileSegmentRule(input.rule, eventSets)],
       };
       const [count, sample] = await Promise.all([
         ctx.tenantDb.contact.count({ where }),

@@ -77,6 +77,32 @@ test('build a segment with live preview and save it', async ({ page }) => {
   await expect(card).toContainText('2 conditions');
 });
 
+test('behavioral conditions: builder fields and preview surface honestly', async ({ page }) => {
+  await page.goto('/segments');
+  await page.getByRole('button', { name: 'New segment' }).click();
+  const editor = page.getByTestId('segment-editor');
+  await editor.getByLabel('Name').fill('Engaged lately');
+
+  const row = editor.getByTestId('condition-row').first();
+  await row.getByLabel('Property').selectOption('event');
+  await row.getByLabel('Event name').fill('Email Opened');
+  await row.getByLabel('Operator').selectOption('at_least');
+  await row.getByLabel('Times').fill('2');
+  await row.getByLabel('Window (days)').fill('14');
+
+  // Either a live count (full stack) or the actionable precondition —
+  // never a crash or a silent zero.
+  await expect(page.getByTestId('segment-preview')).toContainText(
+    /(contacts? match|Behavioral conditions need)/,
+    { timeout: 15_000 },
+  );
+
+  // 'never' hides the count input.
+  await row.getByLabel('Operator').selectOption('never');
+  await expect(row.getByLabel('Times')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Cancel' }).click();
+});
+
 test('edit the segment narrows membership', async ({ page }) => {
   await page.goto('/segments');
   await page.getByRole('button', { name: 'Paying customers', exact: true }).click();
