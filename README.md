@@ -11,7 +11,7 @@
 
 </div>
 
-> 🚧 **Status: usable MVP (v0.2).** The end-to-end loop works today: import contacts → build a segment → design an email → launch a campaign or an event-triggered journey → watch opens and clicks land in the dashboard. Journeys run on Temporal and survive `kill -9` mid-wait without double-sending. The [roadmap](#roadmap) tracks what's next.
+> 🚧 **Status: AI-native (v0.5).** The end-to-end loop works today: import contacts → build a segment → design an email → launch a campaign or an event-triggered journey → watch opens and clicks land in the dashboard. Journeys run on Temporal and survive `kill -9` mid-wait without double-sending. An org-scoped AI copilot turns a sentence into a segment, journey, or on-brand email; predictive scoring, send-time optimization, and autonomous A/B winner selection are live; an MCP server exposes it all to external agents. The [roadmap](#roadmap) tracks what's next.
 
 <p align="center">
   <img src="docs/assets/journey-canvas.png" alt="Helio's journey canvas: a welcome series with a durable wait, a plan branch, and an A/B path" width="900" />
@@ -44,8 +44,8 @@ Marketing automation today forces a bad choice:
 - ✅ **Hosted forms** — public signup pages that upsert contacts, idempotently and suppression-safely
 - 🗺️ **Multi-channel** — SMS, WhatsApp, web push, in-app messages, popups
 - 🗺️ **Growth tooling** — landing-page builder, lead scoring, A/B testing, attribution, deliverability wizard
-- 🗺️ **AI copilot** — describe a journey in a sentence and get a working automation; brand-voice content generation; predictive scoring & churn; send-time optimization
-- 🗺️ **Agent-ready** — an MCP server exposes Helio's capabilities as tools, so external AI agents can drive campaigns programmatically
+- ✅ **AI copilot** — describe a segment, journey, or on-brand email in a sentence and get a working draft; predictive lead scoring & churn; send-time optimization; autonomous A/B winner selection — all grounded in your own org's data
+- ✅ **Agent-ready** — an MCP server exposes Helio's capabilities as tools, so external AI agents can drive campaigns programmatically
 - 🗺️ **Integrations** — webhooks, SDKs generated from the OpenAPI spec, importers from HubSpot/Mailchimp/Klaviyo
 
 ### The product in action
@@ -175,7 +175,8 @@ Hot-path budgets (ingestion ≥ 5k events/s, API reads p95 < 150 ms) have a comm
 | **v0.1**  | Foundation: monorepo, CI/CD, multi-tenant auth & RBAC, design system, observability baseline          |
 | **v0.2**  | Usable MVP: contacts & lists, event ingestion, segmentation, email sending & tracking, first journeys |
 | **v0.3**  | Growth: full journey canvas, SMS & push, landing pages, lead scoring, A/B testing, attribution        |
-| **v0.4**  | AI: copilot, NL→segment, NL→journey, brand-voice generation, predictive scoring, MCP server           |
+| **v0.4**  | AI: copilot, NL→segment, NL→journey, brand-voice generation, MCP server                               |
+| **v0.5**  | AI, cont'd: predictive scoring & churn, send-time optimization, autonomous A/B winner selection       |
 | **v1.0**  | Platform: integrations, importers, SSO/SCIM, billing, CRM-lite, docs site, public demo                |
 
 ## Documentation
