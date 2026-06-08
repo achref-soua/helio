@@ -42,11 +42,13 @@ def create_app() -> FastAPI:
 
     if settings.llm_configured and settings.database_url:
         from .agent import Copilot
+        from .agent.nl_email import NlEmailGenerator
         from .agent.nl_journey import NlJourneyGenerator
         from .agent.nl_segment import NlSegmentGenerator
         from .copilot_api import get_copilot
         from .data import Database, OrgRepository
         from .generation_api import (
+            get_email_generator,
             get_journey_generator,
             get_repository,
             get_segment_generator,
@@ -65,6 +67,7 @@ def create_app() -> FastAPI:
         )
         app.dependency_overrides[get_segment_generator] = lambda: NlSegmentGenerator(provider)
         app.dependency_overrides[get_journey_generator] = lambda: NlJourneyGenerator(provider)
+        app.dependency_overrides[get_email_generator] = lambda: NlEmailGenerator(provider)
         app.dependency_overrides[get_repository] = lambda: repository
         app.state.database = database
     else:

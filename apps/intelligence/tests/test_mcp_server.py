@@ -77,6 +77,7 @@ def test_server_exposes_the_expected_tools() -> None:
         "list_email_templates",
         "draft_segment",
         "draft_journey",
+        "draft_email",
     }
 
 
@@ -115,6 +116,29 @@ async def test_draft_journey_tool_uses_real_templates() -> None:
     result = await server.call_tool("draft_journey", {"prompt": "welcome series"})
     body = json.loads(_content_text(result))
     assert body["definition"]["startNodeId"] == "n1"
+
+
+async def test_draft_email_tool_returns_subject_and_document() -> None:
+    email = {
+        "subject": "Come back, {{firstName|there}}",
+        "document": {
+            "blocks": [
+                {"id": "b1", "type": "heading", "text": "We miss you"},
+                {
+                    "id": "b2",
+                    "type": "button",
+                    "label": "Return",
+                    "url": "https://app.helio.dev/back",
+                },
+            ]
+        },
+    }
+    provider = FakeProvider([LLMResponse(text=json.dumps(email))])
+    server, _ = _server(provider)
+    result = await server.call_tool("draft_email", {"prompt": "winback lapsed users"})
+    body = json.loads(_content_text(result))
+    assert body["subject"].startswith("Come back")
+    assert body["document"]["blocks"][0]["type"] == "heading"
 
 
 def _content_text(result: Any) -> str:

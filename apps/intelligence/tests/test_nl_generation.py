@@ -3,12 +3,15 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
+from helio_intelligence.agent.email_schema import validate_email_document
 from helio_intelligence.agent.journey_schema import validate_journey
+from helio_intelligence.agent.nl_email import NlEmailGenerator
 from helio_intelligence.agent.nl_journey import NlJourneyGenerator
 from helio_intelligence.agent.nl_segment import NlSegmentGenerator
 from helio_intelligence.agent.segment_schema import validate_segment_rule
 from helio_intelligence.app import create_app
 from helio_intelligence.generation_api import (
+    get_email_generator,
     get_journey_generator,
     get_repository,
     get_segment_generator,
@@ -36,6 +39,22 @@ VALID_SEGMENT = {
             "inLastDays": 7,
         },
     ],
+}
+
+VALID_EMAIL = {
+    "subject": "Your trial ends soon, {{firstName|there}}",
+    "document": {
+        "blocks": [
+            {"id": "b1", "type": "heading", "text": "Don't lose your progress"},
+            {"id": "b2", "type": "paragraph", "text": "Upgrade to keep your data."},
+            {
+                "id": "b3",
+                "type": "button",
+                "label": "Upgrade",
+                "url": "https://app.helio.dev/upgrade",
+            },
+        ]
+    },
 }
 
 VALID_JOURNEY = {
@@ -127,9 +146,49 @@ async def test_nl_journey_needs_a_template_to_exist() -> None:
         await NlJourneyGenerator(FakeProvider()).generate("x", [])
 
 
+def test_email_schema_keeps_url_as_plain_string() -> None:
+    doc = validate_email_document(VALID_EMAIL["document"])
+    button = doc.model_dump(mode="json")["blocks"][2]
+    # No normalization/trailing-slash drift — byte-identical to the input.
+    assert button["url"] == "https://app.helio.dev/upgrade"
+    with pytest.raises(ValueError):
+        validate_email_document({"blocks": [{"id": "b1", "type": "button", "label": "x"}]})
+
+
+async def test_nl_email_generates_and_repairs() -> None:
+    provider = FakeProvider(
+        [LLMResponse(text="no json"), LLMResponse(text=json.dumps(VALID_EMAIL))]
+    )
+    result = await NlEmailGenerator(provider).generate(
+        "win back trial users", ["Welcome to Helio", "Your weekly report"]
+    )
+    assert result.subject.startswith("Your trial ends")
+    assert result.document["blocks"][0]["type"] == "heading"
+    assert result.name  # a name is suggested
+    assert len(provider.calls) == 2  # one repair round
+    # The brand-voice subjects were threaded into the prompt.
+    first_messages = provider.calls[0]["messages"]
+    assert any("Welcome to Helio" in getattr(m, "content", "") for m in first_messages)
+
+
+async def test_nl_email_gives_up_after_repair() -> None:
+    provider = FakeProvider([LLMResponse(text="junk"), LLMResponse(text="more junk")])
+    with pytest.raises(ValueError, match="could not produce"):
+        await NlEmailGenerator(provider).generate("a sale email", [])
+
+
+async def test_nl_email_works_without_prior_voice() -> None:
+    provider = FakeProvider([LLMResponse(text=json.dumps(VALID_EMAIL))])
+    result = await NlEmailGenerator(provider).generate("welcome new signups", [])
+    assert result.subject
+
+
 class _Repo:
     async def template_options(self, org: str, ws: str) -> list[dict[str, str]]:
         return [{"id": "tpl_welcome", "name": "Welcome"}]
+
+    async def list_email_templates(self, org: str, ws: str) -> list[dict[str, str]]:
+        return [{"name": "Welcome", "subject": "Welcome to Helio"}]
 
 
 def test_segment_endpoint() -> None:
@@ -174,6 +233,23 @@ def test_journey_endpoint_uses_org_templates() -> None:
     assert response.json()["definition"]["startNodeId"] == "n1"
 
 
+def test_email_endpoint_uses_org_voice() -> None:
+    app = create_app()
+    app.dependency_overrides[get_email_generator] = lambda: NlEmailGenerator(
+        FakeProvider([LLMResponse(text=json.dumps(VALID_EMAIL))])
+    )
+    app.dependency_overrides[get_repository] = lambda: _Repo()
+    client = TestClient(app)
+    response = client.post(
+        "/v1/copilot/email",
+        json={"organization_id": "o", "workspace_id": "w", "prompt": "trial winback"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["subject"].startswith("Your trial ends")
+    assert body["document"]["blocks"][2]["url"] == "https://app.helio.dev/upgrade"
+
+
 def test_generation_endpoints_503_until_configured() -> None:
     client = TestClient(create_app())
     seg = client.post(
@@ -181,3 +257,8 @@ def test_generation_endpoints_503_until_configured() -> None:
         json={"organization_id": "o", "workspace_id": "w", "prompt": "x"},
     )
     assert seg.status_code == 503
+    email = client.post(
+        "/v1/copilot/email",
+        json={"organization_id": "o", "workspace_id": "w", "prompt": "x"},
+    )
+    assert email.status_code == 503

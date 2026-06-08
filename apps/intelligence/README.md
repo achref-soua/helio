@@ -35,6 +35,31 @@ wire format, so they run through one provider; Anthropic has its own.
 - **Tenant isolation.** Copilot RAG only ever reads the caller's own
   organization (enforced at the data layer — see the copilot milestone).
 
+## Copilot surface
+
+The dashboard is the only HTTP caller: it authenticates the user and
+forwards the _verified_ organization/workspace, which the service enforces
+via Postgres RLS. Generators return a draft; saving goes through the normal
+TypeScript APIs, which re-validate against the canonical schemas.
+
+| Endpoint                   | Does                                                              |
+| -------------------------- | ----------------------------------------------------------------- |
+| `POST /v1/copilot/chat`    | Agentic, tool-using Q&A grounded in the workspace's own data      |
+| `POST /v1/copilot/segment` | NL → a validated segment rule                                     |
+| `POST /v1/copilot/journey` | NL → a journey wired to the workspace's real templates            |
+| `POST /v1/copilot/email`   | NL → an on-brand email (subject + blocks), grounded in past sends |
+
+Each returns `503` until `INTEL_LLM_API_KEY` and `INTEL_DATABASE_URL` are
+set, and `422` when the model can't produce a valid result — so the
+dashboard degrades gracefully when the AI plane is offline.
+
+The **MCP server** (`uv run python -m helio_intelligence.mcp_server`)
+exposes the same capabilities as tools for external agents:
+`workspace_summary`, `search_contacts`, `list_segments`/`list_journeys`/
+`list_campaigns`/`list_email_templates`, and `draft_segment`/
+`draft_journey`/`draft_email` — all scoped to the one workspace named by
+`INTEL_MCP_ORGANIZATION_ID`/`INTEL_MCP_WORKSPACE_ID`.
+
 ## Develop
 
 ```bash
