@@ -13,6 +13,11 @@ export const env = createEnv({
   API_BOOTSTRAP_TOKEN: z.string().min(24),
   RATE_LIMIT_MAX: z.coerce.number().int().default(100),
   RATE_LIMIT_WINDOW_S: z.coerce.number().int().default(60),
+  // Stripe billing (optional — hosted deployments only). The webhook is
+  // disabled (404) until the signing secret is set.
+  STRIPE_WEBHOOK_SECRET: z.string().default(''),
+  STRIPE_PRICE_PRO: z.string().default(''),
+  STRIPE_PRICE_SCALE: z.string().default(''),
 });
 
 export type Env = typeof env;
