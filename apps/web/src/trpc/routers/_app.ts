@@ -1,5 +1,6 @@
 import { protectedProcedure, publicProcedure, router } from '../init';
 import { analyticsRouter } from './analytics';
+import { billingRouter } from './billing';
 import { campaignRouter } from './campaign';
 import { contactRouter } from './contact';
 import { contactListRouter } from './contact-list';
@@ -30,6 +31,7 @@ export const appRouter = router({
   form: formRouter,
   scoring: scoringRouter,
   crm: crmRouter,
+  billing: billingRouter,
 });
 
 export type AppRouter = typeof appRouter;
