@@ -1,4 +1,4 @@
-import { journeyDefinitionSchema, segmentRuleSchema } from '@helio/core';
+import { emailDocumentSchema, journeyDefinitionSchema, segmentRuleSchema } from '@helio/core';
 import { z } from 'zod';
 
 import { intelligence } from '@/lib/intelligence';
@@ -58,5 +58,17 @@ export const copilotRouter = router({
       });
       const definition = journeyDefinitionSchema.parse(draft.definition);
       return { name: draft.name, definition };
+    }),
+
+  draftEmail: orgProcedure
+    .input(z.object({ workspaceId: z.string().min(1), prompt: z.string().min(1).max(2000) }))
+    .mutation(async ({ ctx, input }) => {
+      const draft = await intelligence.draftEmail({
+        organization_id: ctx.organizationId,
+        workspace_id: input.workspaceId,
+        prompt: input.prompt,
+      });
+      const document = emailDocumentSchema.parse(draft.document);
+      return { name: draft.name, subject: draft.subject, document };
     }),
 });

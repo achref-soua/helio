@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from .agent import OrgScope
+from .agent.nl_email import NlEmailGenerator
 from .agent.nl_journey import NlJourneyGenerator
 from .agent.nl_segment import NlSegmentGenerator
 from .data import OrgRepository
@@ -40,6 +41,18 @@ class JourneyResponse(BaseModel):
     definition: dict[str, Any]
 
 
+class EmailRequest(BaseModel):
+    organization_id: str = Field(min_length=1, max_length=64)
+    workspace_id: str = Field(min_length=1, max_length=64)
+    prompt: str = Field(min_length=1, max_length=2000)
+
+
+class EmailResponse(BaseModel):
+    name: str
+    subject: str
+    document: dict[str, Any]
+
+
 def get_segment_generator() -> NlSegmentGenerator:
     raise HTTPException(
         status_code=503, detail="generation is not configured (set INTEL_LLM_API_KEY)"
@@ -47,6 +60,12 @@ def get_segment_generator() -> NlSegmentGenerator:
 
 
 def get_journey_generator() -> NlJourneyGenerator:
+    raise HTTPException(
+        status_code=503, detail="generation is not configured (set INTEL_LLM_API_KEY)"
+    )
+
+
+def get_email_generator() -> NlEmailGenerator:
     raise HTTPException(
         status_code=503, detail="generation is not configured (set INTEL_LLM_API_KEY)"
     )
@@ -85,5 +104,20 @@ def create_generation_router() -> APIRouter:
         except ValueError as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
         return JourneyResponse(name=result.name, definition=result.definition)
+
+    @router.post("/email", response_model=EmailResponse)
+    async def nl_to_email(
+        request: EmailRequest,
+        generator: Annotated[NlEmailGenerator, Depends(get_email_generator)],
+        repository: Annotated[OrgRepository, Depends(get_repository)],
+    ) -> EmailResponse:
+        scope = OrgScope(request.organization_id, request.workspace_id)
+        templates = await repository.list_email_templates(scope.organization_id, scope.workspace_id)
+        voice = [str(t["subject"]) for t in templates if t.get("subject")]
+        try:
+            result = await generator.generate(request.prompt, voice)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        return EmailResponse(name=result.name, subject=result.subject, document=result.document)
 
     return router

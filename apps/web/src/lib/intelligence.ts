@@ -60,6 +60,12 @@ export interface DraftJourney {
   definition: unknown;
 }
 
+export interface DraftEmail {
+  name: string;
+  subject: string;
+  document: unknown;
+}
+
 export const intelligence = {
   chat: (input: {
     organization_id: string;
@@ -72,4 +78,7 @@ export const intelligence = {
 
   draftJourney: (input: { organization_id: string; workspace_id: string; prompt: string }) =>
     call<DraftJourney>('/v1/copilot/journey', input),
+
+  draftEmail: (input: { organization_id: string; workspace_id: string; prompt: string }) =>
+    call<DraftEmail>('/v1/copilot/email', input),
 };

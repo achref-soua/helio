@@ -1,6 +1,6 @@
 'use client';
 
-import type { JourneyDefinition, SegmentRule } from '@helio/core';
+import type { EmailDocument, JourneyDefinition, SegmentRule } from '@helio/core';
 import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
 import {
@@ -13,7 +13,7 @@ import {
 import { Input } from '@helio/ui/components/input';
 import { Skeleton } from '@helio/ui/components/skeleton';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bot, Send, Sparkles, User, Workflow } from 'lucide-react';
+import { Bot, Mail, Send, Sparkles, User, Workflow } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -36,6 +36,7 @@ export function CopilotView() {
   const [draft, setDraft] = useState('');
   const [segmentPrompt, setSegmentPrompt] = useState('');
   const [journeyPrompt, setJourneyPrompt] = useState('');
+  const [emailPrompt, setEmailPrompt] = useState('');
   const [segmentDraft, setSegmentDraft] = useState<{ name: string; rule: SegmentRule } | null>(
     null,
   );
@@ -43,12 +44,19 @@ export function CopilotView() {
     name: string;
     definition: JourneyDefinition;
   } | null>(null);
+  const [emailDraft, setEmailDraft] = useState<{
+    name: string;
+    subject: string;
+    document: EmailDocument;
+  } | null>(null);
 
   const chat = useMutation(trpc.copilot.chat.mutationOptions());
   const draftSegment = useMutation(trpc.copilot.draftSegment.mutationOptions());
   const draftJourney = useMutation(trpc.copilot.draftJourney.mutationOptions());
+  const draftEmail = useMutation(trpc.copilot.draftEmail.mutationOptions());
   const createSegment = useMutation(trpc.segment.create.mutationOptions());
   const createJourney = useMutation(trpc.journey.create.mutationOptions());
+  const createEmail = useMutation(trpc.emailTemplate.create.mutationOptions());
 
   async function onSend() {
     if (!workspaceId || !draft.trim()) return;
@@ -113,6 +121,34 @@ export function CopilotView() {
       toast.success(t('journeyCreated'));
       setJourneyDraft(null);
       setJourneyPrompt('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('error'));
+    }
+  }
+
+  async function onDraftEmail() {
+    if (!workspaceId || !emailPrompt.trim()) return;
+    try {
+      const result = await draftEmail.mutateAsync({ workspaceId, prompt: emailPrompt.trim() });
+      setEmailDraft(result as { name: string; subject: string; document: EmailDocument });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('error'));
+    }
+  }
+
+  async function onCreateEmail() {
+    if (!workspaceId || !emailDraft) return;
+    try {
+      await createEmail.mutateAsync({
+        workspaceId,
+        name: emailDraft.name,
+        subject: emailDraft.subject,
+        document: emailDraft.document,
+      });
+      await queryClient.invalidateQueries(trpc.emailTemplate.list.pathFilter());
+      toast.success(t('emailCreated'));
+      setEmailDraft(null);
+      setEmailPrompt('');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('error'));
     }
@@ -258,6 +294,43 @@ export function CopilotView() {
                 </span>
                 <Button size="sm" onClick={onCreateJourney} disabled={createJourney.isPending}>
                   {t('createJourney')}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card data-testid="copilot-email">
+          <CardHeader>
+            <CardTitle className="text-base">{t('emailTitle')}</CardTitle>
+            <CardDescription>{t('emailSubtitle')}</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-2">
+            <div className="flex gap-2">
+              <Input
+                aria-label={t('emailPlaceholder')}
+                placeholder={t('emailPlaceholder')}
+                value={emailPrompt}
+                onChange={(event) => setEmailPrompt(event.target.value)}
+              />
+              <Button onClick={onDraftEmail} disabled={draftEmail.isPending || !emailPrompt.trim()}>
+                <Sparkles aria-hidden /> {t('draft')}
+              </Button>
+            </div>
+            {emailDraft && (
+              <div
+                className="bg-muted/40 grid gap-2 rounded-md border p-3"
+                data-testid="email-draft"
+              >
+                <span className="flex items-center gap-1 text-sm font-medium">
+                  <Mail className="size-3.5" aria-hidden /> {emailDraft.name}
+                </span>
+                <span className="text-muted-foreground text-xs">{emailDraft.subject}</span>
+                <span className="text-muted-foreground text-xs">
+                  {t('emailBlocks', { count: emailDraft.document.blocks.length })}
+                </span>
+                <Button size="sm" onClick={onCreateEmail} disabled={createEmail.isPending}>
+                  {t('createEmail')}
                 </Button>
               </div>
             )}
