@@ -30,6 +30,37 @@ def create_app() -> FastAPI:
         ),
     )
 
+    # The copilot needs both an LLM and the database; wire it only when
+    # both are configured so the service still boots for health checks
+    # and metrics on a bare deploy.
+    if settings.llm_configured and settings.database_url:
+        from .agent import Copilot
+        from .copilot_api import create_copilot_router, get_copilot
+        from .data import Database, OrgRepository
+        from .llm import create_llm_provider
+
+        database = Database(settings.database_url)
+        repository = OrgRepository(database)
+        provider = create_llm_provider(settings)
+
+        def _build_copilot() -> Copilot:
+            return Copilot(
+                provider=provider,
+                repository=repository,
+                temperature=settings.llm_temperature,
+                max_tokens=settings.llm_max_tokens,
+            )
+
+        app.dependency_overrides[get_copilot] = _build_copilot
+        app.include_router(create_copilot_router())
+        app.state.database = database
+    else:
+        # Still expose the route so callers get an actionable 503.
+        from .copilot_api import create_copilot_router
+
+        app.include_router(create_copilot_router())
+        app.state.database = None
+
     @app.middleware("http")
     async def observe_requests(request: Request, call_next):  # type: ignore[no-untyped-def]
         started = time.perf_counter()
