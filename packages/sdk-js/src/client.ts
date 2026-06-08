@@ -40,6 +40,16 @@ function hasWindow(): boolean {
   return typeof window !== 'undefined' && typeof document !== 'undefined';
 }
 
+/** VAPID public keys are URL-safe base64; the Push API wants bytes. */
+function urlBase64ToUint8Array(base64: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64.length % 4)) % 4);
+  const normalized = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(normalized);
+  const output = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) output[i] = raw.charCodeAt(i);
+  return output;
+}
+
 function randomId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
@@ -125,6 +135,42 @@ export class HelioClient {
   /** Forget identity (logout) without losing the device's anonymous id. */
   reset(): void {
     this.storage.removeItem(USER_ID_KEY);
+  }
+
+  /**
+   * Register a Web Push subscription and POST it to ingestion. Returns
+   * false when the browser lacks push support or permission is denied —
+   * callers decide whether to prompt. `vapidPublicKey` is the workspace
+   * VAPID public key (URL-safe base64).
+   */
+  async subscribePush(vapidPublicKey: string): Promise<boolean> {
+    if (!hasWindow() || !('serviceWorker' in navigator) || typeof PushManager === 'undefined') {
+      return false;
+    }
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        // Cast: TS DOM lib types applicationServerKey as BufferSource.
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
+      });
+      const json = subscription.toJSON() as { endpoint?: string; keys?: Record<string, string> };
+      if (!json.endpoint || !json.keys) return false;
+      const response = await fetch(`${this.options.host}/v1/push/subscribe`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          endpoint: json.endpoint,
+          keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
+          writeKey: this.options.writeKey,
+          userId: this.userId() ?? undefined,
+          anonymousId: this.anonymousId(),
+        }),
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
   }
 
   /** Send everything queued; resolves when the request settles. */

@@ -409,7 +409,8 @@
       "capMax": "Max emails",
       "capPer": "per",
       "capDays": "Cap window (days)",
-      "capDaysSuffix": "days"
+      "capDaysSuffix": "days",
+      "addSendPush": "Web push"
     },
     "nodes": {
       "trigger": "Trigger",
@@ -441,7 +442,14 @@
       "traitValue": "Trait value",
       "traitValuePlaceholder": "Value",
       "webhook": "Webhook",
-      "webhookUrl": "Webhook URL"
+      "webhookUrl": "Webhook URL",
+      "sendPush": "Web push",
+      "pushTitle": "Notification title",
+      "pushTitlePlaceholder": "e.g. Your order shipped",
+      "pushBody": "Notification body",
+      "pushBodyPlaceholder": "Short message",
+      "pushUrl": "Click-through URL",
+      "pushUrlPlaceholder": "https:// (optional)"
     }
   },
   "forms": {

@@ -87,6 +87,14 @@ export async function journeyRunWorkflow(input: JourneyRunInput): Promise<{ step
           currentId = nextNodeId(definition, node.id);
           break;
         }
+        case 'send_push':
+          await activities.sendJourneyPush(input.contactId, {
+            title: node.title,
+            body: node.body,
+            url: node.url,
+          });
+          currentId = nextNodeId(definition, node.id);
+          break;
         case 'end':
           currentId = null;
           break;

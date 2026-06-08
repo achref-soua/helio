@@ -13,6 +13,7 @@ export type {
   Journey,
   JourneyRun,
   Organization,
+  PushSubscription,
   ScoringRule,
   Segment,
   Workspace,

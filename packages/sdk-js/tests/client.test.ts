@@ -235,3 +235,72 @@ describe('HelioClient fallbacks', () => {
     Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
   });
 });
+
+describe('HelioClient.subscribePush', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    localStorage.clear();
+    fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 202 }));
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('returns false when the browser lacks push support', async () => {
+    const client = new HelioClient({ writeKey: 'wk', host: 'https://ingest.test' });
+    // jsdom has no PushManager / serviceWorker by default.
+    expect(await client.subscribePush('BPublicKey')).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('registers a subscription and posts it with identity', async () => {
+    const subscribe = vi.fn().mockResolvedValue({
+      toJSON: () => ({ endpoint: 'https://push.test/x', keys: { p256dh: 'p', auth: 'a' } }),
+    });
+    vi.stubGlobal('PushManager', class {});
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: { ready: Promise.resolve({ pushManager: { subscribe } }) },
+    });
+
+    const client = new HelioClient({ writeKey: 'wk_push', host: 'https://ingest.test' });
+    client.identify('user-7');
+    const ok = await client.subscribePush('BPublicKeyUrlSafe_-');
+    expect(ok).toBe(true);
+
+    const call = fetchMock.mock.calls.find((c) => String(c[0]).endsWith('/v1/push/subscribe'))!;
+    expect(call).toBeDefined();
+    const body = JSON.parse((call[1] as RequestInit).body as string);
+    expect(body).toMatchObject({
+      endpoint: 'https://push.test/x',
+      keys: { p256dh: 'p', auth: 'a' },
+      writeKey: 'wk_push',
+      userId: 'user-7',
+    });
+    // applicationServerKey decoded from URL-safe base64 to bytes.
+    expect(subscribe).toHaveBeenCalledWith(
+      expect.objectContaining({ userVisibleOnly: true, applicationServerKey: expect.anything() }),
+    );
+
+    delete (navigator as { serviceWorker?: unknown }).serviceWorker;
+    vi.unstubAllGlobals();
+  });
+
+  it('returns false when the push manager rejects', async () => {
+    vi.stubGlobal('PushManager', class {});
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: {
+        ready: Promise.resolve({
+          pushManager: { subscribe: () => Promise.reject(new Error('denied')) },
+        }),
+      },
+    });
+    const client = new HelioClient({ writeKey: 'wk', host: 'https://ingest.test' });
+    expect(await client.subscribePush('BKey')).toBe(false);
+    delete (navigator as { serviceWorker?: unknown }).serviceWorker;
+  });
+});

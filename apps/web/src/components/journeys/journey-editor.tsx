@@ -17,7 +17,7 @@ import {
   useEdgesState,
   useNodesState,
 } from '@xyflow/react';
-import { GitBranch, Mail, Percent, Square, Tag, Timer, Webhook } from 'lucide-react';
+import { Bell, GitBranch, Mail, Percent, Square, Tag, Timer, Webhook } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -78,7 +78,15 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
 
   /** Palette: add a node and wire it from the first dangling exit. */
   function addNode(
-    type: 'send_email' | 'wait' | 'branch' | 'ab_split' | 'update_trait' | 'webhook' | 'end',
+    type:
+      | 'send_email'
+      | 'wait'
+      | 'branch'
+      | 'ab_split'
+      | 'update_trait'
+      | 'webhook'
+      | 'send_push'
+      | 'end',
   ) {
     const id = nextCanvasId(type);
     const tailId = danglingNodeId(nodes, edges);
@@ -99,7 +107,9 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
                 ? { key: '', value: '' }
                 : type === 'webhook'
                   ? { url: 'https://' }
-                  : {};
+                  : type === 'send_push'
+                    ? { title: '', body: '', url: '' }
+                    : {};
     setNodes((current) => [...current, { id, type, position, data }]);
     if (tailId) {
       const tailNode = nodes.find((node) => node.id === tailId);
@@ -179,6 +189,9 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
         </Button>
         <Button variant="outline" size="sm" onClick={() => addNode('webhook')}>
           <Webhook aria-hidden /> {t('addWebhook')}
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => addNode('send_push')}>
+          <Bell aria-hidden /> {t('addSendPush')}
         </Button>
         <Button variant="outline" size="sm" onClick={() => addNode('end')}>
           <Square aria-hidden /> {t('addEnd')}

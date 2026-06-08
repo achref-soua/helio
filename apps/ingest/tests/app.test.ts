@@ -12,6 +12,8 @@ const staticResolver: WriteKeyResolver = {
   resolve: (key) => Promise.resolve(key === KNOWN ? SCOPE : null),
 };
 
+const pushUpserts: Array<Record<string, unknown>> = [];
+
 function makeApp(overrides: Partial<Parameters<typeof createApp>[0]> = {}) {
   const producer = new InMemoryEventProducer();
   const app = createApp({
@@ -22,6 +24,12 @@ function makeApp(overrides: Partial<Parameters<typeof createApp>[0]> = {}) {
     redis: new RedisMock() as unknown as RedisLike,
     rateLimit: { max: 10_000, windowSeconds: 3600 },
     now: () => new Date('2026-06-08T10:00:00.000Z'),
+    pushStore: {
+      upsert: (input) => {
+        pushUpserts.push(input);
+        return Promise.resolve();
+      },
+    },
     ...overrides,
   });
   return { app, producer };
@@ -165,6 +173,55 @@ describe('ingest app', () => {
     expect(limited.status).toBe(429);
     expect(Number(limited.headers.get('Retry-After'))).toBeGreaterThan(0);
     expect(limited.headers.get('RateLimit-Remaining')).toBe('0');
+  });
+
+  describe('push subscribe', () => {
+    const subscription = {
+      endpoint: 'https://push.example/abc',
+      keys: { p256dh: 'p256dh-key', auth: 'auth-key' },
+    };
+    const post = (body: unknown, headers: Record<string, string> = {}) =>
+      app.request('/v1/push/subscribe', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...headers },
+        body: JSON.stringify(body),
+      });
+
+    it('persists a valid subscription for a known key', async () => {
+      pushUpserts.length = 0;
+      const response = await post(
+        { ...subscription, userId: 'ada@example.com' },
+        { 'x-write-key': KNOWN },
+      );
+      expect(response.status).toBe(202);
+      expect(await response.json()).toEqual({ subscribed: true });
+      expect(pushUpserts).toHaveLength(1);
+      expect(pushUpserts[0]).toMatchObject({
+        organizationId: 'org_1',
+        workspaceId: 'ws_1',
+        endpoint: 'https://push.example/abc',
+        p256dh: 'p256dh-key',
+        auth: 'auth-key',
+        userId: 'ada@example.com',
+      });
+    });
+
+    it('rejects unknown keys and invalid subscriptions', async () => {
+      expect((await post(subscription, { 'x-write-key': 'wk_nope' })).status).toBe(401);
+      expect(
+        (await post({ endpoint: 'not-a-url', keys: {} }, { 'x-write-key': KNOWN })).status,
+      ).toBe(422);
+    });
+
+    it('404s when push is not enabled on the deployment', async () => {
+      const noPush = makeApp({ pushStore: undefined }).app;
+      const response = await noPush.request('/v1/push/subscribe', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-write-key': KNOWN },
+        body: JSON.stringify(subscription),
+      });
+      expect(response.status).toBe(404);
+    });
   });
 
   it('answers CORS preflight for browser SDKs', async () => {
