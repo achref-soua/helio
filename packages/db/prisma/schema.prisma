@@ -34,6 +34,7 @@ model Organization {
   emailSends   EmailSend[]
   campaigns    Campaign[]
   journeys     Journey[]
+  forms        Form[]
 
   @@map("organization")
 }
@@ -58,6 +59,7 @@ model Workspace {
   emailSends   EmailSend[]
   campaigns    Campaign[]
   journeys     Journey[]
+  forms        Form[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -353,6 +355,26 @@ model JourneyRun {
   @@index([journeyId, contactId, status])
   @@index([organizationId])
   @@map("journey_run")
+}
+
+/// A hosted signup form. Phase 1 keeps the fields fixed (email +
+/// first name); the drag-and-drop form builder is a Phase 2 feature.
+model Form {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  name           String
+  /// Shown as the page heading on the hosted form.
+  title          String
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, name])
+  @@index([organizationId])
+  @@map("form")
 }
 
 // ───────────────────────── Better-Auth tables ─────────────────────────

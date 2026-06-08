@@ -9,6 +9,7 @@ export type {
   ContactListMember,
   EmailSend,
   EmailTemplate,
+  Form,
   Journey,
   JourneyRun,
   Organization,

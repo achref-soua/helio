@@ -92,10 +92,13 @@ test('draft campaigns can be deleted', async ({ page }) => {
   await expect(page.getByTestId('campaign-card')).toHaveCount(0);
 });
 
-test('the unsubscribe page flips the contact and is idempotent', async ({ page }) => {
+test('the unsubscribe page flips the contact and is idempotent', async ({ browser }) => {
   const secret = process.env.UNSUBSCRIBE_SECRET!;
   const token = await mintUnsubscribeToken(secret, unsubscribeContactId);
 
+  // Email recipients are anonymous — no session cookie.
+  const anonymous = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+  const page = await anonymous.newPage();
   await page.goto(`/u/${encodeURIComponent(token)}`);
   await expect(page.getByText('optout@example.com')).toBeVisible();
   await page.getByRole('button', { name: 'Unsubscribe' }).click();
@@ -104,6 +107,7 @@ test('the unsubscribe page flips the contact and is idempotent', async ({ page }
   // Revisiting shows the already-unsubscribed state.
   await page.goto(`/u/${encodeURIComponent(token)}`);
   await expect(page.getByText("You're unsubscribed")).toBeVisible();
+  await anonymous.close();
 });
 
 test('tampered unsubscribe tokens are rejected', async ({ page }) => {

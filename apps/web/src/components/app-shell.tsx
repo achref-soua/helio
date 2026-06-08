@@ -4,6 +4,7 @@ import { Button } from '@helio/ui/components/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@helio/ui/components/sheet';
 import { cn } from '@helio/ui/lib/utils';
 import {
+  FileText,
   LayoutDashboard,
   Mail,
   Megaphone,
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
   { key: 'segments', href: '/segments', icon: Route },
   { key: 'emails', href: '/emails', icon: Mail },
   { key: 'campaigns', href: '/campaigns', icon: Megaphone },
+  { key: 'forms', href: '/forms', icon: FileText },
   { key: 'journeys', href: '/journeys', icon: Workflow },
   { key: 'settings', href: '/settings', icon: Settings },
 ] as const;
