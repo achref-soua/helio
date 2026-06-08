@@ -74,6 +74,35 @@ A create returns `409` if the email already exists in the workspace, `404` if
 the referenced workspace does not exist, and `403` if the organization's plan
 contact limit (hosted deployments only — self-hosted is uncapped) is reached.
 
+## Example: lists
+
+Group contacts into static lists and manage membership.
+
+```bash
+# Create a list (idempotent). Name is unique per workspace.
+curl -X POST https://<host>/v1/lists \
+  -H "Authorization: Bearer $HELIO_KEY" -H "Content-Type: application/json" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d '{"workspaceId":"ws_...","name":"Newsletter subscribers"}'
+
+# List lists (cursor-paginated), retrieve one (with member count), delete one.
+curl "https://<host>/v1/lists?workspaceId=ws_..." -H "Authorization: Bearer $HELIO_KEY"
+curl https://<host>/v1/lists/list_... -H "Authorization: Bearer $HELIO_KEY"
+curl -X DELETE https://<host>/v1/lists/list_... -H "Authorization: Bearer $HELIO_KEY"
+
+# Add contacts (batch, idempotent; ids not in the list's workspace are skipped).
+curl -X POST https://<host>/v1/lists/list_.../members \
+  -H "Authorization: Bearer $HELIO_KEY" -H "Content-Type: application/json" \
+  -d '{"contactIds":["contact_a","contact_b"]}'
+# → { "added": 2 }
+
+# Remove one contact from the list.
+curl -X DELETE https://<host>/v1/lists/list_.../members/contact_a -H "Authorization: Bearer $HELIO_KEY"
+```
+
+List a list's members through the contacts endpoint:
+`GET /v1/contacts?listId=list_...`.
+
 The full surface — request/response schemas and every endpoint — is the
 OpenAPI document, which the contract test keeps in lockstep with the code.
 See [ADR-0015](adr/0015-gateway-api-keys.md) for the auth design.

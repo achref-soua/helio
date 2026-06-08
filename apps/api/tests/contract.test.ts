@@ -353,6 +353,179 @@ describe('gateway contract', () => {
     });
   });
 
+  describe('lists', () => {
+    type ListDto = {
+      id: string;
+      organizationId: string;
+      workspaceId: string;
+      name: string;
+      memberCount: number;
+    };
+    let listId: string;
+    let memberA: string;
+    let memberB: string;
+
+    beforeAll(async () => {
+      memberA = newId('contact');
+      memberB = newId('contact');
+      await admin.contact.createMany({
+        data: [
+          { id: memberA, organizationId: orgId, workspaceId: contactWsId, email: 'm1@example.com' },
+          { id: memberB, organizationId: orgId, workspaceId: contactWsId, email: 'm2@example.com' },
+        ],
+      });
+    });
+
+    it('creates a list', async () => {
+      const res = await app.request('/v1/lists', {
+        method: 'POST',
+        headers: { ...auth, 'content-type': 'application/json' },
+        body: JSON.stringify({ workspaceId: contactWsId, name: 'VIP customers' }),
+      });
+      expect(res.status).toBe(201);
+      const list = (await res.json()) as ListDto;
+      expect(list.id.startsWith('list_')).toBe(true);
+      expect(list.organizationId).toBe(orgId);
+      expect(list.memberCount).toBe(0);
+      listId = list.id;
+    });
+
+    it('404s creating a list in an unknown workspace', async () => {
+      const res = await app.request('/v1/lists', {
+        method: 'POST',
+        headers: { ...auth, 'content-type': 'application/json' },
+        body: JSON.stringify({ workspaceId: 'ws_missing', name: 'Orphans' }),
+      });
+      expect(res.status).toBe(404);
+    });
+
+    it('409s on a duplicate list name in the workspace', async () => {
+      const res = await app.request('/v1/lists', {
+        method: 'POST',
+        headers: { ...auth, 'content-type': 'application/json' },
+        body: JSON.stringify({ workspaceId: contactWsId, name: 'VIP customers' }),
+      });
+      expect(res.status).toBe(409);
+    });
+
+    it('adds members, skipping duplicates and foreign ids', async () => {
+      const res = await app.request(`/v1/lists/${listId}/members`, {
+        method: 'POST',
+        headers: { ...auth, 'content-type': 'application/json' },
+        body: JSON.stringify({ contactIds: [memberA, memberB, 'contact_not_real'] }),
+      });
+      expect(res.status).toBe(200);
+      expect(((await res.json()) as { added: number }).added).toBe(2);
+
+      const again = await app.request(`/v1/lists/${listId}/members`, {
+        method: 'POST',
+        headers: { ...auth, 'content-type': 'application/json' },
+        body: JSON.stringify({ contactIds: [memberA] }),
+      });
+      expect(((await again.json()) as { added: number }).added).toBe(0);
+    });
+
+    it('reflects the member count and powers the contacts list filter', async () => {
+      const list = await app.request(`/v1/lists/${listId}`, { headers: auth });
+      expect(((await list.json()) as ListDto).memberCount).toBe(2);
+      const contacts = await app.request(`/v1/contacts?listId=${listId}`, { headers: auth });
+      const body = (await contacts.json()) as { data: { email: string }[] };
+      expect(body.data.map((contact) => contact.email).sort()).toEqual([
+        'm1@example.com',
+        'm2@example.com',
+      ]);
+    });
+
+    it('lists contact lists in a workspace', async () => {
+      const res = await app.request(`/v1/lists?workspaceId=${contactWsId}`, { headers: auth });
+      const body = (await res.json()) as { data: ListDto[]; nextCursor: string | null };
+      expect(body.data.map((list) => list.id)).toContain(listId);
+      expect(body).toHaveProperty('nextCursor');
+    });
+
+    it('isolates lists across orgs (RLS)', async () => {
+      const res = await app.request(`/v1/lists/${listId}`, { headers: otherAuth });
+      expect(res.status).toBe(404);
+    });
+
+    it('removes a member, then 404s on a non-member', async () => {
+      const removed = await app.request(`/v1/lists/${listId}/members/${memberA}`, {
+        method: 'DELETE',
+        headers: auth,
+      });
+      expect(removed.status).toBe(204);
+      const again = await app.request(`/v1/lists/${listId}/members/${memberA}`, {
+        method: 'DELETE',
+        headers: auth,
+      });
+      expect(again.status).toBe(404);
+      const list = await app.request(`/v1/lists/${listId}`, { headers: auth });
+      expect(((await list.json()) as ListDto).memberCount).toBe(1);
+    });
+
+    it('adds no members when every id is foreign', async () => {
+      const res = await app.request(`/v1/lists/${listId}/members`, {
+        method: 'POST',
+        headers: { ...auth, 'content-type': 'application/json' },
+        body: JSON.stringify({ contactIds: ['contact_ghost1', 'contact_ghost2'] }),
+      });
+      expect(res.status).toBe(200);
+      expect(((await res.json()) as { added: number }).added).toBe(0);
+    });
+
+    it('404s touching members of a missing list', async () => {
+      const add = await app.request('/v1/lists/list_missing/members', {
+        method: 'POST',
+        headers: { ...auth, 'content-type': 'application/json' },
+        body: JSON.stringify({ contactIds: [memberB] }),
+      });
+      expect(add.status).toBe(404);
+      const remove = await app.request('/v1/lists/list_missing/members/contact_x', {
+        method: 'DELETE',
+        headers: auth,
+      });
+      expect(remove.status).toBe(404);
+    });
+
+    it('paginates lists and lists across the org without a filter', async () => {
+      const pageWs = newId('ws');
+      await admin.workspace.create({
+        data: { id: pageWs, organizationId: orgId, name: 'List Page WS', slug: 'list-page-ws' },
+      });
+      await admin.contactList.createMany({
+        data: Array.from({ length: 3 }, (_, index) => ({
+          id: newId('list'),
+          organizationId: orgId,
+          workspaceId: pageWs,
+          name: `L${index}`,
+        })),
+      });
+      const first = await app.request(`/v1/lists?workspaceId=${pageWs}&limit=2`, { headers: auth });
+      const firstBody = (await first.json()) as { data: ListDto[]; nextCursor: string | null };
+      expect(firstBody.data).toHaveLength(2);
+      expect(firstBody.nextCursor).toBeTruthy();
+      const second = await app.request(
+        `/v1/lists?workspaceId=${pageWs}&limit=2&cursor=${firstBody.nextCursor}`,
+        { headers: auth },
+      );
+      const secondBody = (await second.json()) as { data: ListDto[]; nextCursor: string | null };
+      expect(secondBody.data).toHaveLength(1);
+      expect(secondBody.nextCursor).toBeNull();
+
+      // No workspace filter → lists across the whole org.
+      const all = await app.request('/v1/lists?limit=100', { headers: auth });
+      expect(all.status).toBe(200);
+    });
+
+    it('deletes a list, cascading its memberships', async () => {
+      const del = await app.request(`/v1/lists/${listId}`, { method: 'DELETE', headers: auth });
+      expect(del.status).toBe(204);
+      const after = await app.request(`/v1/lists/${listId}`, { headers: auth });
+      expect(after.status).toBe(404);
+      expect(await admin.contactListMember.count({ where: { listId } })).toBe(0);
+    });
+  });
+
   it('committed OpenAPI document matches the code', async () => {
     const served = await app.request('/openapi.json');
     const servedDoc = (await served.json()) as { paths: unknown; components: unknown };
