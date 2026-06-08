@@ -154,6 +154,31 @@
     "copied": "Copied to clipboard",
     "done": "Done"
   },
+  "apiKeys": {
+    "title": "API keys",
+    "subtitle": "Authenticate the public REST API. Each key is scoped to this organization.",
+    "createAction": "Create key",
+    "createTitle": "Create an API key",
+    "createSubtitle": "Give it a name so you can recognize it later.",
+    "name": "Name",
+    "createSubmit": "Create key",
+    "working": "Creating…",
+    "empty": "No API keys yet. Create one to call the REST API.",
+    "never": "Never",
+    "revokeLabel": "Revoke the API key {name}",
+    "genericError": "Something went wrong. Please try again.",
+    "secretTitle": "Your API key",
+    "secretSubtitle": "Copy it now — it's shown only once. Send it as a Bearer token to the API.",
+    "copy": "Copy",
+    "copied": "Copied to clipboard",
+    "done": "Done",
+    "columns": {
+      "name": "Name",
+      "key": "Key",
+      "lastUsed": "Last used",
+      "actions": "Actions"
+    }
+  },
   "userMenu": {
     "open": "Open user menu",
     "signOut": "Sign out"

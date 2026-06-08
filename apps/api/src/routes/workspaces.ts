@@ -15,19 +15,8 @@ const WorkspaceSchema = z
   })
   .openapi('Workspace');
 
-const OrganizationIdQuery = z.object({
-  organizationId: z
-    .string()
-    .min(1)
-    .openapi({
-      param: { name: 'organizationId', in: 'query' },
-      example: 'org_01jx3ye5k8f5rv9t6n0c2qme7a',
-    }),
-});
-
 const CreateWorkspaceBody = z
   .object({
-    organizationId: z.string().min(1),
     name: z.string().min(1).max(80),
     slug: z
       .string()
@@ -51,8 +40,7 @@ const listRoute = createRoute({
   method: 'get',
   path: '/v1/workspaces',
   tags: ['workspaces'],
-  summary: 'List workspaces of an organization',
-  request: { query: OrganizationIdQuery },
+  summary: "List the authenticated organization's workspaces",
   security: [{ bearerAuth: [] }],
   responses: {
     200: {
@@ -113,17 +101,18 @@ export function workspaceRoutes(deps: GatewayDeps) {
   const app = new OpenAPIHono<GatewayEnv>();
 
   app.openapi(listRoute, async (c) => {
-    const { organizationId } = c.req.valid('query');
+    const organizationId = c.get('organizationId');
     const tenantDb = forTenant(deps.prisma, organizationId);
     const workspaces = await tenantDb.workspace.findMany({ orderBy: { createdAt: 'asc' } });
     return c.json(workspaces.map(serialize), 200);
   });
 
   app.openapi(createWorkspaceRoute, async (c) => {
+    const organizationId = c.get('organizationId');
     const input = c.req.valid('json');
-    const tenantDb = forTenant(deps.prisma, input.organizationId);
+    const tenantDb = forTenant(deps.prisma, organizationId);
     const existing = await tenantDb.workspace.findFirst({
-      where: { organizationId: input.organizationId, slug: input.slug },
+      where: { slug: input.slug },
     });
     if (existing) {
       throw new HTTPException(409, { message: 'workspace slug already exists' });
@@ -131,7 +120,7 @@ export function workspaceRoutes(deps: GatewayDeps) {
     const workspace = await tenantDb.workspace.create({
       data: {
         id: newId('ws'),
-        organizationId: input.organizationId,
+        organizationId,
         name: input.name,
         slug: input.slug,
       },
@@ -139,7 +128,7 @@ export function workspaceRoutes(deps: GatewayDeps) {
     await tenantDb.auditLog.create({
       data: {
         id: newId('audit'),
-        organizationId: input.organizationId,
+        organizationId,
         workspaceId: workspace.id,
         action: 'workspace.created',
         targetType: 'workspace',

@@ -210,6 +210,39 @@ describe('row-level security tenant isolation', () => {
     expect(await admin.ssoProvider.count({ where: { organizationId: orgA.id } })).toBe(1);
   });
 
+  it('gateway API keys are tenant-isolated, even by their unique hash', async () => {
+    // The gateway resolves a key under the org the key embeds; RLS ensures a
+    // hash minted for one org can never be looked up under another.
+    await forTenant(app, orgA.id).gatewayApiKey.create({
+      data: {
+        id: newId('gwk'),
+        organizationId: orgA.id,
+        name: 'CI',
+        keyHash: 'a'.repeat(64),
+        prefix: 'hk_a…',
+      },
+    });
+    // Org B, even targeting the exact unique hash, sees nothing.
+    expect(
+      await forTenant(app, orgB.id).gatewayApiKey.findUnique({
+        where: { keyHash: 'a'.repeat(64) },
+      }),
+    ).toBeNull();
+    expect(await forTenant(app, orgA.id).gatewayApiKey.count()).toBe(1);
+    // And cannot mint a key into org A.
+    await expect(
+      forTenant(app, orgB.id).gatewayApiKey.create({
+        data: {
+          id: newId('gwk'),
+          organizationId: orgA.id,
+          name: 'smuggled',
+          keyHash: 'b'.repeat(64),
+          prefix: 'hk_b…',
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+  });
+
   it('the SCIM token table is walled off from the RLS app role entirely', async () => {
     // SCIM tokens gate identity provisioning; the table is auth-domain and
     // its grant is revoked from the app role outright.

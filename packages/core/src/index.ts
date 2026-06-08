@@ -57,6 +57,12 @@ export {
   type TrackEvent,
   trackEventSchema,
 } from './events';
+export {
+  type GeneratedApiKey,
+  generateGatewayApiKey,
+  hashGatewayApiKey,
+  parseGatewayApiKey,
+} from './gateway-keys';
 export { type Id, idTimestamp, isId, newId } from './id';
 export {
   type FrequencyCap,

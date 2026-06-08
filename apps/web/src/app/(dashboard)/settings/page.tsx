@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server';
 
 import { auth } from '@/lib/auth';
 
+import { ApiKeysPanel } from './api-keys-panel';
 import { BillingPanel } from './billing-panel';
 import { MembersPanel } from './members-panel';
 import { ScimPanel } from './scim-panel';
@@ -49,6 +50,7 @@ export default async function SettingsPage() {
         <>
           <SsoPanel canManage />
           <ScimPanel canManage />
+          <ApiKeysPanel canManage />
         </>
       )}
     </div>

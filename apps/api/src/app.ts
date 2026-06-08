@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { OpenAPIHono } from '@hono/zod-openapi';
 
-import { bearerAuth } from './middleware/auth';
+import { apiKeyAuth } from './middleware/api-key';
 import { idempotency } from './middleware/idempotency';
 import { requestLogging } from './middleware/logging';
 import { notFoundResponse, problemResponse } from './middleware/problem';
@@ -56,8 +56,8 @@ export function createApp(deps: GatewayDeps) {
   // they mount before the /v1 auth middleware.
   app.route('/', stripeWebhookRoutes(deps));
 
-  // Authenticated, rate-limited, idempotent API surface.
-  app.use('/v1/*', bearerAuth(deps.bootstrapToken));
+  // Authenticated (per-org API key), rate-limited, idempotent API surface.
+  app.use('/v1/*', apiKeyAuth(deps));
   app.use('/v1/*', rateLimit(deps.redis, deps.rateLimit));
   app.use('/v1/*', idempotency(deps.redis));
   app.route('/', workspaceRoutes(deps));

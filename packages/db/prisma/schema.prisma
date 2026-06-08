@@ -43,6 +43,7 @@ model Organization {
   subscription      Subscription?
   ssoProviders      SsoProvider[]
   scimToken         ScimToken?
+  gatewayApiKeys    GatewayApiKey[]
 
   @@map("organization")
 }
@@ -669,6 +670,26 @@ model ScimToken {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@map("scim_token")
+}
+
+/// Per-organization API key for the public REST gateway (ADR-0015). Unlike
+/// the SSO/SCIM credentials this is an RLS *domain* table: the gateway reads
+/// it through the unprivileged app role, scoped to the org embedded in the
+/// presented key, so it never needs an admin connection. Only the SHA-256
+/// hash is stored.
+model GatewayApiKey {
+  id             String    @id
+  organizationId String    @map("organization_id")
+  name           String
+  keyHash        String    @unique @map("key_hash")
+  prefix         String
+  createdAt      DateTime  @default(now()) @map("created_at")
+  lastUsedAt     DateTime? @map("last_used_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("gateway_api_key")
 }
 
 // ── CRM-lite (deals & pipelines) ───────────────────────────────────────

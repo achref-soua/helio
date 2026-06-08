@@ -11,7 +11,6 @@ import { createApp } from '../app';
 const app = createApp({
   prisma: {} as never,
   redis: {} as never,
-  bootstrapToken: 'spec-generation-only-token',
   rateLimit: { max: 100, windowSeconds: 60 },
 });
 
