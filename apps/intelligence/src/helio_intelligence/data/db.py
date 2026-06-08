@@ -28,6 +28,12 @@ class ScopedConnection:
     async def fetchrow(self, query: str, *args: Any) -> asyncpg.Record | None:
         return await self._connection.fetchrow(query, *args)
 
+    async def execute(self, query: str, *args: Any) -> str:
+        return await self._connection.execute(query, *args)
+
+    async def executemany(self, query: str, args: list[tuple[Any, ...]]) -> None:
+        await self._connection.executemany(query, args)
+
 
 class Database:
     """An asyncpg pool over the RLS-bound app connection."""

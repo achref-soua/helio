@@ -60,6 +60,28 @@ exposes the same capabilities as tools for external agents:
 `draft_journey`/`draft_email` — all scoped to the one workspace named by
 `INTEL_MCP_ORGANIZATION_ID`/`INTEL_MCP_WORKSPACE_ID`.
 
+## Predictive scoring
+
+`POST /v1/scoring/recompute` trains and writes two probabilities per
+contact, scoped to one workspace:
+
+- **conversion propensity** — a gradient-boosted classifier
+  (`HistGradientBoostingClassifier`) over behavioral features (event
+  counts, recency, opens/clicks, tenure, rule score). The positive label
+  is a configured conversion event (`INTEL_SCORING_CONVERSION_EVENTS`).
+- **churn risk** — a second boosted model trained on a leakage-safe label
+  (no activity in the last 30 days, among contacts old enough to judge),
+  deliberately excluding the recency/short-window features that define it.
+
+Behavioral features come from ClickHouse; predictions are written back to
+Postgres (`contact.conversion_probability` / `churn_risk`) inside an
+RLS-scoped transaction, so a run can only ever touch its own organization.
+When a workspace has too little labeled data to train, the model falls
+back to a transparent monotonic engagement heuristic, and the response
+reports which path ran (`conversion_method` / `churn_method`) so the UI
+stays honest. The dashboard triggers a recompute from the Contacts page;
+a scheduler can hit the same endpoint nightly.
+
 ## Develop
 
 ```bash

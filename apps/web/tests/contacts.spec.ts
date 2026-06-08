@@ -110,6 +110,16 @@ test('scoring rules manage and the score column renders', async ({ page }) => {
   await expect(page.getByRole('columnheader', { name: 'Score' })).toBeVisible();
 });
 
+test('predictions: churn column renders and recompute degrades gracefully', async ({ page }) => {
+  await page.goto('/contacts');
+  // The AI churn-risk column is present (em dash until a run lands).
+  await expect(page.getByRole('columnheader', { name: 'Churn risk' })).toBeVisible();
+  // Recompute needs the intelligence service, which is offline in e2e —
+  // it must surface an actionable error, never crash silently.
+  await page.getByTestId('recompute-predictions').click();
+  await expect(page.locator('[data-sonner-toast]')).toBeVisible({ timeout: 15_000 });
+});
+
 test('cursor pagination yields every row exactly once', async ({ page }) => {
   // Regression: the pop()-as-cursor idiom used to drop the first row of
   // every page after the first. 60 contacts spans the 50-row page size.

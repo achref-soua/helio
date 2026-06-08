@@ -94,6 +94,17 @@ const scoreConditionSchema = z.object({
   value: z.number().int().min(-100000).max(100000),
 });
 
+/** AI prediction conditions (conversion propensity / churn risk), both
+ * probabilities in [0,1] recomputed in batches by the intelligence plane. */
+export const PREDICTION_METRICS = ['conversionProbability', 'churnRisk'] as const;
+const predictionConditionSchema = z.object({
+  kind: z.literal('condition'),
+  target: z.literal('prediction'),
+  metric: z.enum(PREDICTION_METRICS),
+  operator: z.enum(['gte', 'lte']),
+  value: z.number().min(0).max(1),
+});
+
 /** Behavioral condition over the event store (resolved via ClickHouse). */
 const eventConditionSchema = z.object({
   kind: z.literal('condition'),
@@ -112,6 +123,7 @@ export const segmentConditionSchema = z.union([
   createdAtConditionSchema,
   eventConditionSchema,
   scoreConditionSchema,
+  predictionConditionSchema,
 ]);
 export type SegmentCondition = z.infer<typeof segmentConditionSchema>;
 

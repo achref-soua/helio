@@ -417,6 +417,49 @@ describe('segment rule compilation against Postgres', () => {
     ).toEqual(['ada@acme.com']);
   });
 
+  it('filters by AI predictions, excluding un-scored (null) contacts', async () => {
+    await admin.contact.updateMany({
+      where: { workspaceId: wsId, email: 'ada@acme.com' },
+      data: { churnRisk: 0.9, conversionProbability: 0.2 },
+    });
+    await admin.contact.updateMany({
+      where: { workspaceId: wsId, email: 'grace@acme.com' },
+      data: { churnRisk: 0.1, conversionProbability: 0.8 },
+    });
+    // High churn risk: only ada (grace is low; alan is null and excluded).
+    expect(
+      await emailsMatching({
+        kind: 'group',
+        op: 'and',
+        children: [
+          {
+            kind: 'condition',
+            target: 'prediction',
+            metric: 'churnRisk',
+            operator: 'gte',
+            value: 0.5,
+          },
+        ],
+      }),
+    ).toEqual(['ada@acme.com']);
+    // High conversion propensity: only grace.
+    expect(
+      await emailsMatching({
+        kind: 'group',
+        op: 'and',
+        children: [
+          {
+            kind: 'condition',
+            target: 'prediction',
+            metric: 'conversionProbability',
+            operator: 'gte',
+            value: 0.5,
+          },
+        ],
+      }),
+    ).toEqual(['grace@acme.com']);
+  });
+
   it('isolates segments by tenant (RLS)', async () => {
     const otherOrg = newId('org');
     await admin.organization.create({ data: { id: otherOrg, name: 'X', slug: 'seg-x' } });

@@ -45,6 +45,26 @@ class Settings(BaseSettings):
     mcp_organization_id: str = ""
     mcp_workspace_id: str = ""
 
+    # ClickHouse (event store) — read-only source of the behavioral
+    # features that feed predictive scoring. Empty disables the predictor.
+    clickhouse_url: str = "http://localhost:8123"
+    clickhouse_user: str = "helio"
+    clickhouse_password: SecretStr = SecretStr("helio_dev_password")
+    clickhouse_database: str = "helio"
+    # Event names that count as a conversion (the positive label for the
+    # lead-scoring model). Override per deployment via INTEL_SCORING_
+    # CONVERSION_EVENTS as a JSON array. Names are validated before use.
+    scoring_conversion_events: list[str] = [
+        "Converted",
+        "Order Completed",
+        "Purchase",
+        "Subscription Started",
+    ]
+
+    @property
+    def scoring_configured(self) -> bool:
+        return bool(self.database_url and self.clickhouse_url)
+
     @property
     def llm_configured(self) -> bool:
         return bool(self.llm_api_key.get_secret_value()) or self.llm_provider.lower() in {

@@ -68,6 +68,13 @@ function compileCondition(
         : condition.operator === 'lte'
           ? { score: { lte: condition.value } }
           : { score: condition.value };
+    case 'prediction': {
+      // conversionProbability / churnRisk are null until the first run;
+      // a gte/lte filter naturally excludes the un-scored (null) contacts.
+      const bound =
+        condition.operator === 'gte' ? { gte: condition.value } : { lte: condition.value };
+      return { [condition.metric]: bound };
+    }
     case 'created_at': {
       if (condition.operator === 'in_last_days') {
         const since = new Date(Date.now() - condition.value * 24 * 60 * 60 * 1000);

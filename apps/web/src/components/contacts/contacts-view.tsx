@@ -33,7 +33,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { Gauge, ListPlus, MoreHorizontal, Plus, Upload } from 'lucide-react';
+import { Gauge, ListPlus, MoreHorizontal, Plus, Sparkles, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useDeferredValue, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -51,6 +51,8 @@ interface ContactRow {
   firstName: string | null;
   lastName: string | null;
   score: number;
+  conversionProbability: number | null;
+  churnRisk: number | null;
   status: 'ACTIVE' | 'UNSUBSCRIBED' | 'BOUNCED' | 'COMPLAINED';
   createdAt: Date | string;
 }
@@ -99,6 +101,18 @@ export function ContactsView() {
   const addMembers = useMutation(trpc.contactList.addMembers.mutationOptions());
   const removeMember = useMutation(trpc.contactList.removeMember.mutationOptions());
   const createList = useMutation(trpc.contactList.create.mutationOptions());
+  const recompute = useMutation(trpc.scoring.recompute.mutationOptions());
+
+  async function onRecompute() {
+    if (!workspaceId) return;
+    try {
+      const result = await recompute.mutateAsync({ workspaceId });
+      await invalidateContacts();
+      toast.success(t('predictionsDone', { count: result.scored }));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('genericError'));
+    }
+  }
 
   const rows = useMemo(
     () => contactsQuery.data?.pages.flatMap((page) => page.items) ?? [],
@@ -135,6 +149,18 @@ export function ContactsView() {
       columnHelper.accessor('score', {
         header: t('columns.score'),
         cell: ({ getValue }) => <span className="tabular-nums">{getValue()}</span>,
+      }),
+      columnHelper.accessor('churnRisk', {
+        header: t('columns.churnRisk'),
+        cell: ({ getValue }) => {
+          const value = getValue();
+          if (value === null || value === undefined) {
+            return <span className="text-muted-foreground">—</span>;
+          }
+          const pct = Math.round(value * 100);
+          const tone = value >= 0.66 ? 'destructive' : value >= 0.33 ? 'outline' : 'secondary';
+          return <Badge variant={tone}>{pct}%</Badge>;
+        },
       }),
       columnHelper.accessor('status', {
         header: t('columns.status'),
@@ -233,6 +259,15 @@ export function ContactsView() {
           {t('total', { count: total })}
         </Badge>
         <div className="ml-auto flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRecompute}
+            disabled={recompute.isPending}
+            data-testid="recompute-predictions"
+          >
+            <Sparkles aria-hidden /> {t('predictAction')}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setScoringOpen(true)}>
             <Gauge aria-hidden /> {t('scoring.manageAction')}
           </Button>
