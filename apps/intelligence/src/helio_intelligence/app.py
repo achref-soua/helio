@@ -64,6 +64,16 @@ def create_app() -> FastAPI:
         # real feature (ClickHouse/Postgres access).
         return {"status": "ok", "service": settings.service_name}
 
+    @app.get("/v1/llm/config")
+    def llm_config() -> dict[str, object]:
+        # Surfaces which provider/model the copilot will use, without ever
+        # echoing the key — handy for the dashboard and for deploy checks.
+        return {
+            "provider": settings.llm_provider,
+            "model": settings.llm_model,
+            "configured": settings.llm_configured,
+        }
+
     log.info("intelligence app created", service=settings.service_name)
     return app
 

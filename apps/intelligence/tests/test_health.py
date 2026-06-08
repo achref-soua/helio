@@ -42,3 +42,12 @@ def test_settings_respect_environment(monkeypatch) -> None:  # type: ignore[no-u
     settings = Settings()
     assert settings.port == 9001
     assert settings.service_name == "intel-test"
+
+
+def test_llm_config_reports_provider_without_leaking_the_key() -> None:
+    client = TestClient(create_app())
+    response = client.get("/v1/llm/config")
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body) == {"provider", "model", "configured"}
+    assert "api_key" not in body
