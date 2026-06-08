@@ -16,11 +16,25 @@ export interface WriteKeyResolver {
   resolve(key: string): Promise<ResolvedWriteKey | null>;
 }
 
+/** Persists a browser push subscription into the resolved workspace. */
+export interface PushStore {
+  upsert(input: {
+    organizationId: string;
+    workspaceId: string;
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+    userId?: string;
+  }): Promise<void>;
+}
+
 export interface IngestDeps {
   keys: WriteKeyResolver;
   producer: EventBusProducer;
   redis: RedisLike;
   rateLimit: { max: number; windowSeconds: number };
+  /** Optional Web Push subscription sink; absent in event-only deploys. */
+  pushStore?: PushStore;
   /** Extra /readyz probes (broker, ClickHouse) supplied by the entrypoint. */
   readiness?: Record<string, () => Promise<void>>;
   now?: () => Date;

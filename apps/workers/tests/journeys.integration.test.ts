@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { InMemoryEmailProvider } from '../src/email-provider';
 import { createJourneyActivities, type JourneyActivities } from '../src/journey-activities';
 import { enrollFromEvent, scoreFromEvent } from '../src/journey-triggers';
+import { InMemoryPushProvider } from '../src/push-provider';
 
 const CONFIG = {
   mailFrom: 'Helio <no-reply@helio.test>',
@@ -171,6 +172,63 @@ describe('journey activities + trigger enrollment against Postgres', () => {
     expect(failed.status).toBe('FAILED');
     expect(failed.error).toBe('boom');
     await prisma.journeyRun.delete({ where: { id: run.id } });
+  });
+
+  describe('sendJourneyPush', () => {
+    it('delivers to live subscriptions, prunes dead ones, skips suppressed', async () => {
+      const push = new InMemoryPushProvider();
+      const pushActivities = createJourneyActivities(prisma, provider, CONFIG, push);
+
+      // Two subscriptions for ada; one will be reported gone.
+      await prisma.pushSubscription.createMany({
+        data: [
+          {
+            id: newId('push'),
+            organizationId: orgId,
+            workspaceId: wsId,
+            contactId: adaId,
+            endpoint: 'https://push.test/live',
+            p256dh: 'k1',
+            auth: 'a1',
+          },
+          {
+            id: newId('push'),
+            organizationId: orgId,
+            workspaceId: wsId,
+            contactId: adaId,
+            endpoint: 'https://push.test/dead',
+            p256dh: 'k2',
+            auth: 'a2',
+          },
+        ],
+      });
+      push.gone.add('https://push.test/dead');
+
+      const result = await pushActivities.sendJourneyPush(adaId, {
+        title: 'Hi',
+        body: 'There',
+        url: 'https://app.test',
+      });
+      expect(result.sent).toBe(1);
+      expect(push.sent[0]!.notification).toEqual({
+        title: 'Hi',
+        body: 'There',
+        url: 'https://app.test',
+      });
+      // Dead endpoint pruned, live one kept.
+      const remaining = await prisma.pushSubscription.findMany({ where: { contactId: adaId } });
+      expect(remaining.map((row) => row.endpoint)).toEqual(['https://push.test/live']);
+
+      // Suppressed contact gets nothing.
+      expect((await pushActivities.sendJourneyPush(goneId, { title: 'x', body: 'y' })).sent).toBe(
+        0,
+      );
+    });
+
+    it('no-ops without a push provider configured', async () => {
+      const result = await activities.sendJourneyPush(adaId, { title: 'x', body: 'y' });
+      expect(result.sent).toBe(0);
+    });
   });
 
   describe('scoreFromEvent', () => {

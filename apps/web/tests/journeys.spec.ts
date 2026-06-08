@@ -105,6 +105,12 @@ test('v2: A/B split, trait, webhook nodes and settings persist', async ({ page }
     .getByTestId('node-webhook')
     .getByLabel('Webhook URL')
     .fill('https://hooks.example.com/variant-b');
+  await page.getByRole('button', { name: 'Web push', exact: true }).click();
+  await page
+    .getByTestId('node-send-push')
+    .getByLabel('Notification title')
+    .fill('Your order shipped');
+  await page.getByTestId('node-send-push').getByLabel('Notification body').fill('Track it now');
   await page.getByRole('button', { name: 'End', exact: true }).click();
   // trait branch (a) still dangles → wire it by adding another End.
   await page.getByRole('button', { name: 'End', exact: true }).click();
@@ -126,6 +132,9 @@ test('v2: A/B split, trait, webhook nodes and settings persist', async ({ page }
   );
   await expect(page.getByTestId('node-webhook').getByLabel('Webhook URL')).toHaveValue(
     'https://hooks.example.com/variant-b',
+  );
+  await expect(page.getByTestId('node-send-push').getByLabel('Notification title')).toHaveValue(
+    'Your order shipped',
   );
   await expect(page.getByLabel('Quiet hours')).toBeChecked();
   await expect(page.getByLabel('Max emails')).toHaveValue('2');

@@ -3,7 +3,7 @@
 import { Input } from '@helio/ui/components/input';
 import { useQuery } from '@tanstack/react-query';
 import { Handle, type NodeProps, Position, useReactFlow } from '@xyflow/react';
-import { GitBranch, Mail, Percent, Play, Square, Tag, Timer, Webhook } from 'lucide-react';
+import { Bell, GitBranch, Mail, Percent, Play, Square, Tag, Timer, Webhook } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
@@ -13,6 +13,7 @@ import type {
   AbSplitData,
   BranchData,
   SendEmailData,
+  SendPushData,
   TriggerData,
   UpdateTraitData,
   WaitData,
@@ -253,6 +254,42 @@ export function WebhookNode({ id, data, selected }: NodeProps) {
   );
 }
 
+export function SendPushNode({ id, data, selected }: NodeProps) {
+  const t = useTranslations('journeys.nodes');
+  const { updateNodeData } = useReactFlow();
+  const push = data as SendPushData;
+  return (
+    <div className={shell(selected)} data-testid="node-send-push">
+      <Header icon={Bell} label={t('sendPush')} />
+      <div className="grid gap-1.5">
+        <Input
+          aria-label={t('pushTitle')}
+          placeholder={t('pushTitlePlaceholder')}
+          value={push.title}
+          onChange={(event) => updateNodeData(id, { title: event.target.value })}
+          className="nodrag h-8"
+        />
+        <Input
+          aria-label={t('pushBody')}
+          placeholder={t('pushBodyPlaceholder')}
+          value={push.body}
+          onChange={(event) => updateNodeData(id, { body: event.target.value })}
+          className="nodrag h-8"
+        />
+        <Input
+          aria-label={t('pushUrl')}
+          placeholder={t('pushUrlPlaceholder')}
+          value={push.url}
+          onChange={(event) => updateNodeData(id, { url: event.target.value })}
+          className="nodrag h-8"
+        />
+      </div>
+      <Handle type="target" position={Position.Top} />
+      <Handle type="source" position={Position.Bottom} />
+    </div>
+  );
+}
+
 export const nodeTypes = {
   trigger: TriggerNode,
   send_email: SendEmailNode,
@@ -261,5 +298,6 @@ export const nodeTypes = {
   ab_split: AbSplitNode,
   update_trait: UpdateTraitNode,
   webhook: WebhookNode,
+  send_push: SendPushNode,
   end: EndNode,
 };

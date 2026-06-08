@@ -42,6 +42,12 @@ export interface WebhookData {
   url: string;
   [key: string]: unknown;
 }
+export interface SendPushData {
+  title: string;
+  body: string;
+  url: string;
+  [key: string]: unknown;
+}
 
 export interface JourneySettings {
   quietHoursEnabled: boolean;
@@ -125,6 +131,13 @@ export function definitionToCanvas(definition: JourneyDefinition): {
       });
     } else if (node.type === 'webhook') {
       nodes.push({ id: node.id, type: 'webhook', position, data: { url: node.url } });
+    } else if (node.type === 'send_push') {
+      nodes.push({
+        id: node.id,
+        type: 'send_push',
+        position,
+        data: { title: node.title, body: node.body, url: node.url ?? '' },
+      });
     } else if (node.type === 'branch') {
       const condition = node.condition as { key?: string; operator?: string; value?: string };
       nodes.push({
@@ -224,6 +237,17 @@ export function canvasToDefinition(
       })();
       if (!valid) issues.push('webhook: enter a valid URL');
       definitionNodes.push({ id: node.id, type: 'webhook', url: data.url, position });
+    } else if (node.type === 'send_push') {
+      const data = node.data as SendPushData;
+      if (!data.title.trim() || !data.body.trim()) issues.push('push: set a title and body');
+      definitionNodes.push({
+        id: node.id,
+        type: 'send_push',
+        title: data.title,
+        body: data.body,
+        ...(data.url.trim() ? { url: data.url.trim() } : {}),
+        position,
+      });
     } else if (node.type === 'branch') {
       const data = node.data as BranchData;
       if (!data.attributeKey || !data.value) issues.push('branch: set attribute and value');

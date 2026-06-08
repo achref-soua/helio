@@ -1,5 +1,6 @@
 /* eslint-disable no-console -- process entrypoint logs its bind address */
 import { KafkaEventProducer } from '@helio/bus';
+import { newId } from '@helio/core';
 import { createPrismaClient } from '@helio/db';
 import { serve } from '@hono/node-server';
 import { Redis } from 'ioredis';
@@ -26,9 +27,36 @@ const clickhouse = createClickHouseClient({
 const migrated = await applyClickHouseMigrations(clickhouse);
 if (migrated.length > 0) console.log(`clickhouse migrations applied: ${migrated.join(', ')}`);
 
+const prisma = createPrismaClient(env.DATABASE_ADMIN_URL);
+
 const app = createApp({
-  keys: new PrismaWriteKeyResolver(createPrismaClient(env.DATABASE_ADMIN_URL)),
+  keys: new PrismaWriteKeyResolver(prisma),
   producer,
+  pushStore: {
+    async upsert(input) {
+      // Resolve the contact by email (userId) within the workspace when
+      // one is known, so journey push can target by audience.
+      const contact = input.userId
+        ? await prisma.contact.findUnique({
+            where: { workspaceId_email: { workspaceId: input.workspaceId, email: input.userId } },
+            select: { id: true },
+          })
+        : null;
+      await prisma.pushSubscription.upsert({
+        where: { endpoint: input.endpoint },
+        update: { p256dh: input.p256dh, auth: input.auth, contactId: contact?.id ?? null },
+        create: {
+          id: newId('push'),
+          organizationId: input.organizationId,
+          workspaceId: input.workspaceId,
+          contactId: contact?.id ?? null,
+          endpoint: input.endpoint,
+          p256dh: input.p256dh,
+          auth: input.auth,
+        },
+      });
+    },
+  },
   redis: new Redis(env.REDIS_URL),
   rateLimit: { max: env.INGEST_RATE_LIMIT_MAX, windowSeconds: env.INGEST_RATE_LIMIT_WINDOW_S },
   readiness: {

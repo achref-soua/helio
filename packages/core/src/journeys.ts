@@ -62,6 +62,14 @@ export const journeyNodeSchema = z.discriminatedUnion('type', [
     url: z.string().trim().url().max(2048),
     position: positionSchema.optional(),
   }),
+  z.object({
+    id: nodeIdSchema,
+    type: z.literal('send_push'),
+    title: z.string().trim().min(1).max(120),
+    body: z.string().trim().min(1).max(300),
+    url: z.string().trim().url().max(2048).optional(),
+    position: positionSchema.optional(),
+  }),
   z.object({ id: nodeIdSchema, type: z.literal('end'), position: positionSchema.optional() }),
 ]);
 export type JourneyNode = z.infer<typeof journeyNodeSchema>;

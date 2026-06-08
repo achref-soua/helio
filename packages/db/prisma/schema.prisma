@@ -36,6 +36,7 @@ model Organization {
   journeys     Journey[]
   forms        Form[]
   scoringRules ScoringRule[]
+  pushSubscriptions PushSubscription[]
 
   @@map("organization")
 }
@@ -62,6 +63,7 @@ model Workspace {
   journeys     Journey[]
   forms        Form[]
   scoringRules ScoringRule[]
+  pushSubscriptions PushSubscription[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -121,6 +123,7 @@ model Contact {
   listMembers  ContactListMember[]
   emailSends   EmailSend[]
   journeyRuns  JourneyRun[]
+  pushSubscriptions PushSubscription[]
 
   @@unique([workspaceId, email])
   @@index([organizationId])
@@ -401,6 +404,29 @@ model ScoringRule {
   @@unique([workspaceId, event])
   @@index([organizationId])
   @@map("scoring_rule")
+}
+
+/// A browser Web Push subscription (VAPID). Linked to a contact when the
+/// SDK has identified one; endpoint is globally unique (the browser's
+/// push service URL). Stale endpoints are pruned on 404/410 at send time.
+model PushSubscription {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  contactId      String?  @map("contact_id")
+  endpoint       String   @unique
+  p256dh         String
+  auth           String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contact      Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([workspaceId])
+  @@index([contactId])
+  @@map("push_subscription")
 }
 
 // ───────────────────────── Better-Auth tables ─────────────────────────

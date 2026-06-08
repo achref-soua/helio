@@ -18,6 +18,7 @@ import { renderEmail } from '@helio/emails';
 
 import type { ActivityConfig } from './activities';
 import type { EmailProvider } from './email-provider';
+import type { PushProvider } from './push-provider';
 
 export interface LoadedJourney {
   organizationId: string;
@@ -34,6 +35,7 @@ export function createJourneyActivities(
   prisma: PrismaClient,
   provider: EmailProvider,
   config: ActivityConfig,
+  pushProvider?: PushProvider,
 ) {
   return {
     async loadJourney(journeyId: string): Promise<LoadedJourney> {
@@ -185,6 +187,31 @@ export function createJourneyActivities(
         select: { email: true },
       });
       return contact?.email ?? '';
+    },
+
+    /**
+     * Push every live subscription for a contact. Dead endpoints
+     * (404/410) are pruned; returns how many were delivered.
+     */
+    async sendJourneyPush(
+      contactId: string,
+      notification: { title: string; body: string; url?: string },
+    ): Promise<{ sent: number }> {
+      const contact = await prisma.contact.findUnique({ where: { id: contactId } });
+      if (!contact || contact.status !== 'ACTIVE' || !pushProvider) return { sent: 0 };
+      const subscriptions = await prisma.pushSubscription.findMany({ where: { contactId } });
+      let sent = 0;
+      for (const subscription of subscriptions) {
+        const result = await pushProvider.send(
+          { endpoint: subscription.endpoint, p256dh: subscription.p256dh, auth: subscription.auth },
+          notification,
+        );
+        if (result === 'sent') sent += 1;
+        else if (result === 'gone') {
+          await prisma.pushSubscription.delete({ where: { id: subscription.id } });
+        }
+      }
+      return { sent };
     },
 
     async completeRun(runId: string): Promise<void> {
