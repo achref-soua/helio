@@ -33,6 +33,7 @@ model Organization {
   emailTemplates EmailTemplate[]
   emailSends   EmailSend[]
   campaigns    Campaign[]
+  journeys     Journey[]
 
   @@map("organization")
 }
@@ -56,6 +57,7 @@ model Workspace {
   emailTemplates EmailTemplate[]
   emailSends   EmailSend[]
   campaigns    Campaign[]
+  journeys     Journey[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -112,6 +114,7 @@ model Contact {
   workspace    Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   listMembers  ContactListMember[]
   emailSends   EmailSend[]
+  journeyRuns  JourneyRun[]
 
   @@unique([workspaceId, email])
   @@index([organizationId])
@@ -290,6 +293,66 @@ model EmailSend {
   @@index([organizationId])
   @@index([workspaceId, createdAt])
   @@map("email_send")
+}
+
+/// Lifecycle of an automation journey.
+enum JourneyStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+
+  @@map("journey_status")
+}
+
+/// State of one contact's pass through a journey.
+enum JourneyRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+
+  @@map("journey_run_status")
+}
+
+/// An automation: a validated DAG (shape owned by @helio/core's
+/// journeyDefinitionSchema) executed durably per contact (ADR-0012).
+model Journey {
+  id             String        @id
+  organizationId String        @map("organization_id")
+  workspaceId    String        @map("workspace_id")
+  name           String
+  status         JourneyStatus @default(DRAFT)
+  definition     Json
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  runs         JourneyRun[]
+
+  @@unique([workspaceId, name])
+  @@index([organizationId])
+  @@index([workspaceId, status])
+  @@map("journey")
+}
+
+/// One contact's enrollment. Also the re-entry guard: a RUNNING row
+/// blocks duplicate enrollment of the same contact.
+model JourneyRun {
+  id             String           @id
+  organizationId String           @map("organization_id")
+  journeyId      String           @map("journey_id")
+  contactId      String           @map("contact_id")
+  status         JourneyRunStatus @default(RUNNING)
+  error          String?
+  startedAt      DateTime         @default(now()) @map("started_at")
+  completedAt    DateTime?        @map("completed_at")
+
+  journey Journey @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([journeyId, contactId, status])
+  @@index([organizationId])
+  @@map("journey_run")
 }
 
 // ───────────────────────── Better-Auth tables ─────────────────────────

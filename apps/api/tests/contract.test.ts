@@ -47,7 +47,7 @@ describe('gateway contract', () => {
       prisma: createPrismaClient(appUrl.toString()),
       redis,
       bootstrapToken: TOKEN,
-      rateLimit: { max: 100, windowSeconds: 60 },
+      rateLimit: { max: 100, windowSeconds: 3600 },
     });
   });
 
@@ -133,7 +133,7 @@ describe('gateway contract', () => {
       // credential gives this test its own limiter bucket.
       redis: new RedisMock() as unknown as RedisLike,
       bootstrapToken: 'rate-limit-test-token-000001',
-      rateLimit: { max: 2, windowSeconds: 60 },
+      rateLimit: { max: 2, windowSeconds: 3600 },
     });
     const call = () =>
       limited.request(`/v1/workspaces?organizationId=${otherOrgId}`, {

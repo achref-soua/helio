@@ -411,6 +411,9 @@ importers:
       '@temporalio/workflow':
         specifier: ^1.17.2
         version: 1.17.2
+      kafkajs:
+        specifier: ^2.2.4
+        version: 2.2.4
       nodemailer:
         specifier: ^8.0.10
         version: 8.0.10

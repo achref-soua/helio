@@ -6,6 +6,11 @@ export const COVERAGE_THRESHOLD = 70;
 const baseConfig = defineConfig({
   test: {
     environment: 'node',
+    // Integration suites boot Testcontainers per file; running files in
+    // parallel across packages floods Docker and flakes the merge gate.
+    // Within a package, files run sequentially (turbo still parallelizes
+    // packages, bounded by the root test script's --concurrency).
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

@@ -35,6 +35,17 @@ export {
   trackEventSchema,
 } from './events';
 export { type Id, idTimestamp, isId, newId } from './id';
+export {
+  type JourneyDefinition,
+  journeyDefinitionSchema,
+  type JourneyEdge,
+  journeyEdgeSchema,
+  type JourneyNode,
+  journeyNodeById,
+  journeyNodeSchema,
+  journeyTriggerSchema,
+  nextNodeId,
+} from './journeys';
 export { hasRole, INVITABLE_ROLES, isRole, type Role, ROLES } from './rbac';
 export {
   type Err,
@@ -72,6 +83,7 @@ export {
 } from './tracking-links';
 export {
   CAMPAIGN_SEND_WORKFLOW,
+  JOURNEY_RUN_WORKFLOW,
   mintUnsubscribeToken,
   SENDS_TASK_QUEUE,
   unsubscribeUrl,

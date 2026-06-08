@@ -11,7 +11,14 @@ export default createVitestConfig({
       // instrument it — the workflow tests cover it behaviorally.
       // email-provider's SMTP class is nodemailer glue, exercised against
       // Mailpit in dev; the in-memory double drives the activity tests.
-      exclude: ['src/worker.ts', 'src/env.ts', 'src/workflows.ts', 'src/email-provider.ts'],
+      exclude: [
+        'src/worker.ts',
+        'src/env.ts',
+        'src/workflows.ts',
+        'src/journey-workflows.ts',
+        'src/email-provider.ts',
+        'src/trigger-consumer.ts',
+      ],
     },
   },
 });

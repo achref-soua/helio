@@ -2,6 +2,8 @@ import { ApplicationFailure, proxyActivities } from '@temporalio/workflow';
 
 import type { CampaignActivities } from './activities';
 
+export { journeyRunWorkflow } from './journey-workflows';
+
 const activities = proxyActivities<CampaignActivities>({
   startToCloseTimeout: '2 minutes',
   retry: { maximumAttempts: 5 },

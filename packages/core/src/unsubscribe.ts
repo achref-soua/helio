@@ -52,3 +52,4 @@ export function unsubscribeUrl(appBaseUrl: string, token: string): string {
 /** Temporal wiring shared by the dashboard (client) and apps/workers. */
 export const SENDS_TASK_QUEUE = 'helio-sends';
 export const CAMPAIGN_SEND_WORKFLOW = 'campaignSendWorkflow';
+export const JOURNEY_RUN_WORKFLOW = 'journeyRunWorkflow';
