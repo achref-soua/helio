@@ -172,9 +172,17 @@
     },
     "import": {
       "title": "Import contacts",
-      "subtitle": "CSV with a header row; an email column is required. Extra columns become attributes.",
+      "subtitle": "CSV with a header row; an email column is required. Extra columns become attributes. HubSpot, Mailchimp, and Klaviyo exports are detected automatically, including who's unsubscribed.",
       "fileLabel": "CSV file",
+      "detected": "Detected a {source} export",
       "summary": "{valid} valid · {invalid} invalid · {duplicates} duplicates in file",
+      "suppressed": "{count, plural, one {# contact imported as unsubscribed} other {# contacts imported as unsubscribed}}",
+      "sources": {
+        "hubspot": "HubSpot",
+        "mailchimp": "Mailchimp",
+        "klaviyo": "Klaviyo",
+        "csv": "CSV"
+      },
       "importAction": "Import",
       "working": "Importing…",
       "parseError": "Could not parse that file as CSV.",
