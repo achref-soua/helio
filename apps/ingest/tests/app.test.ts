@@ -175,6 +175,79 @@ describe('ingest app', () => {
     expect(limited.headers.get('RateLimit-Remaining')).toBe('0');
   });
 
+  describe('Segment single-event endpoints', () => {
+    function postTo(path: string, body: unknown, headers: Record<string, string> = {}) {
+      return app.request(path, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...headers },
+        body: JSON.stringify(body),
+      });
+    }
+
+    it('accepts a single track event, injecting the type from the path', async () => {
+      const response = await postTo(
+        '/v1/track',
+        { event: 'Order Completed', userId: 'u-1', properties: { total: 42 } },
+        { 'x-write-key': KNOWN },
+      );
+      expect(response.status).toBe(202);
+      expect(await response.json()).toEqual({ accepted: 1 });
+      expect(producer.published).toHaveLength(1);
+      const [event] = producer.published;
+      expect(event!.type).toBe('track');
+      expect(event!.event).toBe('Order Completed');
+      expect(event!.user_id).toBe('u-1');
+      expect(event!.workspace_id).toBe('ws_1');
+    });
+
+    it('accepts identify and page on their own paths', async () => {
+      expect(
+        (
+          await postTo(
+            '/v1/identify',
+            { userId: 'u-2', traits: { plan: 'pro' } },
+            { 'x-write-key': KNOWN },
+          )
+        ).status,
+      ).toBe(202);
+      expect(
+        (
+          await postTo(
+            '/v1/page',
+            { name: 'Pricing', anonymousId: 'anon-9' },
+            { 'x-write-key': KNOWN },
+          )
+        ).status,
+      ).toBe(202);
+      const types = producer.published.map((event) => event.type);
+      expect(types).toEqual(['identify', 'page']);
+    });
+
+    it('still authenticates: rejects an unknown key', async () => {
+      const response = await postTo(
+        '/v1/track',
+        { event: 'X', userId: 'u' },
+        { 'x-write-key': 'nope' },
+      );
+      expect(response.status).toBe(401);
+    });
+
+    it('422s an invalid event (no identity) and points at the issue', async () => {
+      const response = await postTo('/v1/track', { event: 'X' }, { 'x-write-key': KNOWN });
+      expect(response.status).toBe(422);
+      expect(response.headers.get('content-type')).toBe('application/problem+json');
+    });
+
+    it('accepts the body writeKey (Segment posts it in the payload)', async () => {
+      const response = await postTo('/v1/track', {
+        event: 'X',
+        userId: 'u',
+        writeKey: KNOWN,
+      });
+      expect(response.status).toBe(202);
+    });
+  });
+
   describe('push subscribe', () => {
     const subscription = {
       endpoint: 'https://push.example/abc',
