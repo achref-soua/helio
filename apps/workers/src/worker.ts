@@ -1,4 +1,5 @@
 /* eslint-disable no-console -- process entrypoint logs lifecycle */
+import { createClient as createClickHouseClient } from '@clickhouse/client';
 import { SENDS_TASK_QUEUE } from '@helio/core';
 import { createPrismaClient } from '@helio/db';
 import { Client as TemporalClient, Connection } from '@temporalio/client';
@@ -31,13 +32,20 @@ const activityConfig = {
   webhookSecret: env.WEBHOOK_SIGNING_SECRET,
 };
 
+const clickhouse = createClickHouseClient({
+  url: env.CLICKHOUSE_URL,
+  username: env.CLICKHOUSE_USER,
+  password: env.CLICKHOUSE_PASSWORD,
+  database: env.CLICKHOUSE_DB,
+});
+
 const worker = await Worker.create({
   connection,
   namespace: env.TEMPORAL_NAMESPACE,
   taskQueue: SENDS_TASK_QUEUE,
   workflowsPath: new URL('./workflows.ts', import.meta.url).pathname,
   activities: {
-    ...createActivities(prisma, provider, activityConfig),
+    ...createActivities(prisma, provider, activityConfig, clickhouse),
     ...createJourneyActivities(prisma, provider, activityConfig),
   },
 });

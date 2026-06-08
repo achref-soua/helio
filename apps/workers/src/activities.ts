@@ -1,13 +1,17 @@
+import type { ClickHouseClient } from '@clickhouse/client';
 import type { SegmentRule } from '@helio/core';
 import {
+  buildEventConditionQuery,
   clickRedirectUrl,
   type EmailDocument,
+  eventConditionKey,
+  extractEventConditions,
   mintUnsubscribeToken,
   newId,
   openPixelUrl,
   unsubscribeUrl,
 } from '@helio/core';
-import { compileSegmentRule, type PrismaClient } from '@helio/db';
+import { compileSegmentRule, type EventConditionSets, type PrismaClient } from '@helio/db';
 import { renderEmail } from '@helio/emails';
 import { Context } from '@temporalio/activity';
 
@@ -43,7 +47,34 @@ export function createActivities(
   prisma: PrismaClient,
   provider: EmailProvider,
   config: ActivityConfig,
+  clickhouse?: ClickHouseClient,
 ) {
+  /** Behavioral audiences need the event store; fail actionably without it. */
+  async function resolveEventSets(
+    rule: SegmentRule,
+    workspaceId: string,
+  ): Promise<EventConditionSets> {
+    const conditions = extractEventConditions(rule);
+    const sets: EventConditionSets = new Map();
+    if (conditions.length === 0) return sets;
+    if (!clickhouse) {
+      throw new Error(
+        'campaign audience uses behavioral conditions but ClickHouse is not configured',
+      );
+    }
+    for (const condition of conditions) {
+      const { query, params, mode } = buildEventConditionQuery(condition);
+      const result = await clickhouse.query({
+        query,
+        query_params: { workspaceId, ...params },
+        format: 'JSONEachRow',
+      });
+      const rows = (await result.json()) as Array<{ user_id: string }>;
+      sets.set(eventConditionKey(condition), { mode, emails: rows.map((row) => row.user_id) });
+    }
+    return sets;
+  }
+
   return {
     /** Move DRAFT → SENDING and hand the workflow its tenancy scope. */
     async startCampaign(campaignId: string): Promise<CampaignContext> {
@@ -69,7 +100,13 @@ export function createActivities(
         select: { workspaceId: true, segmentId: true, listId: true, segment: true },
       });
       const audience = campaign.segmentId
-        ? compileSegmentRule(campaign.segment!.rule as unknown as SegmentRule)
+        ? compileSegmentRule(
+            campaign.segment!.rule as unknown as SegmentRule,
+            await resolveEventSets(
+              campaign.segment!.rule as unknown as SegmentRule,
+              campaign.workspaceId,
+            ),
+          )
         : { listMembers: { some: { listId: campaign.listId ?? '' } } };
 
       const contacts = await prisma.contact.findMany({

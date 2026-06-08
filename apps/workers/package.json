@@ -13,6 +13,7 @@
     "test": "vitest run --coverage"
   },
   "dependencies": {
+    "@clickhouse/client": "^1.12.1",
     "@helio/core": "workspace:*",
     "@helio/db": "workspace:*",
     "@helio/emails": "workspace:*",

@@ -68,10 +68,14 @@ export {
   unwrapOr,
 } from './result';
 export {
+  buildEventConditionQuery,
   CONTACT_FIELDS,
   CONTACT_STATUSES,
   type ContactField,
   countConditions,
+  type EventCondition,
+  eventConditionKey,
+  extractEventConditions,
   type SegmentCondition,
   segmentConditionSchema,
   type SegmentRule,

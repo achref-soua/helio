@@ -33,6 +33,10 @@ export const env = createEnv({
   TRACKING_SECRET: z.string().min(24),
   UNSUBSCRIBE_SECRET: z.string().min(24),
   KAFKA_BROKERS: z.string().min(1).default('localhost:19092'),
+  CLICKHOUSE_URL: z.string().min(1).default('http://localhost:8123'),
+  CLICKHOUSE_USER: z.string().min(1).default('helio'),
+  CLICKHOUSE_PASSWORD: z.string().min(1).default('helio_dev_password'),
+  CLICKHOUSE_DB: z.string().min(1).default('helio'),
   EVENTS_TOPIC: z.string().min(1).default('helio.events.v1'),
   /** Optional HMAC key for journey webhook signatures (x-helio-signature). */
   WEBHOOK_SIGNING_SECRET: z.string().min(24).optional(),

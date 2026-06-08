@@ -1,5 +1,5 @@
 export { createPrismaClient, type PrismaClient } from './client';
-export { compileSegmentRule } from './segments';
+export { compileSegmentRule, type EventConditionSets } from './segments';
 // Prisma namespace (input types, DbNull markers) for callers storing JSON.
 export type {
   AuditLog,

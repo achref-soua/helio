@@ -223,7 +223,8 @@
         "lastName": "Last name",
         "attribute": "Attribute",
         "status": "Status",
-        "createdAt": "Created"
+        "createdAt": "Created",
+        "event": "Did event"
       },
       "operators": {
         "equals": "equals",
@@ -236,14 +237,23 @@
         "is_not_set": "is not set",
         "in_last_days": "in the last (days)",
         "before": "before",
-        "after": "after"
+        "after": "after",
+        "at_least": "at least",
+        "at_most": "at most",
+        "never": "never"
       },
       "statuses": {
         "ACTIVE": "Active",
         "UNSUBSCRIBED": "Unsubscribed",
         "BOUNCED": "Bounced",
         "COMPLAINED": "Complained"
-      }
+      },
+      "eventName": "Event name",
+      "eventNamePlaceholder": "e.g. Signed Up",
+      "eventCount": "Times",
+      "eventDays": "Window (days)",
+      "inLast": "in last",
+      "daysSuffix": "days"
     }
   },
   "emails": {
