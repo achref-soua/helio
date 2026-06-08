@@ -11,7 +11,8 @@
     "settings": "Settings",
     "toggleNavigation": "Toggle navigation",
     "emails": "Emails",
-    "campaigns": "Campaigns"
+    "campaigns": "Campaigns",
+    "forms": "Forms"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -390,5 +391,35 @@
       "no": "No",
       "end": "End"
     }
+  },
+  "forms": {
+    "title": "Forms",
+    "total": "{count, plural, one {# form} other {# forms}}",
+    "newForm": "New form",
+    "createTitle": "Create a form",
+    "createSubtitle": "A hosted signup page that adds submitters to your contacts.",
+    "name": "Name",
+    "formTitle": "Page heading",
+    "createAction": "Create form",
+    "cancel": "Cancel",
+    "created": "Form created",
+    "deleted": "Form deleted",
+    "genericError": "Something went wrong",
+    "linkCopied": "Public link copied",
+    "copy": "Copy link",
+    "copyLink": "Copy link for {name}",
+    "deleteAction": "Delete {name}",
+    "emptyTitle": "No forms yet",
+    "emptyBody": "Host a signup page and grow your audience."
+  },
+  "hostedForm": {
+    "subtitle": "Sign up to hear from us.",
+    "email": "Email",
+    "firstName": "First name (optional)",
+    "submit": "Sign up",
+    "thanksTitle": "You're in!",
+    "thanksBody": "Thanks for signing up — we'll be in touch.",
+    "notFoundTitle": "Form not found",
+    "notFoundBody": "This form doesn't exist or was removed."
   }
 }
