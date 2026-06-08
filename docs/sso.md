@@ -57,3 +57,39 @@ on return, first-time users are provisioned into the organization as a
   server's trusted origins — an SSRF guard rejects private hosts.
 
 See [ADR-0013](adr/0013-sso-oidc.md) for the design rationale.
+
+## SCIM provisioning
+
+SSO authenticates whoever your IdP sends; SCIM 2.0 keeps the membership list
+in sync automatically — new hires get access, departures lose it — without an
+admin inviting anyone by hand. Helio implements the SCIM 2.0 User resource.
+
+### Connect your IdP
+
+1. In Helio, open **Settings → SCIM provisioning** (owner/admin) and select
+   **Generate token**. Copy the bearer token — it is shown only once.
+2. In your IdP's provisioning settings, set:
+   - **SCIM base URL:** `https://<your-helio-host>/scim/v2`
+   - **Authentication:** OAuth Bearer Token → paste the token from step 1
+3. Enable provisioning. Okta/Entra will probe `/ServiceProviderConfig`, then
+   create, look up, and deactivate users as your directory changes.
+
+### How users map
+
+- **Create** (`POST /Users`) adds the person to your organization as a
+  `viewer` (elevate under **Settings → Members**). It's idempotent per email.
+- **Deactivate** (`PATCH active:false`) and **Delete** (`DELETE`) both remove
+  the organization membership. The person's underlying account — which may
+  belong to other organizations — is left intact.
+- Provisioning and deprovisioning are written to the audit log.
+
+### Security model
+
+- Every `/scim/v2` request is authenticated by the org's bearer token; an IdP
+  only ever sees its own organization. Regenerating the token immediately
+  invalidates the previous one.
+- Only the token's SHA-256 hash is stored, in a table walled off from the
+  tenant database role — the same identity-domain lockdown as SSO secrets
+  (ADR-0004, ADR-0014).
+
+See [ADR-0014](adr/0014-scim-provisioning.md) for the design rationale.

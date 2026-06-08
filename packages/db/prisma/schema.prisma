@@ -42,6 +42,7 @@ model Organization {
   deals             Deal[]
   subscription      Subscription?
   ssoProviders      SsoProvider[]
+  scimToken         ScimToken?
 
   @@map("organization")
 }
@@ -652,6 +653,22 @@ model SsoProvider {
   @@index([userId])
   @@index([organizationId])
   @@map("sso_provider")
+}
+
+/// Per-organization SCIM 2.0 bearer token (one per org). Auth-domain like
+/// the SSO providers: only the token's SHA-256 hash is stored, and the
+/// table is walled off from the RLS app role (see ADR-0014). An IdP
+/// presents the plaintext as `Authorization: Bearer` to `/scim/v2`.
+model ScimToken {
+  id             String    @id
+  organizationId String    @unique @map("organization_id")
+  tokenHash      String    @unique @map("token_hash")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  lastUsedAt     DateTime? @map("last_used_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("scim_token")
 }
 
 // ── CRM-lite (deals & pipelines) ───────────────────────────────────────

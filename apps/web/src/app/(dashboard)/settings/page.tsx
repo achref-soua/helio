@@ -6,6 +6,7 @@ import { auth } from '@/lib/auth';
 
 import { BillingPanel } from './billing-panel';
 import { MembersPanel } from './members-panel';
+import { ScimPanel } from './scim-panel';
 import { SsoPanel } from './sso-panel';
 
 export default async function SettingsPage() {
@@ -44,7 +45,12 @@ export default async function SettingsPage() {
         canManage={me?.role === 'owner' || me?.role === 'admin'}
       />
       <BillingPanel />
-      {(me?.role === 'owner' || me?.role === 'admin') && <SsoPanel canManage />}
+      {(me?.role === 'owner' || me?.role === 'admin') && (
+        <>
+          <SsoPanel canManage />
+          <ScimPanel canManage />
+        </>
+      )}
     </div>
   );
 }
