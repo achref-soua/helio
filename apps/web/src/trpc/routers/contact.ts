@@ -167,7 +167,7 @@ export const contactRouter = router({
     .mutation(async ({ ctx, input }) => {
       requireRole(ctx.memberRole, 'editor');
       await assertWorkspace(ctx.tenantDb, input.workspaceId);
-      const { valid, invalid, duplicates } = normalizeContactRows(input.rows);
+      const { valid, invalid, duplicates, source, suppressed } = normalizeContactRows(input.rows);
       const result = await ctx.tenantDb.contact.createMany({
         data: valid.map((row) => ({
           id: newId('contact'),
@@ -176,8 +176,11 @@ export const contactRouter = router({
           email: row.email,
           firstName: row.firstName,
           lastName: row.lastName,
+          // Honor the vendor's unsubscribe state on import — suppressed
+          // contacts are never mailed by any sender.
+          status: row.status ?? 'ACTIVE',
           attributes: row.attributes,
-          source: 'csv-import',
+          source: `${source}-import`,
         })),
         skipDuplicates: true,
       });
@@ -188,7 +191,14 @@ export const contactRouter = router({
           workspaceId: input.workspaceId,
           actorId: ctx.session.user.id,
           action: 'contacts.imported',
-          metadata: { received: input.rows.length, created: result.count, invalid, duplicates },
+          metadata: {
+            received: input.rows.length,
+            created: result.count,
+            invalid,
+            duplicates,
+            source,
+            suppressed,
+          },
         },
       });
       return {
@@ -196,6 +206,8 @@ export const contactRouter = router({
         skippedExisting: valid.length - result.count,
         invalid,
         duplicates,
+        source,
+        suppressed,
       };
     }),
 });

@@ -8,6 +8,9 @@ export {
 } from './ab-test';
 export {
   contactEmailSchema,
+  detectImportSource,
+  type ImportSource,
+  type ImportStatus,
   normalizeContactRows,
   type NormalizedContactRow,
   type NormalizeResult,

@@ -25,6 +25,8 @@ interface ParseSummary {
   valid: number;
   invalid: number;
   duplicates: number;
+  source: string;
+  suppressed: number;
 }
 
 export function ImportDialog({
@@ -55,6 +57,8 @@ export function ImportDialog({
           valid: preview.valid.length,
           invalid: preview.invalid,
           duplicates: preview.duplicates,
+          source: preview.source,
+          suppressed: preview.suppressed,
         });
       },
       error: () => toast.error(t('parseError')),
@@ -97,13 +101,21 @@ export function ImportDialog({
             <Input id="csv-file" type="file" accept=".csv,text/csv" onChange={onFile} />
           </div>
           {summary && (
-            <p className="text-muted-foreground text-sm" data-testid="import-summary">
-              {t('summary', {
-                valid: summary.valid,
-                invalid: summary.invalid,
-                duplicates: summary.duplicates,
-              })}
-            </p>
+            <div className="text-muted-foreground grid gap-1 text-sm" data-testid="import-summary">
+              {summary.source !== 'csv' && (
+                <p className="text-foreground font-medium" data-testid="import-source">
+                  {t('detected', { source: t(`sources.${summary.source}`) })}
+                </p>
+              )}
+              <p>
+                {t('summary', {
+                  valid: summary.valid,
+                  invalid: summary.invalid,
+                  duplicates: summary.duplicates,
+                })}
+              </p>
+              {summary.suppressed > 0 && <p>{t('suppressed', { count: summary.suppressed })}</p>}
+            </div>
           )}
         </div>
         <DialogFooter>
