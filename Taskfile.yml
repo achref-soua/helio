@@ -122,3 +122,8 @@ tasks:
     desc: Apply ClickHouse migrations (requires the full profile)
     cmds:
       - pnpm --filter @helio/ingest ch:migrate
+
+  loadtest:
+    desc: 'Ingestion load test (requires: task up:full, db:seed, ingest running, k6 installed)'
+    cmds:
+      - k6 run infra/k6/ingest.js

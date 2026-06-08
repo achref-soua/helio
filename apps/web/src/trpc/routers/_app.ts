@@ -6,6 +6,7 @@ import { contactListRouter } from './contact-list';
 import { emailTemplateRouter } from './email-template';
 import { formRouter } from './form';
 import { journeyRouter } from './journey';
+import { scoringRouter } from './scoring';
 import { segmentRouter } from './segment';
 import { workspaceRouter } from './workspace';
 
@@ -24,6 +25,7 @@ export const appRouter = router({
   journey: journeyRouter,
   analytics: analyticsRouter,
   form: formRouter,
+  scoring: scoringRouter,
 });
 
 export type AppRouter = typeof appRouter;

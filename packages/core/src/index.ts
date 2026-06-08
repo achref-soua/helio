@@ -36,6 +36,8 @@ export {
 } from './events';
 export { type Id, idTimestamp, isId, newId } from './id';
 export {
+  type FrequencyCap,
+  frequencyCapSchema,
   type JourneyDefinition,
   journeyDefinitionSchema,
   type JourneyEdge,
@@ -45,7 +47,11 @@ export {
   journeyNodeSchema,
   journeyTriggerSchema,
   nextNodeId,
+  type QuietHours,
+  quietHoursDelayMs,
+  quietHoursSchema,
 } from './journeys';
+export { type PushNotification, type PushSubscriptionInput, pushSubscriptionSchema } from './push';
 export { hasRole, INVITABLE_ROLES, isRole, type Role, ROLES } from './rbac';
 export {
   type Err,
@@ -63,10 +69,14 @@ export {
   unwrapOr,
 } from './result';
 export {
+  buildEventConditionQuery,
   CONTACT_FIELDS,
   CONTACT_STATUSES,
   type ContactField,
   countConditions,
+  type EventCondition,
+  eventConditionKey,
+  extractEventConditions,
   type SegmentCondition,
   segmentConditionSchema,
   type SegmentRule,

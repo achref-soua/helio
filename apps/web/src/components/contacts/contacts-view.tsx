@@ -33,7 +33,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { ListPlus, MoreHorizontal, Plus, Upload } from 'lucide-react';
+import { Gauge, ListPlus, MoreHorizontal, Plus, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useDeferredValue, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -43,12 +43,14 @@ import { useTRPC } from '@/trpc/client';
 
 import { ContactDialog } from './contact-dialog';
 import { ImportDialog } from './import-dialog';
+import { ScoringDialog } from './scoring-dialog';
 
 interface ContactRow {
   id: string;
   email: string;
   firstName: string | null;
   lastName: string | null;
+  score: number;
   status: 'ACTIVE' | 'UNSUBSCRIBED' | 'BOUNCED' | 'COMPLAINED';
   createdAt: Date | string;
 }
@@ -67,6 +69,7 @@ export function ContactsView() {
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [scoringOpen, setScoringOpen] = useState(false);
   const [newListOpen, setNewListOpen] = useState(false);
   const [editing, setEditing] = useState<ContactRow | null>(null);
 
@@ -129,6 +132,10 @@ export function ContactsView() {
         (row) => [row.firstName, row.lastName].filter(Boolean).join(' ') || '—',
         { id: 'name', header: t('columns.name') },
       ),
+      columnHelper.accessor('score', {
+        header: t('columns.score'),
+        cell: ({ getValue }) => <span className="tabular-nums">{getValue()}</span>,
+      }),
       columnHelper.accessor('status', {
         header: t('columns.status'),
         cell: ({ getValue }) => (
@@ -226,6 +233,9 @@ export function ContactsView() {
           {t('total', { count: total })}
         </Badge>
         <div className="ml-auto flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setScoringOpen(true)}>
+            <Gauge aria-hidden /> {t('scoring.manageAction')}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Upload aria-hidden /> {t('importAction')}
           </Button>
@@ -344,6 +354,7 @@ export function ContactsView() {
         editing={editing}
       />
       <ImportDialog workspaceId={workspaceId} open={importOpen} onOpenChange={setImportOpen} />
+      <ScoringDialog workspaceId={workspaceId} open={scoringOpen} onOpenChange={setScoringOpen} />
 
       <Dialog open={newListOpen} onOpenChange={setNewListOpen}>
         <DialogContent className="sm:max-w-sm">

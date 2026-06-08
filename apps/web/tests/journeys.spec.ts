@@ -88,6 +88,62 @@ test('reopen the saved journey and verify the graph restores', async ({ page }) 
   await expect(page.getByTestId('journey-issues')).toHaveCount(0);
 });
 
+test('v2: A/B split, trait, webhook nodes and settings persist', async ({ page }) => {
+  await page.goto('/journeys');
+  await page.getByRole('button', { name: 'New journey' }).click();
+  await page.getByLabel('Name').fill('Variant test');
+  await page.getByLabel('Trigger event').fill('Trial Started');
+
+  // ab_split auto-wires its a edge to the next palette node, then b.
+  await page.getByRole('button', { name: 'A/B split', exact: true }).click();
+  await page.getByTestId('node-ab-split').getByLabel('Percent to A').fill('30');
+  await page.getByRole('button', { name: 'Update trait', exact: true }).click();
+  await page.getByTestId('node-update-trait').getByLabel('Trait name').fill('variant');
+  await page.getByTestId('node-update-trait').getByLabel('Trait value').fill('a');
+  await page.getByRole('button', { name: 'Webhook', exact: true }).click();
+  await page
+    .getByTestId('node-webhook')
+    .getByLabel('Webhook URL')
+    .fill('https://hooks.example.com/variant-b');
+  await page.getByRole('button', { name: 'Web push', exact: true }).click();
+  await page
+    .getByTestId('node-send-push')
+    .getByLabel('Notification title')
+    .fill('Your order shipped');
+  await page.getByTestId('node-send-push').getByLabel('Notification body').fill('Track it now');
+  await page.getByRole('button', { name: 'End', exact: true }).click();
+  // trait branch (a) still dangles → wire it by adding another End.
+  await page.getByRole('button', { name: 'End', exact: true }).click();
+
+  // Journey-level delivery settings.
+  await page.getByLabel('Quiet hours').check();
+  await page.getByLabel('Frequency cap').check();
+  await page.getByLabel('Max emails').fill('2');
+
+  await expect(page.getByTestId('journey-issues')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Save journey' }).click();
+  await expect(page.getByText('Journey created')).toBeVisible();
+
+  // Reopen → everything round-trips.
+  await page.getByRole('button', { name: 'Variant test', exact: true }).click();
+  await expect(page.getByTestId('node-ab-split').getByLabel('Percent to A')).toHaveValue('30');
+  await expect(page.getByTestId('node-update-trait').getByLabel('Trait name')).toHaveValue(
+    'variant',
+  );
+  await expect(page.getByTestId('node-webhook').getByLabel('Webhook URL')).toHaveValue(
+    'https://hooks.example.com/variant-b',
+  );
+  await expect(page.getByTestId('node-send-push').getByLabel('Notification title')).toHaveValue(
+    'Your order shipped',
+  );
+  await expect(page.getByLabel('Quiet hours')).toBeChecked();
+  await expect(page.getByLabel('Max emails')).toHaveValue('2');
+  await page.getByRole('button', { name: 'Cancel' }).click();
+
+  await page.getByRole('button', { name: 'Delete Variant test' }).click();
+  await expect(page.getByText('Journey deleted')).toBeVisible();
+});
+
 test('delete the paused journey', async ({ page }) => {
   await page.goto('/journeys');
   await page.getByRole('button', { name: 'Delete Welcome series' }).click();

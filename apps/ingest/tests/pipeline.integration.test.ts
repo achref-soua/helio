@@ -2,7 +2,8 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 
 import type { ClickHouseClient } from '@clickhouse/client';
-import { newId } from '@helio/core';
+import { KafkaEventProducer } from '@helio/bus';
+import { buildEventConditionQuery, newId } from '@helio/core';
 import { createPrismaClient, type PrismaClient } from '@helio/db';
 import { ClickHouseContainer, type StartedClickHouseContainer } from '@testcontainers/clickhouse';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
@@ -12,7 +13,6 @@ import { pino } from 'pino';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createApp } from '../src/app';
-import { KafkaEventProducer } from '../src/bus';
 import { applyClickHouseMigrations, createClickHouseClient } from '../src/clickhouse';
 import { PrismaWriteKeyResolver } from '../src/keys';
 import { ClickHouseSink } from '../src/sink';
@@ -77,7 +77,7 @@ describe('ingestion pipeline (Redpanda + ClickHouse + Postgres)', () => {
 
     // Bus: real producer + sink against the disposable broker.
     const brokers = [redpanda.getBootstrapServers()];
-    producer = new KafkaEventProducer(brokers, TOPIC);
+    producer = new KafkaEventProducer(brokers, TOPIC, 'pipeline-test');
     await producer.connect();
     sink = new ClickHouseSink(clickhouse, pino({ level: 'silent' }), { brokers, topic: TOPIC });
     await sink.start();
@@ -132,6 +132,60 @@ describe('ingestion pipeline (Redpanda + ClickHouse + Postgres)', () => {
     });
     expect(track!.workspace_id).toMatch(/^ws_/);
     expect(track!.organization_id).toMatch(/^org_/);
+  });
+
+  it('answers behavioral segment queries over the landed events', async () => {
+    // The batch above landed one 'Pipeline Tested' track for anon-pipe…
+    // user_id was empty there, so seed two attributable events directly.
+    await clickhouse.insert({
+      table: 'events',
+      values: [
+        {
+          message_id: newId('msg'),
+          organization_id: 'org_x',
+          workspace_id: 'ws_behavioral',
+          type: 'track',
+          event: 'Upgraded',
+          anonymous_id: '',
+          user_id: 'ada@example.com',
+          properties: '{}',
+          context: '{}',
+          timestamp: new Date().toISOString(),
+          received_at: new Date().toISOString(),
+        },
+        {
+          message_id: newId('msg'),
+          organization_id: 'org_x',
+          workspace_id: 'ws_behavioral',
+          type: 'track',
+          event: 'Upgraded',
+          anonymous_id: '',
+          user_id: 'grace@example.com',
+          properties: '{}',
+          context: '{}',
+          timestamp: new Date(Date.now() - 60 * 86_400_000).toISOString(), // outside 30d
+          received_at: new Date().toISOString(),
+        },
+      ],
+      format: 'JSONEachRow',
+    });
+
+    const { query, params } = buildEventConditionQuery({
+      kind: 'condition',
+      target: 'event',
+      event: 'Upgraded',
+      operator: 'at_least',
+      count: 1,
+      inLastDays: 30,
+    });
+    const result = await clickhouse.query({
+      query,
+      query_params: { workspaceId: 'ws_behavioral', ...params },
+      format: 'JSONEachRow',
+    });
+    const rows = (await result.json()) as Array<{ user_id: string }>;
+    // Only ada is inside the window; grace's event is 60 days old.
+    expect(rows.map((row) => row.user_id)).toEqual(['ada@example.com']);
   });
 
   it('rejects an unknown write key against the real lookup', async () => {

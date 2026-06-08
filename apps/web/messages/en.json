@@ -157,7 +157,8 @@
       "email": "Email",
       "name": "Name",
       "status": "Status",
-      "added": "Added"
+      "added": "Added",
+      "score": "Score"
     },
     "status": {
       "ACTIVE": "Active",
@@ -175,6 +176,18 @@
       "parseError": "Could not parse that file as CSV.",
       "resultToast": "Imported {created} contacts ({skipped} already existed)",
       "genericError": "Import failed. Please try again."
+    },
+    "scoring": {
+      "title": "Scoring rules",
+      "subtitle": "Move contact scores when events happen.",
+      "event": "Event name",
+      "points": "Points",
+      "addAction": "Add rule",
+      "created": "Rule created",
+      "deleted": "Rule deleted",
+      "deleteAction": "Delete rule for {event}",
+      "empty": "No scoring rules yet.",
+      "manageAction": "Scoring rules"
     }
   },
   "segments": {
@@ -223,7 +236,9 @@
         "lastName": "Last name",
         "attribute": "Attribute",
         "status": "Status",
-        "createdAt": "Created"
+        "createdAt": "Created",
+        "event": "Did event",
+        "score": "Score"
       },
       "operators": {
         "equals": "equals",
@@ -236,14 +251,25 @@
         "is_not_set": "is not set",
         "in_last_days": "in the last (days)",
         "before": "before",
-        "after": "after"
+        "after": "after",
+        "at_least": "at least",
+        "at_most": "at most",
+        "never": "never",
+        "gte": "is at least",
+        "lte": "is at most"
       },
       "statuses": {
         "ACTIVE": "Active",
         "UNSUBSCRIBED": "Unsubscribed",
         "BOUNCED": "Bounced",
         "COMPLAINED": "Complained"
-      }
+      },
+      "eventName": "Event name",
+      "eventNamePlaceholder": "e.g. Signed Up",
+      "eventCount": "Times",
+      "eventDays": "Window (days)",
+      "inLast": "in last",
+      "daysSuffix": "days"
     }
   },
   "emails": {
@@ -321,7 +347,11 @@
       "SENT": "Sent",
       "FAILED": "Failed"
     },
-    "engagement": "{opens} opened · {clicks} clicks"
+    "engagement": "{opens} opened · {clicks} clicks",
+    "subjectB": "Subject B (optional A/B test)",
+    "subjectBPlaceholder": "Variant subject — the template's subject is A",
+    "abBadge": "A/B",
+    "variantSplit": "A {a} vs B {b} opens"
   },
   "unsubscribe": {
     "title": "Unsubscribe from marketing email",
@@ -367,7 +397,20 @@
       "addWait": "Wait",
       "addBranch": "Branch",
       "addEnd": "End",
-      "connectHint": "New steps wire themselves to the open end; drag between handles to rewire."
+      "connectHint": "New steps wire themselves to the open end; drag between handles to rewire.",
+      "addAbSplit": "A/B split",
+      "addUpdateTrait": "Update trait",
+      "addWebhook": "Webhook",
+      "quietHours": "Quiet hours",
+      "quietStart": "Quiet start",
+      "quietEnd": "Quiet end",
+      "quietTimezone": "Quiet timezone",
+      "frequencyCap": "Frequency cap",
+      "capMax": "Max emails",
+      "capPer": "per",
+      "capDays": "Cap window (days)",
+      "capDaysSuffix": "days",
+      "addSendPush": "Web push"
     },
     "nodes": {
       "trigger": "Trigger",
@@ -389,7 +432,24 @@
       "notEquals": "does not equal",
       "yes": "Yes",
       "no": "No",
-      "end": "End"
+      "end": "End",
+      "abSplit": "A/B split",
+      "ratioA": "Percent to A",
+      "ratioHint": "% to A, rest to B",
+      "updateTrait": "Update trait",
+      "traitKey": "Trait name",
+      "traitKeyPlaceholder": "e.g. variant",
+      "traitValue": "Trait value",
+      "traitValuePlaceholder": "Value",
+      "webhook": "Webhook",
+      "webhookUrl": "Webhook URL",
+      "sendPush": "Web push",
+      "pushTitle": "Notification title",
+      "pushTitlePlaceholder": "e.g. Your order shipped",
+      "pushBody": "Notification body",
+      "pushBodyPlaceholder": "Short message",
+      "pushUrl": "Click-through URL",
+      "pushUrlPlaceholder": "https:// (optional)"
     }
   },
   "forms": {

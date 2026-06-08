@@ -1,27 +1,39 @@
 import type { SegmentCondition, SegmentRule, SegmentRuleGroup, StringOperator } from '@helio/core';
+import { eventConditionKey } from '@helio/core';
 
 import { Prisma } from './generated/prisma/client';
 
 type ContactWhere = Prisma.ContactWhereInput;
 
+/** Resolved behavioral sets: eventConditionKey → contact emails. */
+export type EventConditionSets = Map<string, { mode: 'in' | 'notIn'; emails: string[] }>;
+
 /**
  * Compile a validated segment rule tree into a Prisma predicate over
  * contacts. Callers AND the result with their tenancy scope
- * (workspaceId); RLS keeps the org boundary regardless.
+ * (workspaceId); RLS keeps the org boundary regardless. Rules with
+ * event conditions need their ClickHouse sets resolved first
+ * (extractEventConditions → buildEventConditionQuery) and passed in.
  */
-export function compileSegmentRule(rule: SegmentRule): ContactWhere {
-  return compileGroup(rule);
+export function compileSegmentRule(
+  rule: SegmentRule,
+  eventSets?: EventConditionSets,
+): ContactWhere {
+  return compileGroup(rule, eventSets);
 }
 
-function compileGroup(group: SegmentRuleGroup): ContactWhere {
+function compileGroup(group: SegmentRuleGroup, eventSets?: EventConditionSets): ContactWhere {
   const children = group.children.map((child) =>
-    child.kind === 'group' ? compileGroup(child) : compileCondition(child),
+    child.kind === 'group' ? compileGroup(child, eventSets) : compileCondition(child, eventSets),
   );
   if (children.length === 1) return children[0]!;
   return group.op === 'and' ? { AND: children } : { OR: children };
 }
 
-function compileCondition(condition: SegmentCondition): ContactWhere {
+function compileCondition(
+  condition: SegmentCondition,
+  eventSets?: EventConditionSets,
+): ContactWhere {
   switch (condition.target) {
     case 'field':
       return compileField(
@@ -39,6 +51,23 @@ function compileCondition(condition: SegmentCondition): ContactWhere {
       return condition.operator === 'equals'
         ? { status: condition.value }
         : { status: { not: condition.value } };
+    case 'event': {
+      const resolved = eventSets?.get(eventConditionKey(condition));
+      if (!resolved) {
+        throw new Error(
+          'segment rule contains behavioral conditions — resolve them against the event store first',
+        );
+      }
+      return resolved.mode === 'in'
+        ? { email: { in: resolved.emails } }
+        : { email: { notIn: resolved.emails } };
+    }
+    case 'score':
+      return condition.operator === 'gte'
+        ? { score: { gte: condition.value } }
+        : condition.operator === 'lte'
+          ? { score: { lte: condition.value } }
+          : { score: condition.value };
     case 'created_at': {
       if (condition.operator === 'in_last_days') {
         const since = new Date(Date.now() - condition.value * 24 * 60 * 60 * 1000);

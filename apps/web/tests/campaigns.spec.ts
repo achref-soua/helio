@@ -76,6 +76,22 @@ test('create a campaign from a template and a segment', async ({ page }) => {
   await expect(card).toContainText('Segment: Everyone active');
 });
 
+test('A/B campaigns carry the badge and variant subject', async ({ page }) => {
+  await page.goto('/campaigns');
+  await page.getByRole('button', { name: 'New campaign' }).click();
+  await page.getByLabel('Name').fill('Subject duel');
+  await page.getByLabel('Template').selectOption({ label: 'Launch email' });
+  await page.getByLabel('Audience').selectOption({ label: 'Segment: Everyone active' });
+  await page.getByLabel('Subject B (optional A/B test)').fill('The other subject');
+  await page.getByRole('button', { name: 'Create campaign', exact: true }).click();
+  await expect(page.getByText('Campaign created')).toBeVisible();
+
+  const card = page.getByTestId('campaign-card').filter({ hasText: 'Subject duel' });
+  await expect(card.getByText('A/B', { exact: true })).toBeVisible();
+  await card.getByRole('button', { name: 'Delete Subject duel' }).click();
+  await expect(page.getByText('Campaign deleted')).toBeVisible();
+});
+
 test('sending without Temporal explains the precondition', async ({ page }) => {
   // The e2e stack runs the core profile only — the launch button must
   // fail actionably, not silently.

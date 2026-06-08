@@ -1,8 +1,8 @@
+import { InMemoryEventProducer } from '@helio/bus';
 import { clickRedirectUrl, signClickTarget, verifyClickTarget } from '@helio/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createApp } from '../src/app';
-import { InMemoryEventProducer } from '../src/bus';
 import type { ResolvedSend, SendResolver } from '../src/types';
 
 const SECRET = 'tracking-secret-for-tests-0001';
@@ -12,6 +12,7 @@ const SEND: ResolvedSend = {
   contactId: 'contact_1',
   email: 'ada@example.com',
   campaignId: 'cmp_1',
+  variant: 'b',
 };
 
 const resolver: SendResolver = {
@@ -51,6 +52,7 @@ describe('tracking app', () => {
       expect(JSON.parse(producer.published[0]!.properties)).toMatchObject({
         sendId: 'snd_known',
         campaignId: 'cmp_1',
+        variant: 'b',
       });
     });
 
@@ -123,5 +125,42 @@ describe('tracking app', () => {
   it('healthz and readyz respond', async () => {
     expect((await app.request('/healthz')).status).toBe(200);
     expect((await app.request('/readyz')).status).toBe(200);
+  });
+
+  it('serves Prometheus metrics', async () => {
+    const response = await app.request('/metrics');
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('helio_tracking_');
+  });
+
+  it('readyz aggregates readiness probes and reports degradation', async () => {
+    const withProbes = createApp({
+      sends: resolver,
+      producer,
+      secret: SECRET,
+      readiness: {
+        clickhouse: () => Promise.resolve(),
+        broker: () => Promise.reject(new Error('down')),
+      },
+    });
+    const response = await withProbes.request('/readyz');
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({
+      status: 'degraded',
+      checks: { clickhouse: 'ok', broker: 'failed' },
+    });
+  });
+
+  it('still 302s a valid click when the bus publish fails', async () => {
+    producer.failNext = true;
+    const url = await clickRedirectUrl(
+      'http://t.local',
+      SECRET,
+      'snd_known',
+      'https://example.com/x',
+    );
+    const response = await app.request(url.replace('http://t.local', ''));
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe('https://example.com/x');
   });
 });

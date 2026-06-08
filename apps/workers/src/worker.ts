@@ -1,4 +1,5 @@
 /* eslint-disable no-console -- process entrypoint logs lifecycle */
+import { createClient as createClickHouseClient } from '@clickhouse/client';
 import { SENDS_TASK_QUEUE } from '@helio/core';
 import { createPrismaClient } from '@helio/db';
 import { Client as TemporalClient, Connection } from '@temporalio/client';
@@ -9,6 +10,7 @@ import { createActivities } from './activities';
 import { SmtpEmailProvider } from './email-provider';
 import { env } from './env';
 import { createJourneyActivities } from './journey-activities';
+import { WebPushProvider } from './push-provider';
 import { JourneyTriggerConsumer } from './trigger-consumer';
 
 const connection = await NativeConnection.connect({ address: env.TEMPORAL_ADDRESS });
@@ -28,7 +30,15 @@ const activityConfig = {
   trackingUrl: env.PUBLIC_TRACKING_URL,
   trackingSecret: env.TRACKING_SECRET,
   unsubscribeSecret: env.UNSUBSCRIBE_SECRET,
+  webhookSecret: env.WEBHOOK_SIGNING_SECRET,
 };
+
+const clickhouse = createClickHouseClient({
+  url: env.CLICKHOUSE_URL,
+  username: env.CLICKHOUSE_USER,
+  password: env.CLICKHOUSE_PASSWORD,
+  database: env.CLICKHOUSE_DB,
+});
 
 const worker = await Worker.create({
   connection,
@@ -36,8 +46,19 @@ const worker = await Worker.create({
   taskQueue: SENDS_TASK_QUEUE,
   workflowsPath: new URL('./workflows.ts', import.meta.url).pathname,
   activities: {
-    ...createActivities(prisma, provider, activityConfig),
-    ...createJourneyActivities(prisma, provider, activityConfig),
+    ...createActivities(prisma, provider, activityConfig, clickhouse),
+    ...createJourneyActivities(
+      prisma,
+      provider,
+      activityConfig,
+      env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY
+        ? new WebPushProvider({
+            publicKey: env.VAPID_PUBLIC_KEY,
+            privateKey: env.VAPID_PRIVATE_KEY,
+            subject: env.VAPID_SUBJECT,
+          })
+        : undefined,
+    ),
   },
 });
 

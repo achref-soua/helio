@@ -153,3 +153,154 @@ describe('HelioClient', () => {
     void client;
   });
 });
+
+describe('HelioClient fallbacks', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    localStorage.clear();
+    fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 202 }));
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it('falls back to memory identity when localStorage throws', () => {
+    const original = Object.getOwnPropertyDescriptor(window, 'localStorage');
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new Error('blocked (private mode)');
+      },
+    });
+    try {
+      const client = new HelioClient({ writeKey: 'wk', host: 'https://ingest.test' });
+      const id = client.anonymousId();
+      expect(id).toBe(client.anonymousId()); // stable within the instance
+      client.identify('user-9');
+      expect(client.userId()).toBe('user-9');
+    } finally {
+      if (original) Object.defineProperty(window, 'localStorage', original);
+    }
+  });
+
+  it('generates ids without crypto.randomUUID', () => {
+    const original = globalThis.crypto;
+    vi.stubGlobal('crypto', {});
+    try {
+      const client = new HelioClient({ writeKey: 'wk', host: 'https://ingest.test' });
+      expect(client.anonymousId()).toMatch(/^[a-z0-9]+-[a-z0-9]+$/);
+    } finally {
+      vi.stubGlobal('crypto', original);
+    }
+  });
+
+  it('falls back to a keepalive fetch when sendBeacon refuses the payload', () => {
+    const beacon = vi.fn().mockReturnValue(false); // refused
+    Object.defineProperty(navigator, 'sendBeacon', { value: beacon, configurable: true });
+    const client = new HelioClient({ writeKey: 'wk', host: 'https://ingest.test' });
+    client.track('Goodbye');
+    window.dispatchEvent(new Event('pagehide'));
+
+    // A refused beacon must fall through to a keepalive fetch carrying
+    // this client's batch. (jsdom shares window, so other clients'
+    // pagehide listeners may also fire — assert behavior, not counts.)
+    expect(beacon).toHaveBeenCalled();
+    const keepaliveCall = fetchMock.mock.calls.find(
+      (call) =>
+        (call[1] as RequestInit)?.keepalive === true &&
+        String((call[1] as RequestInit)?.body).includes('Goodbye'),
+    );
+    expect(keepaliveCall).toBeDefined();
+  });
+
+  it('flushes the queue on visibilitychange → hidden', () => {
+    const beacon = vi.fn().mockReturnValue(true);
+    Object.defineProperty(navigator, 'sendBeacon', { value: beacon, configurable: true });
+    const client = new HelioClient({ writeKey: 'wk', host: 'https://ingest.test' });
+    client.track('Bye');
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(beacon).toHaveBeenCalled();
+    const sentBye = beacon.mock.calls.some((call) => {
+      const blob = call[1] as Blob | undefined;
+      return blob instanceof Blob;
+    });
+    expect(sentBye).toBe(true);
+    // Restore so later tests see a default visibility.
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+  });
+});
+
+describe('HelioClient.subscribePush', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    localStorage.clear();
+    fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 202 }));
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('returns false when the browser lacks push support', async () => {
+    const client = new HelioClient({ writeKey: 'wk', host: 'https://ingest.test' });
+    // jsdom has no PushManager / serviceWorker by default.
+    expect(await client.subscribePush('BPublicKey')).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('registers a subscription and posts it with identity', async () => {
+    const subscribe = vi.fn().mockResolvedValue({
+      toJSON: () => ({ endpoint: 'https://push.test/x', keys: { p256dh: 'p', auth: 'a' } }),
+    });
+    vi.stubGlobal('PushManager', class {});
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: { ready: Promise.resolve({ pushManager: { subscribe } }) },
+    });
+
+    const client = new HelioClient({ writeKey: 'wk_push', host: 'https://ingest.test' });
+    client.identify('user-7');
+    const ok = await client.subscribePush('BPublicKeyUrlSafe_-');
+    expect(ok).toBe(true);
+
+    const call = fetchMock.mock.calls.find((c) => String(c[0]).endsWith('/v1/push/subscribe'))!;
+    expect(call).toBeDefined();
+    const body = JSON.parse((call[1] as RequestInit).body as string);
+    expect(body).toMatchObject({
+      endpoint: 'https://push.test/x',
+      keys: { p256dh: 'p', auth: 'a' },
+      writeKey: 'wk_push',
+      userId: 'user-7',
+    });
+    // applicationServerKey decoded from URL-safe base64 to bytes.
+    expect(subscribe).toHaveBeenCalledWith(
+      expect.objectContaining({ userVisibleOnly: true, applicationServerKey: expect.anything() }),
+    );
+
+    delete (navigator as { serviceWorker?: unknown }).serviceWorker;
+    vi.unstubAllGlobals();
+  });
+
+  it('returns false when the push manager rejects', async () => {
+    vi.stubGlobal('PushManager', class {});
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: {
+        ready: Promise.resolve({
+          pushManager: { subscribe: () => Promise.reject(new Error('denied')) },
+        }),
+      },
+    });
+    const client = new HelioClient({ writeKey: 'wk', host: 'https://ingest.test' });
+    expect(await client.subscribePush('BKey')).toBe(false);
+    delete (navigator as { serviceWorker?: unknown }).serviceWorker;
+  });
+});

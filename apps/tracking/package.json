@@ -13,6 +13,7 @@
     "build": "esbuild src/server.ts --bundle --platform=node --format=esm --external:pg-native --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" --outfile=dist/server.mjs"
   },
   "dependencies": {
+    "@helio/bus": "workspace:*",
     "@helio/core": "workspace:*",
     "@helio/db": "workspace:*",
     "@hono/node-server": "^2.0.4",

@@ -15,11 +15,14 @@ import { useTranslations } from 'next-intl';
 export interface DraftCondition {
   id: string;
   kind: 'condition';
-  target: 'field' | 'attribute' | 'status' | 'created_at';
+  target: 'field' | 'attribute' | 'status' | 'created_at' | 'event' | 'score';
   field: (typeof CONTACT_FIELDS)[number];
   attributeKey: string;
   operator: string;
   value: string;
+  eventName: string;
+  eventCount: string;
+  eventDays: string;
 }
 
 export interface DraftGroup {
@@ -41,6 +44,9 @@ export function newDraftCondition(): DraftCondition {
     attributeKey: '',
     operator: 'contains',
     value: '',
+    eventName: '',
+    eventCount: '1',
+    eventDays: '30',
   };
 }
 
@@ -60,12 +66,16 @@ const FIELD_OPERATORS = [
 ] as const;
 const STATUS_OPERATORS = ['equals', 'not_equals'] as const;
 const CREATED_OPERATORS = ['in_last_days', 'before', 'after'] as const;
+const EVENT_OPERATORS = ['at_least', 'at_most', 'never'] as const;
+const SCORE_OPERATORS = ['gte', 'lte', 'equals'] as const;
 
 const VALUELESS = new Set(['is_set', 'is_not_set']);
 
 function operatorsFor(target: DraftCondition['target']): readonly string[] {
   if (target === 'status') return STATUS_OPERATORS;
   if (target === 'created_at') return CREATED_OPERATORS;
+  if (target === 'event') return EVENT_OPERATORS;
+  if (target === 'score') return SCORE_OPERATORS;
   return FIELD_OPERATORS;
 }
 
@@ -111,6 +121,26 @@ function conditionToRule(condition: DraftCondition): unknown {
   if (target === 'status') {
     if (!condition.value) return null;
     return { kind: 'condition', target, operator, value: condition.value };
+  }
+  if (target === 'score') {
+    const value = Number(condition.value);
+    if (!Number.isInteger(value)) return null;
+    return { kind: 'condition', target, operator, value };
+  }
+  if (target === 'event') {
+    if (!condition.eventName.trim()) return null;
+    const days = Number(condition.eventDays);
+    const count = Number(condition.eventCount);
+    if (!Number.isInteger(days) || days < 1) return null;
+    if (operator !== 'never' && (!Number.isInteger(count) || count < 1)) return null;
+    return {
+      kind: 'condition',
+      target,
+      event: condition.eventName.trim(),
+      operator,
+      count: operator === 'never' ? 1 : count,
+      inLastDays: days,
+    };
   }
   // created_at
   if (operator === 'in_last_days') {
@@ -266,6 +296,8 @@ function ConditionEditor({
     });
   }
 
+  const isEvent = condition.target === 'event';
+
   return (
     <div className="flex flex-wrap items-center gap-2" data-testid="condition-row">
       <Select
@@ -294,7 +326,19 @@ function ConditionEditor({
         <option value="attribute">{t('fields.attribute')}</option>
         <option value="status">{t('fields.status')}</option>
         <option value="created_at">{t('fields.createdAt')}</option>
+        <option value="event">{t('fields.event')}</option>
+        <option value="score">{t('fields.score')}</option>
       </Select>
+
+      {isEvent && (
+        <Input
+          aria-label={t('eventName')}
+          placeholder={t('eventNamePlaceholder')}
+          value={condition.eventName}
+          onChange={(event) => onChange({ ...condition, eventName: event.target.value })}
+          className="w-44"
+        />
+      )}
 
       {condition.target === 'attribute' && (
         <Input
@@ -319,7 +363,45 @@ function ConditionEditor({
         ))}
       </Select>
 
-      {!VALUELESS.has(condition.operator) &&
+      {isEvent && condition.operator !== 'never' && (
+        <Input
+          aria-label={t('eventCount')}
+          type="number"
+          min={1}
+          value={condition.eventCount}
+          onChange={(event) => onChange({ ...condition, eventCount: event.target.value })}
+          className="w-20"
+        />
+      )}
+      {isEvent && (
+        <span className="text-muted-foreground flex items-center gap-1 text-xs">
+          {t('inLast')}
+          <Input
+            aria-label={t('eventDays')}
+            type="number"
+            min={1}
+            value={condition.eventDays}
+            onChange={(event) => onChange({ ...condition, eventDays: event.target.value })}
+            className="w-20"
+          />
+          {t('daysSuffix')}
+        </span>
+      )}
+
+      {condition.target === 'score' && (
+        <Input
+          aria-label={t('value')}
+          type="number"
+          placeholder="0"
+          value={condition.value}
+          onChange={(event) => onChange({ ...condition, value: event.target.value })}
+          className="w-24"
+        />
+      )}
+
+      {!isEvent &&
+        condition.target !== 'score' &&
+        !VALUELESS.has(condition.operator) &&
         (condition.target === 'status' ? (
           <Select
             aria-label={t('value')}

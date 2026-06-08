@@ -17,7 +17,7 @@ import {
   useEdgesState,
   useNodesState,
 } from '@xyflow/react';
-import { GitBranch, Mail, Square, Timer } from 'lucide-react';
+import { Bell, GitBranch, Mail, Percent, Square, Tag, Timer, Webhook } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -25,8 +25,11 @@ import {
   type CanvasNode,
   canvasToDefinition,
   danglingNodeId,
+  DEFAULT_SETTINGS,
   definitionToCanvas,
+  type JourneySettings,
   nextCanvasId,
+  settingsFromDefinition,
   TRIGGER_ID,
 } from './graph';
 import { nodeTypes } from './nodes';
@@ -61,6 +64,9 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
   const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
   const [name, setName] = useState(initialName);
+  const [settings, setSettings] = useState<JourneySettings>(() =>
+    initialDefinition ? settingsFromDefinition(initialDefinition) : DEFAULT_SETTINGS,
+  );
 
   const onConnect = useCallback(
     (connection: Connection) =>
@@ -71,7 +77,17 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
   );
 
   /** Palette: add a node and wire it from the first dangling exit. */
-  function addNode(type: 'send_email' | 'wait' | 'branch' | 'end') {
+  function addNode(
+    type:
+      | 'send_email'
+      | 'wait'
+      | 'branch'
+      | 'ab_split'
+      | 'update_trait'
+      | 'webhook'
+      | 'send_push'
+      | 'end',
+  ) {
     const id = nextCanvasId(type);
     const tailId = danglingNodeId(nodes, edges);
     const tail = nodes.find((node) => node.id === tailId);
@@ -85,7 +101,15 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
           ? { hours: '24' }
           : type === 'branch'
             ? { attributeKey: '', operator: 'equals', value: '' }
-            : {};
+            : type === 'ab_split'
+              ? { ratioA: '50' }
+              : type === 'update_trait'
+                ? { key: '', value: '' }
+                : type === 'webhook'
+                  ? { url: 'https://' }
+                  : type === 'send_push'
+                    ? { title: '', body: '', url: '' }
+                    : {};
     setNodes((current) => [...current, { id, type, position, data }]);
     if (tailId) {
       const tailNode = nodes.find((node) => node.id === tailId);
@@ -94,7 +118,11 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
           ? edges.some((edge) => edge.source === tailId && edge.sourceHandle === 'yes')
             ? 'no'
             : 'yes'
-          : undefined;
+          : tailNode?.type === 'ab_split'
+            ? edges.some((edge) => edge.source === tailId && edge.sourceHandle === 'a')
+              ? 'b'
+              : 'a'
+            : undefined;
       setEdges((current) =>
         addEdge(
           {
@@ -110,7 +138,10 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
     }
   }
 
-  const conversion = useMemo(() => canvasToDefinition(nodes, edges), [nodes, edges]);
+  const conversion = useMemo(
+    () => canvasToDefinition(nodes, edges, settings),
+    [nodes, edges, settings],
+  );
   const savable = !!name.trim() && conversion.definition !== undefined;
 
   return (
@@ -150,6 +181,18 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
         <Button variant="outline" size="sm" onClick={() => addNode('branch')}>
           <GitBranch aria-hidden /> {t('addBranch')}
         </Button>
+        <Button variant="outline" size="sm" onClick={() => addNode('ab_split')}>
+          <Percent aria-hidden /> {t('addAbSplit')}
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => addNode('update_trait')}>
+          <Tag aria-hidden /> {t('addUpdateTrait')}
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => addNode('webhook')}>
+          <Webhook aria-hidden /> {t('addWebhook')}
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => addNode('send_push')}>
+          <Bell aria-hidden /> {t('addSendPush')}
+        </Button>
         <Button variant="outline" size="sm" onClick={() => addNode('end')}>
           <Square aria-hidden /> {t('addEnd')}
         </Button>
@@ -170,6 +213,81 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
           <Background gap={16} />
           <Controls showInteractive={false} />
         </ReactFlow>
+      </div>
+
+      <div
+        className="grid gap-3 rounded-md border p-3 sm:grid-cols-2"
+        data-testid="journey-settings"
+      >
+        <label className="flex flex-wrap items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={settings.quietHoursEnabled}
+            onChange={(event) =>
+              setSettings({ ...settings, quietHoursEnabled: event.target.checked })
+            }
+            aria-label={t('quietHours')}
+          />
+          {t('quietHours')}
+          {settings.quietHoursEnabled && (
+            <span className="flex items-center gap-1">
+              <Input
+                aria-label={t('quietStart')}
+                type="time"
+                value={settings.quietStart}
+                onChange={(event) => setSettings({ ...settings, quietStart: event.target.value })}
+                className="h-8 w-28"
+              />
+              –
+              <Input
+                aria-label={t('quietEnd')}
+                type="time"
+                value={settings.quietEnd}
+                onChange={(event) => setSettings({ ...settings, quietEnd: event.target.value })}
+                className="h-8 w-28"
+              />
+              <Input
+                aria-label={t('quietTimezone')}
+                value={settings.quietTimezone}
+                onChange={(event) =>
+                  setSettings({ ...settings, quietTimezone: event.target.value })
+                }
+                className="h-8 w-36"
+              />
+            </span>
+          )}
+        </label>
+        <label className="flex flex-wrap items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={settings.capEnabled}
+            onChange={(event) => setSettings({ ...settings, capEnabled: event.target.checked })}
+            aria-label={t('frequencyCap')}
+          />
+          {t('frequencyCap')}
+          {settings.capEnabled && (
+            <span className="flex items-center gap-1">
+              <Input
+                aria-label={t('capMax')}
+                type="number"
+                min={1}
+                value={settings.capMax}
+                onChange={(event) => setSettings({ ...settings, capMax: event.target.value })}
+                className="h-8 w-20"
+              />
+              {t('capPer')}
+              <Input
+                aria-label={t('capDays')}
+                type="number"
+                min={1}
+                value={settings.capDays}
+                onChange={(event) => setSettings({ ...settings, capDays: event.target.value })}
+                className="h-8 w-20"
+              />
+              {t('capDaysSuffix')}
+            </span>
+          )}
+        </label>
       </div>
 
       {conversion.issues.length > 0 && (

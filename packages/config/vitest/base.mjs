@@ -1,7 +1,7 @@
 import { defineConfig, mergeConfig } from 'vitest/config';
 
 /** Coverage gate applied to every package. Raised as the codebase matures. */
-export const COVERAGE_THRESHOLD = 70;
+export const COVERAGE_THRESHOLD = 80;
 
 const baseConfig = defineConfig({
   test: {

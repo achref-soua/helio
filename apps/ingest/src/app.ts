@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { eventBatchSchema, toProblemDetails } from '@helio/core';
+import { eventBatchSchema, pushSubscriptionSchema, toProblemDetails } from '@helio/core';
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
@@ -51,7 +51,7 @@ function extractWriteKey(
   return headerKey ?? bodyKey ?? null;
 }
 
-function reject(status: 400 | 401 | 422 | 429, reason: string, message: string): never {
+function reject(status: 400 | 401 | 404 | 422 | 429, reason: string, message: string): never {
   batchesRejected.inc({ reason });
   throw new HTTPException(status, { message });
 }
@@ -157,15 +157,8 @@ export function createApp(deps: IngestDeps) {
     }
   }
 
-  app.post('/v1/batch', async (c) => {
-    // Parse once up front; auth may need the body-borne writeKey.
-    let body: unknown;
-    try {
-      body = await c.req.json();
-    } catch {
-      reject(400, 'invalid_json', 'request body must be JSON');
-    }
-
+  /** Resolve the write key from headers/body, or reject. */
+  async function authorize(c: Context<IngestEnv>, body: unknown) {
     const bodyKey =
       typeof body === 'object' && body !== null && 'writeKey' in body
         ? String((body as { writeKey?: unknown }).writeKey ?? '')
@@ -176,10 +169,20 @@ export function createApp(deps: IngestDeps) {
       bodyKey || undefined,
     );
     if (!key) reject(401, 'missing_key', 'write key required');
-
     const scope = await deps.keys.resolve(key);
     if (!scope) reject(401, 'unknown_key', 'unknown or revoked write key');
+    return scope;
+  }
 
+  app.post('/v1/batch', async (c) => {
+    // Parse once up front; auth may need the body-borne writeKey.
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      reject(400, 'invalid_json', 'request body must be JSON');
+    }
+    const scope = await authorize(c, body);
     await enforceRateLimit(c, scope.workspaceId);
 
     const parsed = eventBatchSchema.safeParse(body);
@@ -197,6 +200,31 @@ export function createApp(deps: IngestDeps) {
     for (const event of enriched) eventsAccepted.inc({ type: event.type });
 
     return c.json({ accepted: enriched.length }, 202);
+  });
+
+  app.post('/v1/push/subscribe', async (c) => {
+    if (!deps.pushStore) reject(404, 'push_disabled', 'push is not enabled on this deployment');
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      reject(400, 'invalid_json', 'request body must be JSON');
+    }
+    const scope = await authorize(c, body);
+    await enforceRateLimit(c, scope.workspaceId);
+
+    const parsed = pushSubscriptionSchema.safeParse(body);
+    if (!parsed.success) reject(422, 'invalid_subscription', 'invalid push subscription');
+
+    await deps.pushStore.upsert({
+      organizationId: scope.organizationId,
+      workspaceId: scope.workspaceId,
+      endpoint: parsed.data.endpoint,
+      p256dh: parsed.data.keys.p256dh,
+      auth: parsed.data.keys.auth,
+      userId: parsed.data.userId,
+    });
+    return c.json({ subscribed: true }, 202);
   });
 
   return app;

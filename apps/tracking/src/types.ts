@@ -1,9 +1,6 @@
-import type { EnrichedEvent } from '@helio/core';
+import type { EventBusProducer } from '@helio/bus';
 
-/** Broker-agnostic producer boundary (ADR-0007). */
-export interface EventBusProducer {
-  publish(events: EnrichedEvent[]): Promise<void>;
-}
+export type { EventBusProducer } from '@helio/bus';
 
 /** What the handlers need to know about a send. */
 export interface ResolvedSend {
@@ -12,6 +9,7 @@ export interface ResolvedSend {
   contactId: string;
   email: string;
   campaignId: string | null;
+  variant: string | null;
 }
 
 export interface SendResolver {

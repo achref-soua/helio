@@ -13,6 +13,7 @@
     "test": "vitest run --coverage"
   },
   "dependencies": {
+    "@clickhouse/client": "^1.12.1",
     "@helio/core": "workspace:*",
     "@helio/db": "workspace:*",
     "@helio/emails": "workspace:*",
@@ -24,6 +25,7 @@
     "nodemailer": "^8.0.10",
     "pino": "^10.3.1",
     "tsx": "^4.22.4",
+    "web-push": "^3.6.7",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -32,6 +34,7 @@
     "@testcontainers/postgresql": "^12.0.1",
     "@types/node": "^25.9.2",
     "@types/nodemailer": "^7.0.4",
+    "@types/web-push": "^3.6.4",
     "@vitest/coverage-v8": "^4.1.8",
     "eslint": "^10.4.1",
     "typescript": "^6.0.3",

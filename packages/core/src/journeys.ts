@@ -42,6 +42,34 @@ export const journeyNodeSchema = z.discriminatedUnion('type', [
     condition: segmentConditionSchema,
     position: positionSchema.optional(),
   }),
+  z.object({
+    id: nodeIdSchema,
+    type: z.literal('ab_split'),
+    /** Percentage of contacts routed to the 'a' edge (the rest take 'b'). */
+    ratioA: z.number().int().min(1).max(99),
+    position: positionSchema.optional(),
+  }),
+  z.object({
+    id: nodeIdSchema,
+    type: z.literal('update_trait'),
+    key: z.string().trim().min(1).max(100),
+    value: z.string().max(200),
+    position: positionSchema.optional(),
+  }),
+  z.object({
+    id: nodeIdSchema,
+    type: z.literal('webhook'),
+    url: z.string().trim().url().max(2048),
+    position: positionSchema.optional(),
+  }),
+  z.object({
+    id: nodeIdSchema,
+    type: z.literal('send_push'),
+    title: z.string().trim().min(1).max(120),
+    body: z.string().trim().min(1).max(300),
+    url: z.string().trim().url().max(2048).optional(),
+    position: positionSchema.optional(),
+  }),
   z.object({ id: nodeIdSchema, type: z.literal('end'), position: positionSchema.optional() }),
 ]);
 export type JourneyNode = z.infer<typeof journeyNodeSchema>;
@@ -49,10 +77,28 @@ export type JourneyNode = z.infer<typeof journeyNodeSchema>;
 export const journeyEdgeSchema = z.object({
   from: nodeIdSchema,
   to: nodeIdSchema,
-  /** Branch nodes label their outgoing edges yes/no. */
-  label: z.enum(['yes', 'no']).optional(),
+  /** Branch edges are yes/no; A/B-split edges are a/b. */
+  label: z.enum(['yes', 'no', 'a', 'b']).optional(),
 });
 export type JourneyEdge = z.infer<typeof journeyEdgeSchema>;
+
+const timeOfDaySchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'use HH:MM');
+
+/** Sends pause inside the window (start may wrap past midnight). */
+export const quietHoursSchema = z.object({
+  start: timeOfDaySchema,
+  end: timeOfDaySchema,
+  /** IANA zone the window is evaluated in (contact zones arrive later). */
+  timezone: z.string().min(1).max(64).default('UTC'),
+});
+export type QuietHours = z.infer<typeof quietHoursSchema>;
+
+/** At most maxEmails to a contact within perDays — across all sources. */
+export const frequencyCapSchema = z.object({
+  maxEmails: z.number().int().min(1).max(100),
+  perDays: z.number().int().min(1).max(90),
+});
+export type FrequencyCap = z.infer<typeof frequencyCapSchema>;
 
 export const journeyDefinitionSchema = z
   .object({
@@ -60,6 +106,8 @@ export const journeyDefinitionSchema = z
     startNodeId: nodeIdSchema,
     nodes: z.array(journeyNodeSchema).min(1).max(50),
     edges: z.array(journeyEdgeSchema).max(100),
+    quietHours: quietHoursSchema.optional(),
+    frequencyCap: frequencyCapSchema.optional(),
   })
   .superRefine((definition, ctx) => {
     const ids = new Set<string>();
@@ -98,6 +146,14 @@ export const journeyDefinitionSchema = z
             message: `branch "${node.id}" needs exactly one yes and one no edge`,
           });
         }
+      } else if (node.type === 'ab_split') {
+        const labels = new Set(edges.map((edge) => edge.label));
+        if (edges.length !== 2 || !labels.has('a') || !labels.has('b')) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `A/B split "${node.id}" needs exactly one a and one b edge`,
+          });
+        }
       } else if (node.type === 'end') {
         if (edges.length > 0) {
           ctx.addIssue({ code: 'custom', message: `end "${node.id}" cannot have outgoing edges` });
@@ -134,7 +190,7 @@ export type JourneyDefinition = z.infer<typeof journeyDefinitionSchema>;
 export function nextNodeId(
   definition: JourneyDefinition,
   fromNodeId: string,
-  label?: 'yes' | 'no',
+  label?: 'yes' | 'no' | 'a' | 'b',
 ): string | null {
   const edge = definition.edges.find(
     (candidate) =>
@@ -145,4 +201,34 @@ export function nextNodeId(
 
 export function journeyNodeById(definition: JourneyDefinition, nodeId: string): JourneyNode | null {
   return definition.nodes.find((node) => node.id === nodeId) ?? null;
+}
+
+/**
+ * Milliseconds to defer a send so it lands outside quiet hours; 0 when
+ * sending is allowed now. Pure so the engine can call it from an
+ * activity and unit tests can pin the clock and zone.
+ */
+export function quietHoursDelayMs(quiet: QuietHours, now: Date): number {
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: quiet.timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+  const [hourPart, minutePart] = formatter.format(now).split(':');
+  const nowMinutes = Number(hourPart) * 60 + Number(minutePart);
+  const [startH, startM] = quiet.start.split(':').map(Number);
+  const [endH, endM] = quiet.end.split(':').map(Number);
+  const start = startH! * 60 + startM!;
+  const end = endH! * 60 + endM!;
+
+  const inWindow =
+    start <= end
+      ? nowMinutes >= start && nowMinutes < end // same-day window
+      : nowMinutes >= start || nowMinutes < end; // wraps past midnight
+  if (!inWindow) return 0;
+
+  const minutesUntilEnd = end > nowMinutes ? end - nowMinutes : 24 * 60 - nowMinutes + end;
+  // Land just past the boundary; second-of-minute drift is irrelevant here.
+  return minutesUntilEnd * 60_000;
 }

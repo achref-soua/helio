@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@clickhouse/client": "^1.12.1",
+    "@helio/bus": "workspace:*",
     "@helio/core": "workspace:*",
     "@helio/db": "workspace:*",
     "@hono/node-server": "^2.0.4",

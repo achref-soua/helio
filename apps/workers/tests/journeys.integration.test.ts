@@ -9,7 +9,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { InMemoryEmailProvider } from '../src/email-provider';
 import { createJourneyActivities, type JourneyActivities } from '../src/journey-activities';
-import { enrollFromEvent } from '../src/journey-triggers';
+import { enrollFromEvent, scoreFromEvent } from '../src/journey-triggers';
+import { InMemoryPushProvider } from '../src/push-provider';
 
 const CONFIG = {
   mailFrom: 'Helio <no-reply@helio.test>',
@@ -17,6 +18,7 @@ const CONFIG = {
   trackingUrl: 'http://t.helio.test',
   trackingSecret: 'tracking-secret-for-tests-0001',
   unsubscribeSecret: 'unsubscribe-secret-for-tests-1',
+  webhookSecret: 'webhook-secret-for-tests-000001',
 };
 
 describe('journey activities + trigger enrollment against Postgres', () => {
@@ -172,6 +174,112 @@ describe('journey activities + trigger enrollment against Postgres', () => {
     await prisma.journeyRun.delete({ where: { id: run.id } });
   });
 
+  describe('sendJourneyPush', () => {
+    it('delivers to live subscriptions, prunes dead ones, skips suppressed', async () => {
+      const push = new InMemoryPushProvider();
+      const pushActivities = createJourneyActivities(prisma, provider, CONFIG, push);
+
+      // Two subscriptions for ada; one will be reported gone.
+      await prisma.pushSubscription.createMany({
+        data: [
+          {
+            id: newId('push'),
+            organizationId: orgId,
+            workspaceId: wsId,
+            contactId: adaId,
+            endpoint: 'https://push.test/live',
+            p256dh: 'k1',
+            auth: 'a1',
+          },
+          {
+            id: newId('push'),
+            organizationId: orgId,
+            workspaceId: wsId,
+            contactId: adaId,
+            endpoint: 'https://push.test/dead',
+            p256dh: 'k2',
+            auth: 'a2',
+          },
+        ],
+      });
+      push.gone.add('https://push.test/dead');
+
+      const result = await pushActivities.sendJourneyPush(adaId, {
+        title: 'Hi',
+        body: 'There',
+        url: 'https://app.test',
+      });
+      expect(result.sent).toBe(1);
+      expect(push.sent[0]!.notification).toEqual({
+        title: 'Hi',
+        body: 'There',
+        url: 'https://app.test',
+      });
+      // Dead endpoint pruned, live one kept.
+      const remaining = await prisma.pushSubscription.findMany({ where: { contactId: adaId } });
+      expect(remaining.map((row) => row.endpoint)).toEqual(['https://push.test/live']);
+
+      // Suppressed contact gets nothing.
+      expect((await pushActivities.sendJourneyPush(goneId, { title: 'x', body: 'y' })).sent).toBe(
+        0,
+      );
+    });
+
+    it('no-ops without a push provider configured', async () => {
+      const result = await activities.sendJourneyPush(adaId, { title: 'x', body: 'y' });
+      expect(result.sent).toBe(0);
+    });
+  });
+
+  describe('scoreFromEvent', () => {
+    it('applies matching rules atomically, including negatives', async () => {
+      await prisma.scoringRule.createMany({
+        data: [
+          {
+            id: newId('score'),
+            organizationId: orgId,
+            workspaceId: wsId,
+            event: 'Demo Booked',
+            points: 25,
+          },
+          {
+            id: newId('score'),
+            organizationId: orgId,
+            workspaceId: wsId,
+            event: 'Churn Risk',
+            points: -10,
+          },
+        ],
+      });
+      const deps = { prisma, temporal: {} as never, logger: pino({ level: 'silent' }) };
+      const base = {
+        message_id: newId('msg'),
+        organization_id: orgId,
+        workspace_id: wsId,
+        type: 'track' as const,
+        anonymous_id: '',
+        user_id: 'ada@example.com',
+        properties: '{}',
+        context: '{}',
+        timestamp: new Date().toISOString(),
+        received_at: new Date().toISOString(),
+      };
+
+      expect(await scoreFromEvent({ ...base, event: 'Demo Booked' }, deps)).toBe(true);
+      expect(await scoreFromEvent({ ...base, event: 'Demo Booked' }, deps)).toBe(true);
+      expect(await scoreFromEvent({ ...base, event: 'Churn Risk' }, deps)).toBe(true);
+      expect(await scoreFromEvent({ ...base, event: 'Unscored Event' }, deps)).toBe(false);
+      expect(
+        await scoreFromEvent({ ...base, event: 'Demo Booked', user_id: 'ghost@x.com' }, deps),
+      ).toBe(false);
+
+      const ada = await prisma.contact.findUniqueOrThrow({
+        where: { workspaceId_email: { workspaceId: wsId, email: 'ada@example.com' } },
+      });
+      expect(ada.score).toBe(25 + 25 - 10);
+    });
+  });
+
   describe('enrollFromEvent', () => {
     function makeEvent(overrides: Partial<EnrichedEvent> = {}): EnrichedEvent {
       return {
@@ -245,6 +353,66 @@ describe('journey activities + trigger enrollment against Postgres', () => {
         where: { journeyId, status: 'FAILED' },
       });
       expect(failed?.error).toBe('failed to start workflow');
+    });
+  });
+
+  describe('v2 activities', () => {
+    it('sendGate: caps on recent sends, defers in quiet hours, 0 otherwise', async () => {
+      // ada has 1 SENT mail from earlier tests; cap of 1 per week trips.
+      expect(await activities.sendGate(adaId, null, { maxEmails: 1, perDays: 7 })).toBe(-1);
+      expect(await activities.sendGate(adaId, null, { maxEmails: 10, perDays: 7 })).toBe(0);
+
+      const always = { start: '00:00', end: '23:59', timezone: 'UTC' };
+      expect(await activities.sendGate(adaId, always, null)).toBeGreaterThan(0);
+      expect(await activities.sendGate(adaId, null, null)).toBe(0);
+    });
+
+    it('applyTrait merges into attributes and tolerates unknown contacts', async () => {
+      await activities.applyTrait(adaId, 'variant', 'a');
+      const contact = await prisma.contact.findUniqueOrThrow({ where: { id: adaId } });
+      expect(contact.attributes).toMatchObject({ plan: 'pro', variant: 'a' });
+      await expect(activities.applyTrait('contact_ghost', 'x', 'y')).resolves.toBeUndefined();
+    });
+
+    it('callWebhook signs the payload and throws on non-2xx', async () => {
+      const { createServer } = await import('node:http');
+      const { createHmac } = await import('node:crypto');
+      const received: Array<{ signature: string | undefined; body: string }> = [];
+      let respondWith = 200;
+      const server = createServer((request, response) => {
+        let body = '';
+        request.on('data', (chunk: Buffer) => (body += chunk.toString()));
+        request.on('end', () => {
+          received.push({ signature: request.headers['x-helio-signature'] as string, body });
+          response.statusCode = respondWith;
+          response.end();
+        });
+      });
+      await new Promise<void>((resolve) => server.listen(0, resolve));
+      const port = (server.address() as { port: number }).port;
+      const url = `http://127.0.0.1:${port}/hook`;
+
+      try {
+        await activities.callWebhook(url, { journeyId: 'j', contactId: 'c', email: 'a@x.com' });
+        expect(received).toHaveLength(1);
+        const expected = createHmac('sha256', 'webhook-secret-for-tests-000001')
+          .update(received[0]!.body)
+          .digest('hex');
+        expect(received[0]!.signature).toBe(expected);
+        expect(JSON.parse(received[0]!.body)).toMatchObject({ journeyId: 'j', email: 'a@x.com' });
+
+        respondWith = 503;
+        await expect(
+          activities.callWebhook(url, { journeyId: 'j', contactId: 'c', email: 'a@x.com' }),
+        ).rejects.toThrowError(/503/);
+      } finally {
+        server.close();
+      }
+    });
+
+    it('contactEmail resolves and falls back to empty', async () => {
+      expect(await activities.contactEmail(adaId)).toBe('ada@example.com');
+      expect(await activities.contactEmail('contact_ghost')).toBe('');
     });
   });
 });

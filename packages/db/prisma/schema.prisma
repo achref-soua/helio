@@ -35,6 +35,8 @@ model Organization {
   campaigns    Campaign[]
   journeys     Journey[]
   forms        Form[]
+  scoringRules ScoringRule[]
+  pushSubscriptions PushSubscription[]
 
   @@map("organization")
 }
@@ -60,6 +62,8 @@ model Workspace {
   campaigns    Campaign[]
   journeys     Journey[]
   forms        Form[]
+  scoringRules ScoringRule[]
+  pushSubscriptions PushSubscription[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -107,6 +111,8 @@ model Contact {
   firstName      String?       @map("first_name")
   lastName       String?       @map("last_name")
   attributes     Json          @default("{}")
+  /// Rule-based engagement score (see ScoringRule); event-driven.
+  score          Int           @default(0)
   status         ContactStatus @default(ACTIVE)
   source         String?
   createdAt      DateTime      @default(now()) @map("created_at")
@@ -117,6 +123,7 @@ model Contact {
   listMembers  ContactListMember[]
   emailSends   EmailSend[]
   journeyRuns  JourneyRun[]
+  pushSubscriptions PushSubscription[]
 
   @@unique([workspaceId, email])
   @@index([organizationId])
@@ -238,6 +245,8 @@ model Campaign {
   workspaceId    String         @map("workspace_id")
   name           String
   templateId     String         @map("template_id")
+  /// Optional subject-line A/B test: template.subject is variant A.
+  subjectB       String?        @map("subject_b")
   /// Exactly one audience source: a dynamic segment or a static list.
   segmentId      String?        @map("segment_id")
   listId         String?        @map("list_id")
@@ -280,6 +289,8 @@ model EmailSend {
   campaignId     String?         @map("campaign_id")
   email          String
   subject        String
+  /// A/B variant this send received ('a' or 'b'), when testing.
+  variant        String?
   status         EmailSendStatus @default(QUEUED)
   error          String?
   sentAt         DateTime?       @map("sent_at")
@@ -375,6 +386,47 @@ model Form {
   @@unique([workspaceId, name])
   @@index([organizationId])
   @@map("form")
+}
+
+/// Event-driven scoring: when a tracked event matches, the contact's
+/// score moves by `points`. Applied by the worker's event consumer.
+model ScoringRule {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  event          String
+  points         Int
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, event])
+  @@index([organizationId])
+  @@map("scoring_rule")
+}
+
+/// A browser Web Push subscription (VAPID). Linked to a contact when the
+/// SDK has identified one; endpoint is globally unique (the browser's
+/// push service URL). Stale endpoints are pruned on 404/410 at send time.
+model PushSubscription {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  contactId      String?  @map("contact_id")
+  endpoint       String   @unique
+  p256dh         String
+  auth           String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contact      Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([workspaceId])
+  @@index([contactId])
+  @@map("push_subscription")
 }
 
 // ───────────────────────── Better-Auth tables ─────────────────────────

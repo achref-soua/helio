@@ -91,6 +91,25 @@ test('delete a contact', async ({ page }) => {
   await expect(page.getByRole('cell', { name: 'manual@example.com' })).toHaveCount(0);
 });
 
+test('scoring rules manage and the score column renders', async ({ page }) => {
+  await page.goto('/contacts');
+  await page.getByRole('button', { name: 'Scoring rules' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Event name').fill('Demo Booked');
+  await dialog.getByLabel('Points').fill('25');
+  await dialog.getByRole('button', { name: 'Add rule' }).click();
+  await expect(page.getByText('Rule created')).toBeVisible();
+  await expect(dialog.getByTestId('scoring-rules')).toContainText('Demo Booked');
+  await expect(dialog.getByTestId('scoring-rules')).toContainText('+25');
+
+  await dialog.getByRole('button', { name: 'Delete rule for Demo Booked' }).click();
+  await expect(page.getByText('Rule deleted')).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  // Score column present with the default 0 for existing contacts.
+  await expect(page.getByRole('columnheader', { name: 'Score' })).toBeVisible();
+});
+
 test('cursor pagination yields every row exactly once', async ({ page }) => {
   // Regression: the pop()-as-cursor idiom used to drop the first row of
   // every page after the first. 60 contacts spans the 50-row page size.

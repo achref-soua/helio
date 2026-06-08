@@ -87,11 +87,31 @@ const createdAtConditionSchema = z.union([
   }),
 ]);
 
+const scoreConditionSchema = z.object({
+  kind: z.literal('condition'),
+  target: z.literal('score'),
+  operator: z.enum(['gte', 'lte', 'equals']),
+  value: z.number().int().min(-100000).max(100000),
+});
+
+/** Behavioral condition over the event store (resolved via ClickHouse). */
+const eventConditionSchema = z.object({
+  kind: z.literal('condition'),
+  target: z.literal('event'),
+  event: z.string().trim().min(1).max(200),
+  operator: z.enum(['at_least', 'at_most', 'never']),
+  /** Occurrence threshold; ignored for 'never'. */
+  count: z.number().int().min(1).max(10_000).default(1),
+  inLastDays: z.number().int().min(1).max(365),
+});
+
 export const segmentConditionSchema = z.union([
   fieldConditionSchema,
   attributeConditionSchema,
   statusConditionSchema,
   createdAtConditionSchema,
+  eventConditionSchema,
+  scoreConditionSchema,
 ]);
 export type SegmentCondition = z.infer<typeof segmentConditionSchema>;
 
@@ -133,4 +153,69 @@ function depthOf(node: SegmentRuleGroup | SegmentCondition): number {
 export function countConditions(node: SegmentRuleGroup | SegmentCondition): number {
   if (node.kind === 'condition') return 1;
   return node.children.reduce((sum, child) => sum + countConditions(child), 0);
+}
+
+export type EventCondition = Extract<SegmentCondition, { target: 'event' }>;
+
+/** Stable identity for resolver maps. */
+export function eventConditionKey(condition: EventCondition): string {
+  return JSON.stringify([
+    condition.event,
+    condition.operator,
+    condition.count,
+    condition.inLastDays,
+  ]);
+}
+
+/** Every event condition in the tree (deduped by key). */
+export function extractEventConditions(
+  node: SegmentRuleGroup | SegmentCondition,
+): EventCondition[] {
+  if (node.kind === 'condition') {
+    return node.target === 'event' ? [node] : [];
+  }
+  const seen = new Map<string, EventCondition>();
+  for (const child of node.children) {
+    for (const condition of extractEventConditions(child)) {
+      seen.set(eventConditionKey(condition), condition);
+    }
+  }
+  return [...seen.values()];
+}
+
+/**
+ * ClickHouse query for one event condition: the user_ids (contact
+ * emails) that SATISFY 'at_least', or that EXCEED the bound for
+ * 'at_most'/'never' — callers filter NOT IN for those two. Parameterized;
+ * executors bind {workspaceId}, {event}, {days}, {count}.
+ */
+export function buildEventConditionQuery(condition: EventCondition): {
+  query: string;
+  params: { event: string; days: number; count: number };
+  /** How the email set applies against contacts. */
+  mode: 'in' | 'notIn';
+} {
+  const having =
+    condition.operator === 'at_least'
+      ? 'HAVING count() >= {count:UInt32}'
+      : condition.operator === 'at_most'
+        ? 'HAVING count() > {count:UInt32}'
+        : 'HAVING count() >= 1';
+  return {
+    query: `
+      SELECT user_id
+      FROM events
+      WHERE workspace_id = {workspaceId:String}
+        AND event = {event:String}
+        AND user_id != ''
+        AND timestamp >= now() - INTERVAL {days:UInt16} DAY
+      GROUP BY user_id
+      ${having}`,
+    params: {
+      event: condition.event,
+      days: condition.inLastDays,
+      count: condition.operator === 'never' ? 1 : condition.count,
+    },
+    mode: condition.operator === 'at_least' ? 'in' : 'notIn',
+  };
 }
