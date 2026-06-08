@@ -11,6 +11,7 @@ import json
 
 from mcp.server.fastmcp import FastMCP
 
+from ..agent.nl_email import NlEmailGenerator
 from ..agent.nl_journey import NlJourneyGenerator
 from ..agent.nl_segment import NlSegmentGenerator
 from ..data import OrgRepository
@@ -34,6 +35,7 @@ def build_mcp_server(
     org, ws = organization_id, workspace_id
     segment_gen = NlSegmentGenerator(provider)
     journey_gen = NlJourneyGenerator(provider)
+    email_gen = NlEmailGenerator(provider)
 
     @mcp.tool()
     async def workspace_summary() -> str:
@@ -82,6 +84,21 @@ def build_mcp_server(
         templates = await repository.template_options(org, ws)
         result = await journey_gen.generate(prompt, templates)
         return json.dumps({"name": result.name, "definition": result.definition})
+
+    @mcp.tool()
+    async def draft_email(prompt: str) -> str:
+        """Draft a marketing email (subject + block document) from a
+        description, matching the brand voice of the workspace's existing
+        emails. Returns a name, subject, and validated document to save."""
+        voice = [
+            str(t["subject"])
+            for t in await repository.list_email_templates(org, ws)
+            if t.get("subject")
+        ]
+        result = await email_gen.generate(prompt, voice)
+        return json.dumps(
+            {"name": result.name, "subject": result.subject, "document": result.document}
+        )
 
     return mcp
 

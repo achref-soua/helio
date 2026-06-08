@@ -22,6 +22,8 @@ export const journeyNodeSchema = z.discriminatedUnion('type', [
     id: nodeIdSchema,
     type: z.literal('send_email'),
     templateId: z.string().min(1),
+    /** Defer the send to each contact's best engagement hour (AI). */
+    optimizeSendTime: z.boolean().optional(),
     position: positionSchema.optional(),
   }),
   z.object({
@@ -231,4 +233,26 @@ export function quietHoursDelayMs(quiet: QuietHours, now: Date): number {
   const minutesUntilEnd = end > nowMinutes ? end - nowMinutes : 24 * 60 - nowMinutes + end;
   // Land just past the boundary; second-of-minute drift is irrelevant here.
   return minutesUntilEnd * 60_000;
+}
+
+/**
+ * Milliseconds to defer a send until the contact's best engagement hour
+ * (0–23) in the given timezone. 0 when we're already inside that hour, so
+ * a contact whose best hour is now isn't pushed a full day. Pure for the
+ * same reasons as quietHoursDelayMs.
+ */
+export function sendTimeDelayMs(bestHour: number, now: Date, timezone = 'UTC'): number {
+  if (!Number.isInteger(bestHour) || bestHour < 0 || bestHour > 23) return 0;
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+  const [hourPart, minutePart] = formatter.format(now).split(':');
+  const nowMinutes = Number(hourPart) * 60 + Number(minutePart);
+  const target = bestHour * 60;
+  if (nowMinutes >= target && nowMinutes < target + 60) return 0; // already in the hour
+  const minutesUntil = target >= nowMinutes ? target - nowMinutes : 24 * 60 - nowMinutes + target;
+  return minutesUntil * 60_000;
 }

@@ -35,6 +35,60 @@ wire format, so they run through one provider; Anthropic has its own.
 - **Tenant isolation.** Copilot RAG only ever reads the caller's own
   organization (enforced at the data layer — see the copilot milestone).
 
+## Copilot surface
+
+The dashboard is the only HTTP caller: it authenticates the user and
+forwards the _verified_ organization/workspace, which the service enforces
+via Postgres RLS. Generators return a draft; saving goes through the normal
+TypeScript APIs, which re-validate against the canonical schemas.
+
+| Endpoint                   | Does                                                              |
+| -------------------------- | ----------------------------------------------------------------- |
+| `POST /v1/copilot/chat`    | Agentic, tool-using Q&A grounded in the workspace's own data      |
+| `POST /v1/copilot/segment` | NL → a validated segment rule                                     |
+| `POST /v1/copilot/journey` | NL → a journey wired to the workspace's real templates            |
+| `POST /v1/copilot/email`   | NL → an on-brand email (subject + blocks), grounded in past sends |
+
+Each returns `503` until `INTEL_LLM_API_KEY` and `INTEL_DATABASE_URL` are
+set, and `422` when the model can't produce a valid result — so the
+dashboard degrades gracefully when the AI plane is offline.
+
+The **MCP server** (`uv run python -m helio_intelligence.mcp_server`)
+exposes the same capabilities as tools for external agents:
+`workspace_summary`, `search_contacts`, `list_segments`/`list_journeys`/
+`list_campaigns`/`list_email_templates`, and `draft_segment`/
+`draft_journey`/`draft_email` — all scoped to the one workspace named by
+`INTEL_MCP_ORGANIZATION_ID`/`INTEL_MCP_WORKSPACE_ID`.
+
+## Predictive scoring
+
+`POST /v1/scoring/recompute` trains and writes two probabilities per
+contact, scoped to one workspace:
+
+- **conversion propensity** — a gradient-boosted classifier
+  (`HistGradientBoostingClassifier`) over behavioral features (event
+  counts, recency, opens/clicks, tenure, rule score). The positive label
+  is a configured conversion event (`INTEL_SCORING_CONVERSION_EVENTS`).
+- **churn risk** — a second boosted model trained on a leakage-safe label
+  (no activity in the last 30 days, among contacts old enough to judge),
+  deliberately excluding the recency/short-window features that define it.
+
+The same run also computes **send-time optimization**: each contact's
+best engagement hour (`contact.best_send_hour`, UTC) from their open/click
+history, falling back to the workspace's overall peak hour when a contact
+has too little history. A journey's send-email node can opt in to defer
+sends to that hour (combined with quiet hours).
+
+Behavioral features come from ClickHouse; predictions are written back to
+Postgres (`contact.conversion_probability` / `churn_risk` /
+`best_send_hour`) inside an RLS-scoped transaction, so a run can only ever
+touch its own organization.
+When a workspace has too little labeled data to train, the model falls
+back to a transparent monotonic engagement heuristic, and the response
+reports which path ran (`conversion_method` / `churn_method`) so the UI
+stays honest. The dashboard triggers a recompute from the Contacts page;
+a scheduler can hit the same endpoint nightly.
+
 ## Develop
 
 ```bash

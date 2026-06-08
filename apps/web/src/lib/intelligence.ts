@@ -60,6 +60,20 @@ export interface DraftJourney {
   definition: unknown;
 }
 
+export interface DraftEmail {
+  name: string;
+  subject: string;
+  document: unknown;
+}
+
+export interface ScoringResult {
+  scored: number;
+  conversion_method: string;
+  churn_method: string;
+  converted: number;
+  churned: number;
+}
+
 export const intelligence = {
   chat: (input: {
     organization_id: string;
@@ -72,4 +86,10 @@ export const intelligence = {
 
   draftJourney: (input: { organization_id: string; workspace_id: string; prompt: string }) =>
     call<DraftJourney>('/v1/copilot/journey', input),
+
+  draftEmail: (input: { organization_id: string; workspace_id: string; prompt: string }) =>
+    call<DraftEmail>('/v1/copilot/email', input),
+
+  recompute: (input: { organization_id: string; workspace_id: string }) =>
+    call<ScoringResult>('/v1/scoring/recompute', input),
 };

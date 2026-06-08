@@ -367,6 +367,21 @@ describe('journey activities + trigger enrollment against Postgres', () => {
       expect(await activities.sendGate(adaId, null, null)).toBe(0);
     });
 
+    it('sendGate: send-time optimization defers to the contact best hour', async () => {
+      // Pin a best hour an hour ahead of "now" so a positive delay is
+      // guaranteed regardless of when the suite runs.
+      const nextHour = (new Date().getUTCHours() + 1) % 24;
+      await prisma.contact.update({ where: { id: adaId }, data: { bestSendHour: nextHour } });
+
+      // Opt-in defers; opt-out (default) sends now.
+      expect(await activities.sendGate(adaId, null, null, true)).toBeGreaterThan(0);
+      expect(await activities.sendGate(adaId, null, null, false)).toBe(0);
+
+      // With no best hour known, optimization is a no-op.
+      await prisma.contact.update({ where: { id: adaId }, data: { bestSendHour: null } });
+      expect(await activities.sendGate(adaId, null, null, true)).toBe(0);
+    });
+
     it('applyTrait merges into attributes and tolerates unknown contacts', async () => {
       await activities.applyTrait(adaId, 'variant', 'a');
       const contact = await prisma.contact.findUniqueOrThrow({ where: { id: adaId } });

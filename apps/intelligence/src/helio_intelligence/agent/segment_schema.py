@@ -83,6 +83,14 @@ class ScoreCondition(BaseModel):
     value: int = Field(ge=-100000, le=100000)
 
 
+class PredictionCondition(BaseModel):
+    kind: Literal["condition"] = "condition"
+    target: Literal["prediction"] = "prediction"
+    metric: Literal["conversionProbability", "churnRisk"]
+    operator: Literal["gte", "lte"]
+    value: float = Field(ge=0.0, le=1.0)
+
+
 Condition = Annotated[
     Union[  # noqa: UP007
         FieldCondition,
@@ -91,6 +99,7 @@ Condition = Annotated[
         CreatedAtCondition,
         EventCondition,
         ScoreCondition,
+        PredictionCondition,
     ],
     Field(discriminator="target"),
 ]

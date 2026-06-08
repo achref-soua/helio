@@ -45,11 +45,13 @@ export async function journeyRunWorkflow(input: JourneyRunInput): Promise<{ step
 
       switch (node.type) {
         case 'send_email': {
-          // Quiet hours defer; frequency caps skip (never queue forever).
+          // Quiet hours + send-time optimization defer; frequency caps
+          // skip (never queue forever).
           const gate = await activities.sendGate(
             input.contactId,
             definition.quietHours ?? null,
             definition.frequencyCap ?? null,
+            node.optimizeSendTime ?? false,
           );
           if (gate > 0) await sleep(gate);
           if (gate !== -1) {

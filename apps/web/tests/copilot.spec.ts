@@ -9,6 +9,17 @@ test('the copilot page renders its panels', async ({ page }) => {
   await expect(page.getByTestId('copilot-chat')).toBeVisible();
   await expect(page.getByTestId('copilot-segment')).toBeVisible();
   await expect(page.getByTestId('copilot-journey')).toBeVisible();
+  await expect(page.getByTestId('copilot-email')).toBeVisible();
+});
+
+test('drafting an email without the AI service degrades gracefully', async ({ page }) => {
+  await page.goto('/copilot');
+  await page
+    .getByLabel('e.g. win back trial users whose trial ends this week')
+    .fill('win back trial users');
+  await page.getByTestId('copilot-email').getByRole('button', { name: 'Draft' }).click();
+  await expect(page.locator('[data-sonner-toast]')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('email-draft')).toHaveCount(0);
 });
 
 test('a chat attempt without the AI service surfaces an actionable error', async ({ page }) => {

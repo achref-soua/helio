@@ -125,6 +125,8 @@
     "total": "{count} total",
     "addAction": "Add contact",
     "importAction": "Import CSV",
+    "predictAction": "Recompute predictions",
+    "predictionsDone": "Scored {count} contacts",
     "searchPlaceholder": "Search email or name…",
     "allContacts": "All contacts",
     "newList": "New list",
@@ -159,7 +161,8 @@
       "name": "Name",
       "status": "Status",
       "added": "Added",
-      "score": "Score"
+      "score": "Score",
+      "churnRisk": "Churn risk"
     },
     "status": {
       "ACTIVE": "Active",
@@ -239,7 +242,13 @@
         "status": "Status",
         "createdAt": "Created",
         "event": "Did event",
-        "score": "Score"
+        "score": "Score",
+        "prediction": "AI prediction"
+      },
+      "predictionMetric": "Metric",
+      "metrics": {
+        "conversionProbability": "Conversion probability",
+        "churnRisk": "Churn risk"
       },
       "operators": {
         "equals": "equals",
@@ -351,7 +360,10 @@
     "engagement": "{opens} opened · {clicks} clicks",
     "subjectB": "Subject B (optional A/B test)",
     "subjectBPlaceholder": "Variant subject — the template's subject is A",
+    "autoWinner": "Auto-pick the winner (test a slice, then send the best subject to the rest)",
     "abBadge": "A/B",
+    "autoWinnerBadge": "Auto-winner",
+    "winnerBadge": "Winner: {variant}",
     "variantSplit": "A {a} vs B {b} opens"
   },
   "unsubscribe": {
@@ -420,6 +432,7 @@
       "sendEmail": "Send email",
       "template": "Template",
       "pickTemplate": "Pick a template…",
+      "optimizeSendTime": "Optimize send time (AI)",
       "wait": "Wait",
       "waitHours": "Wait duration (hours)",
       "hours": "hours",
@@ -486,7 +499,7 @@
   "copilot": {
     "title": "AI Copilot",
     "beta": "Beta",
-    "subtitle": "Ask about your audience, or describe a segment or journey and let AI draft it.",
+    "subtitle": "Ask about your audience, or describe a segment, journey, or email and let AI draft it.",
     "chatTitle": "Ask the copilot",
     "chatSubtitle": "Grounded in this workspace's data — it only sees your organization.",
     "chatEmpty": "Ask anything: “How many pro contacts do I have?”, “Which journeys are active?”",
@@ -505,6 +518,12 @@
     "journeyPlaceholder": "e.g. welcome email, wait 2 days, then upsell pro users",
     "journeySteps": "{count, plural, one {# step} other {# steps}}",
     "createJourney": "Create this journey",
-    "journeyCreated": "Journey created"
+    "journeyCreated": "Journey created",
+    "emailTitle": "Write an email",
+    "emailSubtitle": "Plain English → an on-brand email, grounded in your past sends.",
+    "emailPlaceholder": "e.g. win back trial users whose trial ends this week",
+    "emailBlocks": "{count, plural, one {# block} other {# blocks}}",
+    "createEmail": "Save as template",
+    "emailCreated": "Email template created"
   }
 }

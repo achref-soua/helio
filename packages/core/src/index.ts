@@ -1,4 +1,12 @@
 export {
+  type AbDecision,
+  type AbDecisionOptions,
+  type AbVariant,
+  abWinnerDecision,
+  isInAbTestSample,
+  type VariantStat,
+} from './ab-test';
+export {
   contactEmailSchema,
   normalizeContactRows,
   type NormalizedContactRow,
@@ -50,6 +58,7 @@ export {
   type QuietHours,
   quietHoursDelayMs,
   quietHoursSchema,
+  sendTimeDelayMs,
 } from './journeys';
 export { type PushNotification, type PushSubscriptionInput, pushSubscriptionSchema } from './push';
 export { hasRole, INVITABLE_ROLES, isRole, type Role, ROLES } from './rbac';
@@ -77,6 +86,7 @@ export {
   type EventCondition,
   eventConditionKey,
   extractEventConditions,
+  PREDICTION_METRICS,
   type SegmentCondition,
   segmentConditionSchema,
   type SegmentRule,

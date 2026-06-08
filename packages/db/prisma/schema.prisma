@@ -113,6 +113,17 @@ model Contact {
   attributes     Json          @default("{}")
   /// Rule-based engagement score (see ScoringRule); event-driven.
   score          Int           @default(0)
+  /// AI predictions, recomputed in batches by the intelligence service.
+  /// Conversion propensity and churn risk are both probabilities in [0,1];
+  /// null until the first run. See apps/intelligence/scoring.
+  conversionProbability Float?    @map("conversion_probability")
+  churnRisk             Float?    @map("churn_risk")
+  predictionModel       String?   @map("prediction_model")
+  predictionComputedAt  DateTime? @map("prediction_computed_at")
+  /// Hour of day (0–23, UTC) this contact is most likely to engage,
+  /// derived from open/click history; null until computed. Used by
+  /// send-time optimization to defer sends to the contact's best hour.
+  bestSendHour          Int?      @map("best_send_hour")
   status         ContactStatus @default(ACTIVE)
   source         String?
   createdAt      DateTime      @default(now()) @map("created_at")
@@ -247,6 +258,16 @@ model Campaign {
   templateId     String         @map("template_id")
   /// Optional subject-line A/B test: template.subject is variant A.
   subjectB       String?        @map("subject_b")
+  /// Autonomous winner selection: send both subjects to a test slice,
+  /// wait, then send the statistically-better subject to the rest.
+  abAutoWinner        Boolean   @default(false) @map("ab_auto_winner")
+  /// Percent of the audience in the test slice (rest is the holdout).
+  abTestPercent       Int?      @map("ab_test_percent")
+  /// How long to gather opens before deciding the winner.
+  abTestWindowSeconds Int?      @map("ab_test_window_seconds")
+  /// The decided winner ('a' | 'b') and when, once the test concludes.
+  abWinner            String?   @map("ab_winner")
+  abDecidedAt         DateTime? @map("ab_decided_at")
   /// Exactly one audience source: a dynamic segment or a static list.
   segmentId      String?        @map("segment_id")
   listId         String?        @map("list_id")

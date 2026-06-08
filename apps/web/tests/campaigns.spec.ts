@@ -83,11 +83,16 @@ test('A/B campaigns carry the badge and variant subject', async ({ page }) => {
   await page.getByLabel('Template').selectOption({ label: 'Launch email' });
   await page.getByLabel('Audience').selectOption({ label: 'Segment: Everyone active' });
   await page.getByLabel('Subject B (optional A/B test)').fill('The other subject');
+  // The auto-winner toggle only appears once a Subject B exists.
+  await expect(page.getByTestId('campaign-auto-winner')).toBeVisible();
+  await page.getByTestId('campaign-auto-winner').check();
   await page.getByRole('button', { name: 'Create campaign', exact: true }).click();
   await expect(page.getByText('Campaign created')).toBeVisible();
 
   const card = page.getByTestId('campaign-card').filter({ hasText: 'Subject duel' });
   await expect(card.getByText('A/B', { exact: true })).toBeVisible();
+  // Auto-winner enabled but not yet decided → the pending badge shows.
+  await expect(card.getByText('Auto-winner', { exact: true })).toBeVisible();
   await card.getByRole('button', { name: 'Delete Subject duel' }).click();
   await expect(page.getByText('Campaign deleted')).toBeVisible();
 });

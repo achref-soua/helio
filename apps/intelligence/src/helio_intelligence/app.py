@@ -36,24 +36,34 @@ def create_app() -> FastAPI:
     # health checks and metrics on a bare deploy.
     from .copilot_api import create_copilot_router
     from .generation_api import create_generation_router
+    from .scoring_api import create_scoring_router
 
     app.include_router(create_copilot_router())
     app.include_router(create_generation_router())
+    app.include_router(create_scoring_router())
 
-    if settings.llm_configured and settings.database_url:
+    # The database pool is shared by the copilot and the scorer; create it
+    # once if either is configured.
+    from .data import Database
+
+    database = Database(settings.database_url) if settings.database_url else None
+    app.state.database = database
+
+    if settings.llm_configured and database is not None:
         from .agent import Copilot
+        from .agent.nl_email import NlEmailGenerator
         from .agent.nl_journey import NlJourneyGenerator
         from .agent.nl_segment import NlSegmentGenerator
         from .copilot_api import get_copilot
-        from .data import Database, OrgRepository
+        from .data import OrgRepository
         from .generation_api import (
+            get_email_generator,
             get_journey_generator,
             get_repository,
             get_segment_generator,
         )
         from .llm import create_llm_provider
 
-        database = Database(settings.database_url)
         repository = OrgRepository(database)
         provider = create_llm_provider(settings)
 
@@ -65,10 +75,25 @@ def create_app() -> FastAPI:
         )
         app.dependency_overrides[get_segment_generator] = lambda: NlSegmentGenerator(provider)
         app.dependency_overrides[get_journey_generator] = lambda: NlJourneyGenerator(provider)
+        app.dependency_overrides[get_email_generator] = lambda: NlEmailGenerator(provider)
         app.dependency_overrides[get_repository] = lambda: repository
-        app.state.database = database
-    else:
-        app.state.database = None
+
+    if settings.scoring_configured and database is not None:
+        from .scoring import ClickHouseClient, ScoringService
+        from .scoring_api import get_scoring_service
+
+        clickhouse = ClickHouseClient(
+            settings.clickhouse_url,
+            user=settings.clickhouse_user,
+            password=settings.clickhouse_password.get_secret_value(),
+            database=settings.clickhouse_database,
+        )
+        scoring_service = ScoringService(
+            database,
+            clickhouse,
+            conversion_events=settings.scoring_conversion_events,
+        )
+        app.dependency_overrides[get_scoring_service] = lambda: scoring_service
 
     @app.middleware("http")
     async def observe_requests(request: Request, call_next):  # type: ignore[no-untyped-def]

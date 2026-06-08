@@ -5,6 +5,7 @@ import {
   journeyNodeById,
   nextNodeId,
   quietHoursDelayMs,
+  sendTimeDelayMs,
 } from '../src/journeys';
 
 const valid = {
@@ -201,5 +202,29 @@ describe('quietHoursDelayMs', () => {
         new Date('2026-06-08T12:00:00Z'),
       ),
     ).toBe(11 * 60 * 60_000);
+  });
+});
+
+describe('sendTimeDelayMs', () => {
+  it('returns 0 when already inside the best hour', () => {
+    expect(sendTimeDelayMs(14, new Date('2026-06-08T14:30:00Z'))).toBe(0);
+  });
+
+  it('defers to the best hour later today', () => {
+    expect(sendTimeDelayMs(20, new Date('2026-06-08T14:00:00Z'))).toBe(6 * 60 * 60_000);
+  });
+
+  it('wraps to tomorrow when the best hour already passed', () => {
+    // best hour 9, now 14:00 -> 19h until 09:00 next day.
+    expect(sendTimeDelayMs(9, new Date('2026-06-08T14:00:00Z'))).toBe(19 * 60 * 60_000);
+  });
+
+  it('respects the timezone', () => {
+    // 00:00 UTC = 09:00 Tokyo; best hour 9 Tokyo -> send now.
+    expect(sendTimeDelayMs(9, new Date('2026-06-08T00:00:00Z'), 'Asia/Tokyo')).toBe(0);
+  });
+
+  it('ignores an out-of-range hour (no deferral)', () => {
+    expect(sendTimeDelayMs(99, new Date('2026-06-08T14:00:00Z'))).toBe(0);
   });
 });

@@ -49,6 +49,7 @@ export function CampaignsView() {
   const [templateId, setTemplateId] = useState('');
   const [audience, setAudience] = useState(''); // "segment:<id>" | "list:<id>"
   const [subjectB, setSubjectB] = useState('');
+  const [autoWinner, setAutoWinner] = useState(false);
 
   const engagementQuery = useQuery({
     ...trpc.analytics.campaignEngagement.queryOptions({ workspaceId: workspaceId ?? '' }),
@@ -93,6 +94,7 @@ export function CampaignsView() {
         name: name.trim(),
         templateId,
         subjectB: subjectB.trim() || undefined,
+        abAutoWinner: autoWinner && subjectB.trim() ? true : undefined,
         segmentId: kind === 'segment' ? id : undefined,
         listId: kind === 'list' ? id : undefined,
       });
@@ -103,6 +105,7 @@ export function CampaignsView() {
       setTemplateId('');
       setAudience('');
       setSubjectB('');
+      setAutoWinner(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('genericError'));
     }
@@ -214,6 +217,17 @@ export function CampaignsView() {
                   placeholder={t('subjectBPlaceholder')}
                   maxLength={300}
                 />
+                {subjectB.trim() && (
+                  <label className="text-muted-foreground flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={autoWinner}
+                      onChange={(event) => setAutoWinner(event.target.checked)}
+                      data-testid="campaign-auto-winner"
+                    />
+                    {t('autoWinner')}
+                  </label>
+                )}
               </div>
               <div className="flex gap-2 sm:col-span-3">
                 <Button type="submit" disabled={createCampaign.isPending}>
@@ -246,6 +260,14 @@ export function CampaignsView() {
                   <CardTitle className="text-base">{campaign.name}</CardTitle>
                   <span className="flex gap-1">
                     {campaign.subjectB && <Badge variant="outline">{t('abBadge')}</Badge>}
+                    {campaign.abAutoWinner && !campaign.abWinner && (
+                      <Badge variant="outline">{t('autoWinnerBadge')}</Badge>
+                    )}
+                    {campaign.abWinner && (
+                      <Badge variant="secondary">
+                        {t('winnerBadge', { variant: campaign.abWinner.toUpperCase() })}
+                      </Badge>
+                    )}
                     <Badge variant={STATUS_VARIANT[campaign.status]}>
                       {t(`status.${campaign.status}`)}
                     </Badge>

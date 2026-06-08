@@ -1,6 +1,12 @@
 'use client';
 
-import { CONTACT_FIELDS, CONTACT_STATUSES, type SegmentRule, segmentRuleSchema } from '@helio/core';
+import {
+  CONTACT_FIELDS,
+  CONTACT_STATUSES,
+  PREDICTION_METRICS,
+  type SegmentRule,
+  segmentRuleSchema,
+} from '@helio/core';
 import { Button } from '@helio/ui/components/button';
 import { Input } from '@helio/ui/components/input';
 import { cn } from '@helio/ui/lib/utils';
@@ -15,7 +21,7 @@ import { useTranslations } from 'next-intl';
 export interface DraftCondition {
   id: string;
   kind: 'condition';
-  target: 'field' | 'attribute' | 'status' | 'created_at' | 'event' | 'score';
+  target: 'field' | 'attribute' | 'status' | 'created_at' | 'event' | 'score' | 'prediction';
   field: (typeof CONTACT_FIELDS)[number];
   attributeKey: string;
   operator: string;
@@ -23,6 +29,7 @@ export interface DraftCondition {
   eventName: string;
   eventCount: string;
   eventDays: string;
+  predictionMetric: (typeof PREDICTION_METRICS)[number];
 }
 
 export interface DraftGroup {
@@ -47,6 +54,7 @@ export function newDraftCondition(): DraftCondition {
     eventName: '',
     eventCount: '1',
     eventDays: '30',
+    predictionMetric: 'churnRisk',
   };
 }
 
@@ -68,6 +76,7 @@ const STATUS_OPERATORS = ['equals', 'not_equals'] as const;
 const CREATED_OPERATORS = ['in_last_days', 'before', 'after'] as const;
 const EVENT_OPERATORS = ['at_least', 'at_most', 'never'] as const;
 const SCORE_OPERATORS = ['gte', 'lte', 'equals'] as const;
+const PREDICTION_OPERATORS = ['gte', 'lte'] as const;
 
 const VALUELESS = new Set(['is_set', 'is_not_set']);
 
@@ -76,6 +85,7 @@ function operatorsFor(target: DraftCondition['target']): readonly string[] {
   if (target === 'created_at') return CREATED_OPERATORS;
   if (target === 'event') return EVENT_OPERATORS;
   if (target === 'score') return SCORE_OPERATORS;
+  if (target === 'prediction') return PREDICTION_OPERATORS;
   return FIELD_OPERATORS;
 }
 
@@ -126,6 +136,11 @@ function conditionToRule(condition: DraftCondition): unknown {
     const value = Number(condition.value);
     if (!Number.isInteger(value)) return null;
     return { kind: 'condition', target, operator, value };
+  }
+  if (target === 'prediction') {
+    const value = Number(condition.value);
+    if (Number.isNaN(value) || value < 0 || value > 1) return null;
+    return { kind: 'condition', target, metric: condition.predictionMetric, operator, value };
   }
   if (target === 'event') {
     if (!condition.eventName.trim()) return null;
@@ -328,7 +343,28 @@ function ConditionEditor({
         <option value="created_at">{t('fields.createdAt')}</option>
         <option value="event">{t('fields.event')}</option>
         <option value="score">{t('fields.score')}</option>
+        <option value="prediction">{t('fields.prediction')}</option>
       </Select>
+
+      {condition.target === 'prediction' && (
+        <Select
+          aria-label={t('predictionMetric')}
+          value={condition.predictionMetric}
+          onChange={(event) =>
+            onChange({
+              ...condition,
+              predictionMetric: event.target.value as DraftCondition['predictionMetric'],
+            })
+          }
+          className="w-44"
+        >
+          {PREDICTION_METRICS.map((metric) => (
+            <option key={metric} value={metric}>
+              {t(`metrics.${metric}`)}
+            </option>
+          ))}
+        </Select>
+      )}
 
       {isEvent && (
         <Input
@@ -399,8 +435,23 @@ function ConditionEditor({
         />
       )}
 
+      {condition.target === 'prediction' && (
+        <Input
+          aria-label={t('value')}
+          type="number"
+          min={0}
+          max={1}
+          step={0.05}
+          placeholder="0.5"
+          value={condition.value}
+          onChange={(event) => onChange({ ...condition, value: event.target.value })}
+          className="w-24"
+        />
+      )}
+
       {!isEvent &&
         condition.target !== 'score' &&
+        condition.target !== 'prediction' &&
         !VALUELESS.has(condition.operator) &&
         (condition.target === 'status' ? (
           <Select
