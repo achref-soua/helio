@@ -18,6 +18,8 @@ describe('gateway contract', () => {
   const redis = new RedisMock() as unknown as RedisLike;
   const orgId = newId('org');
   const otherOrgId = newId('org');
+  // A workspace in orgId to hold gateway-created contacts.
+  let contactWsId: string;
 
   // API keys minted for each org; the bearer carries the org, so requests
   // never name it. Assigned in beforeAll once the orgs exist.
@@ -43,6 +45,10 @@ describe('gateway contract', () => {
         { id: orgId, name: 'Contract Org', slug: 'contract-org' },
         { id: otherOrgId, name: 'Other Org', slug: 'other-org' },
       ],
+    });
+    contactWsId = newId('ws');
+    await admin.workspace.create({
+      data: { id: contactWsId, organizationId: orgId, name: 'Contacts WS', slug: 'contacts-ws' },
     });
 
     const orgKeyParts = await generateGatewayApiKey(orgId);
@@ -164,6 +170,187 @@ describe('gateway contract', () => {
     expect(third.status).toBe(429);
     expect(third.headers.get('retry-after')).toBeTruthy();
     expect(((await third.json()) as { type: string }).type).toBe('urn:helio:problem:http_429');
+  });
+
+  describe('contacts', () => {
+    type ContactDto = {
+      id: string;
+      organizationId: string;
+      email: string;
+      firstName: string | null;
+      lastName: string | null;
+      status: string;
+      attributes: Record<string, unknown>;
+    };
+    let contactId: string;
+
+    it('creates a contact, normalizing the email, scoped to the key’s org', async () => {
+      const res = await app.request('/v1/contacts', {
+        method: 'POST',
+        headers: { ...auth, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: contactWsId,
+          email: 'Jane@Example.com',
+          firstName: 'Jane',
+          attributes: { plan: 'trial' },
+        }),
+      });
+      expect(res.status).toBe(201);
+      const contact = (await res.json()) as ContactDto;
+      expect(contact.id.startsWith('contact_')).toBe(true);
+      expect(contact.email).toBe('jane@example.com');
+      expect(contact.organizationId).toBe(orgId);
+      expect(contact.status).toBe('ACTIVE');
+      expect(contact.attributes).toEqual({ plan: 'trial' });
+      contactId = contact.id;
+    });
+
+    it('rejects a create for an unknown workspace with 404', async () => {
+      const res = await app.request('/v1/contacts', {
+        method: 'POST',
+        headers: { ...auth, 'content-type': 'application/json' },
+        body: JSON.stringify({ workspaceId: 'ws_missing', email: 'nobody@example.com' }),
+      });
+      expect(res.status).toBe(404);
+    });
+
+    it('returns 409 on a duplicate email in the same workspace', async () => {
+      const res = await app.request('/v1/contacts', {
+        method: 'POST',
+        headers: { ...auth, 'content-type': 'application/json' },
+        body: JSON.stringify({ workspaceId: contactWsId, email: 'jane@example.com' }),
+      });
+      expect(res.status).toBe(409);
+      expect(((await res.json()) as { type: string }).type).toBe('urn:helio:problem:http_409');
+    });
+
+    it('retrieves a contact by id', async () => {
+      const res = await app.request(`/v1/contacts/${contactId}`, { headers: auth });
+      expect(res.status).toBe(200);
+      expect(((await res.json()) as ContactDto).email).toBe('jane@example.com');
+    });
+
+    it('lists and searches contacts in a workspace', async () => {
+      const list = await app.request(`/v1/contacts?workspaceId=${contactWsId}`, { headers: auth });
+      expect(list.status).toBe(200);
+      const body = (await list.json()) as { data: ContactDto[]; nextCursor: string | null };
+      expect(body.data.map((contact) => contact.email)).toContain('jane@example.com');
+      expect(body).toHaveProperty('nextCursor');
+
+      const searched = await app.request(`/v1/contacts?workspaceId=${contactWsId}&search=JANE`, {
+        headers: auth,
+      });
+      const searchedBody = (await searched.json()) as { data: ContactDto[] };
+      expect(searchedBody.data.map((contact) => contact.email)).toContain('jane@example.com');
+    });
+
+    it('filters by list membership', async () => {
+      const listId = newId('list');
+      await admin.contactList.create({
+        data: { id: listId, organizationId: orgId, workspaceId: contactWsId, name: 'VIPs' },
+      });
+      await admin.contactListMember.create({
+        data: { listId, contactId, organizationId: orgId },
+      });
+      const res = await app.request(`/v1/contacts?listId=${listId}`, { headers: auth });
+      const body = (await res.json()) as { data: ContactDto[] };
+      expect(body.data.map((contact) => contact.id)).toEqual([contactId]);
+    });
+
+    it('updates a contact and clears a field with null', async () => {
+      const res = await app.request(`/v1/contacts/${contactId}`, {
+        method: 'PATCH',
+        headers: { ...auth, 'content-type': 'application/json' },
+        body: JSON.stringify({ firstName: null, lastName: 'Doe', status: 'UNSUBSCRIBED' }),
+      });
+      expect(res.status).toBe(200);
+      const contact = (await res.json()) as ContactDto;
+      expect(contact.firstName).toBeNull();
+      expect(contact.lastName).toBe('Doe');
+      expect(contact.status).toBe('UNSUBSCRIBED');
+    });
+
+    it('isolates contacts across orgs (RLS)', async () => {
+      const res = await app.request(`/v1/contacts/${contactId}`, { headers: otherAuth });
+      expect(res.status).toBe(404);
+    });
+
+    it('deletes a contact, then 404s on it', async () => {
+      const del = await app.request(`/v1/contacts/${contactId}`, {
+        method: 'DELETE',
+        headers: auth,
+      });
+      expect(del.status).toBe(204);
+      const after = await app.request(`/v1/contacts/${contactId}`, { headers: auth });
+      expect(after.status).toBe(404);
+    });
+
+    it('paginates with a stable cursor', async () => {
+      const pageWs = newId('ws');
+      await admin.workspace.create({
+        data: { id: pageWs, organizationId: orgId, name: 'Page WS', slug: 'page-ws' },
+      });
+      await admin.contact.createMany({
+        data: Array.from({ length: 3 }, (_, index) => ({
+          id: newId('contact'),
+          organizationId: orgId,
+          workspaceId: pageWs,
+          email: `p${index}@example.com`,
+        })),
+      });
+      const first = await app.request(`/v1/contacts?workspaceId=${pageWs}&limit=2`, {
+        headers: auth,
+      });
+      const firstBody = (await first.json()) as { data: ContactDto[]; nextCursor: string | null };
+      expect(firstBody.data).toHaveLength(2);
+      expect(firstBody.nextCursor).toBeTruthy();
+      const second = await app.request(
+        `/v1/contacts?workspaceId=${pageWs}&limit=2&cursor=${firstBody.nextCursor}`,
+        { headers: auth },
+      );
+      const secondBody = (await second.json()) as { data: ContactDto[]; nextCursor: string | null };
+      expect(secondBody.data).toHaveLength(1);
+      expect(secondBody.nextCursor).toBeNull();
+      expect(firstBody.data.map((contact) => contact.id)).not.toContain(secondBody.data[0]!.id);
+    });
+
+    it('enforces the plan contact cap on create', async () => {
+      const capOrgId = newId('org');
+      await admin.organization.create({ data: { id: capOrgId, name: 'Cap Org', slug: 'cap-org' } });
+      const wsId = newId('ws');
+      await admin.workspace.create({
+        data: { id: wsId, organizationId: capOrgId, name: 'Cap WS', slug: 'cap-ws' },
+      });
+      // FREE caps at 1,000 contacts; fill it so the next create is over.
+      await admin.subscription.create({
+        data: { id: newId('sub'), organizationId: capOrgId, plan: 'FREE' },
+      });
+      await admin.contact.createMany({
+        data: Array.from({ length: 1_000 }, (_, index) => ({
+          id: newId('contact'),
+          organizationId: capOrgId,
+          workspaceId: wsId,
+          email: `cap${index}@example.com`,
+        })),
+      });
+      const capKey = await generateGatewayApiKey(capOrgId);
+      await admin.gatewayApiKey.create({
+        data: {
+          id: newId('gwk'),
+          organizationId: capOrgId,
+          name: 'cap',
+          keyHash: capKey.keyHash,
+          prefix: capKey.prefix,
+        },
+      });
+      const res = await app.request('/v1/contacts', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${capKey.key}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ workspaceId: wsId, email: 'one-too-many@example.com' }),
+      });
+      expect(res.status).toBe(403);
+      expect(((await res.json()) as { type: string }).type).toBe('urn:helio:problem:http_403');
+    });
   });
 
   it('committed OpenAPI document matches the code', async () => {
