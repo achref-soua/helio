@@ -59,10 +59,6 @@
       "CreateWorkspaceRequest": {
         "type": "object",
         "properties": {
-          "organizationId": {
-            "type": "string",
-            "minLength": 1
-          },
           "name": {
             "type": "string",
             "minLength": 1,
@@ -75,7 +71,7 @@
             "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
           }
         },
-        "required": ["organizationId", "name", "slug"]
+        "required": ["name", "slug"]
       }
     },
     "parameters": {}
@@ -84,22 +80,10 @@
     "/v1/workspaces": {
       "get": {
         "tags": ["workspaces"],
-        "summary": "List workspaces of an organization",
+        "summary": "List the authenticated organization's workspaces",
         "security": [
           {
             "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "example": "org_01jx3ye5k8f5rv9t6n0c2qme7a"
-            },
-            "required": true,
-            "name": "organizationId",
-            "in": "query"
           }
         ],
         "responses": {

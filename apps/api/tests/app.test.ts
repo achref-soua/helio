@@ -7,8 +7,6 @@ import { createApp } from '../src/app';
 import { notFoundResponse, problemResponse } from '../src/middleware/problem';
 import type { RedisLike } from '../src/types';
 
-const TOKEN = 'app-test-bootstrap-token-000001';
-
 /** Prisma stub whose readiness probe can be toggled to fail. */
 function makeApp(databaseUp: boolean) {
   const prisma = {
@@ -19,7 +17,6 @@ function makeApp(databaseUp: boolean) {
   return createApp({
     prisma,
     redis: new RedisMock() as unknown as RedisLike,
-    bootstrapToken: TOKEN,
     rateLimit: { max: 100, windowSeconds: 3600 },
   });
 }
