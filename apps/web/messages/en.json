@@ -20,15 +20,24 @@
     "system": "System"
   },
   "dashboard": {
-    "title": "Dashboard",
-    "subtitle": "What's happening across your audience",
+    "title": "Overview",
+    "subtitle": "What your workspace did lately.",
+    "analyticsDegraded": "Event analytics offline — start the full stack",
+    "timelineTitle": "Engagement, last 14 days",
+    "timelineSubtitle": "Tracked events with email opens and clicks broken out.",
+    "timelineEmpty": "No events yet. Install the tracking snippet or send a campaign.",
+    "timelineNeedsStack": "Event analytics needs ClickHouse — run task up:full.",
     "cards": {
       "contacts": "Contacts",
       "activeJourneys": "Active journeys",
-      "emailsSent": "Emails sent (30d)",
-      "conversionRate": "Conversion rate"
+      "emailsSent": "Emails sent (14d)",
+      "opens": "Opens (14d)"
     },
-    "emptyHint": "Connect a data source or import contacts to light this up."
+    "series": {
+      "events": "All events",
+      "opens": "Opens",
+      "clicks": "Clicks"
+    }
   },
   "onboarding": {
     "title": "Create your organization",
@@ -310,7 +319,8 @@
       "SENDING": "Sending",
       "SENT": "Sent",
       "FAILED": "Failed"
-    }
+    },
+    "engagement": "{opens} opened · {clicks} clicks"
   },
   "unsubscribe": {
     "title": "Unsubscribe from marketing email",

@@ -1,4 +1,5 @@
 import { protectedProcedure, publicProcedure, router } from '../init';
+import { analyticsRouter } from './analytics';
 import { campaignRouter } from './campaign';
 import { contactRouter } from './contact';
 import { contactListRouter } from './contact-list';
@@ -20,6 +21,7 @@ export const appRouter = router({
   emailTemplate: emailTemplateRouter,
   campaign: campaignRouter,
   journey: journeyRouter,
+  analytics: analyticsRouter,
 });
 
 export type AppRouter = typeof appRouter;

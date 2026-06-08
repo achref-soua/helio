@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('dashboard shell renders with primary navigation', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
   const nav = page.getByRole('navigation', { name: 'Primary' });
   for (const item of ['Dashboard', 'Contacts', 'Segments', 'Journeys', 'Settings']) {
     await expect(nav.getByRole('link', { name: item })).toBeVisible();

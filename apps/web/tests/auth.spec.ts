@@ -23,5 +23,5 @@ test.describe('anonymous access', () => {
 
 test('authenticated session reaches the dashboard', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
 });
