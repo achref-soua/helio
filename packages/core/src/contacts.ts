@@ -3,10 +3,14 @@ import { z } from 'zod';
 /** Lowercased, trimmed, validated email. */
 export const contactEmailSchema = z.string().trim().toLowerCase().pipe(z.string().email());
 
+export type ImportStatus = 'ACTIVE' | 'UNSUBSCRIBED';
+
 export interface NormalizedContactRow {
   email: string;
   firstName?: string;
   lastName?: string;
+  /** Subscription status mapped from a vendor's status/consent column. */
+  status?: ImportStatus;
   /** Any extra CSV columns, kept as string attributes. */
   attributes: Record<string, string>;
 }
@@ -28,12 +32,79 @@ const HEADER_ALIASES: Record<string, 'email' | 'firstName' | 'lastName'> = {
   'family name': 'lastName',
 };
 
+// Columns whose *value* describes a subscription/consent status. The
+// covers HubSpot, Mailchimp, and Klaviyo contact exports.
+const STATUS_HEADERS = new Set([
+  'status',
+  'subscription status',
+  'subscriber status',
+  'marketing status',
+  'email marketing consent',
+  'email permission status',
+  'consent',
+  'opt-in',
+  'optin',
+  'opt in',
+]);
+// Columns phrased as "is this contact unsubscribed?" — truthy ⇒ UNSUBSCRIBED.
+const NEGATIVE_HEADERS = new Set([
+  'unsubscribed',
+  'unsubscribed from all email',
+  'do not email',
+  'email opt out',
+  'opted out',
+  'suppressed',
+]);
+const UNSUBSCRIBED_VALUES = new Set([
+  'unsubscribed',
+  'unsub',
+  'cleaned',
+  'suppressed',
+  'bounced',
+  'opted out',
+  'opt out',
+  'opt-out',
+  'false',
+  'no',
+  'never',
+  '0',
+]);
+const TRUTHY = new Set(['true', 'yes', '1', 'y']);
+
+/** The vendor a CSV most likely came from, for a friendlier import UX. */
+export type ImportSource = 'hubspot' | 'mailchimp' | 'klaviyo' | 'csv';
+
+export function detectImportSource(headers: string[]): ImportSource {
+  const set = new Set(headers.map((header) => header.trim().toLowerCase()));
+  if (set.has('email marketing consent') || set.has('klaviyo id')) return 'klaviyo';
+  if (set.has('member rating') || set.has('confirm time') || set.has('optin time')) {
+    return 'mailchimp';
+  }
+  if (set.has('contact id') || set.has('lifecycle stage') || set.has('record id')) return 'hubspot';
+  return 'csv';
+}
+
+function statusFor(headerLower: string, value: string): ImportStatus | undefined {
+  const lowered = value.trim().toLowerCase();
+  if (NEGATIVE_HEADERS.has(headerLower)) {
+    return TRUTHY.has(lowered) ? 'UNSUBSCRIBED' : 'ACTIVE';
+  }
+  if (STATUS_HEADERS.has(headerLower)) {
+    return UNSUBSCRIBED_VALUES.has(lowered) ? 'UNSUBSCRIBED' : 'ACTIVE';
+  }
+  return undefined;
+}
+
 export interface NormalizeResult {
   valid: NormalizedContactRow[];
   /** Rows dropped for a missing/invalid email. */
   invalid: number;
   /** Rows dropped as in-batch duplicates (same email). */
   duplicates: number;
+  /** The detected vendor of the file. */
+  source: ImportSource;
+  /** Imported rows mapped to UNSUBSCRIBED (suppressed, not mailed). */
+  suppressed: number;
 }
 
 /**
@@ -46,6 +117,8 @@ export function normalizeContactRows(rows: Array<Record<string, unknown>>): Norm
   const valid: NormalizedContactRow[] = [];
   let invalid = 0;
   let duplicates = 0;
+  let suppressed = 0;
+  const source = detectImportSource(rows[0] ? Object.keys(rows[0]) : []);
 
   for (const raw of rows) {
     const row: NormalizedContactRow = { email: '', attributes: {} };
@@ -54,10 +127,15 @@ export function normalizeContactRows(rows: Array<Record<string, unknown>>): Norm
       if (value === '') continue;
       const key = rawKey.trim().toLowerCase();
       const known = HEADER_ALIASES[key];
+      const mappedStatus = statusFor(key, value);
       if (known === 'email') row.email = value;
       else if (known === 'firstName') row.firstName = value;
       else if (known === 'lastName') row.lastName = value;
-      else row.attributes[rawKey.trim()] = value;
+      else if (mappedStatus) {
+        // A status/consent column drives status, not attributes. An
+        // UNSUBSCRIBED reading wins even if another column read ACTIVE.
+        if (mappedStatus === 'UNSUBSCRIBED' || row.status === undefined) row.status = mappedStatus;
+      } else row.attributes[rawKey.trim()] = value;
     }
 
     const parsed = contactEmailSchema.safeParse(row.email);
@@ -71,8 +149,9 @@ export function normalizeContactRows(rows: Array<Record<string, unknown>>): Norm
       continue;
     }
     seen.add(row.email);
+    if (row.status === 'UNSUBSCRIBED') suppressed += 1;
     valid.push(row);
   }
 
-  return { valid, invalid, duplicates };
+  return { valid, invalid, duplicates, source, suppressed };
 }

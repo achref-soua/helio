@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
 
-import { eventBatchSchema, pushSubscriptionSchema, toProblemDetails } from '@helio/core';
+import {
+  eventBatchSchema,
+  pushSubscriptionSchema,
+  toProblemDetails,
+  trackedEventSchema,
+} from '@helio/core';
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
@@ -201,6 +206,43 @@ export function createApp(deps: IngestDeps) {
 
     return c.json({ accepted: enriched.length }, 202);
   });
+
+  /**
+   * Segment/RudderStack single-event endpoints. Their server libraries POST
+   * one event per call to /v1/track|identify|page with the type implied by
+   * the path; we inject it and run the same validate → enrich → publish
+   * pipeline as /v1/batch, so existing Segment instrumentation just works
+   * by pointing its data plane at this service.
+   */
+  async function handleSingle(c: Context<IngestEnv>, type: 'track' | 'identify' | 'page') {
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      reject(400, 'invalid_json', 'request body must be JSON');
+    }
+    const scope = await authorize(c, body);
+    await enforceRateLimit(c, scope.workspaceId);
+
+    const candidate = { ...(body as Record<string, unknown>), type };
+    const parsed = trackedEventSchema.safeParse(candidate);
+    if (!parsed.success) {
+      const detail = parsed.error.issues
+        .slice(0, 10)
+        .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
+        .join('; ');
+      reject(422, 'invalid_event', `invalid event — ${detail}`);
+    }
+
+    const enriched = enrichEvent(parsed.data, scope, now());
+    await deps.producer.publish([enriched]);
+    eventsAccepted.inc({ type: enriched.type });
+    return c.json({ accepted: 1 }, 202);
+  }
+
+  app.post('/v1/track', (c) => handleSingle(c, 'track'));
+  app.post('/v1/identify', (c) => handleSingle(c, 'identify'));
+  app.post('/v1/page', (c) => handleSingle(c, 'page'));
 
   app.post('/v1/push/subscribe', async (c) => {
     if (!deps.pushStore) reject(404, 'push_disabled', 'push is not enabled on this deployment');

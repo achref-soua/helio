@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@helio/ui/compone
 import { cn } from '@helio/ui/lib/utils';
 import {
   FileText,
+  Handshake,
   LayoutDashboard,
   Mail,
   Megaphone,
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
   { key: 'campaigns', href: '/campaigns', icon: Megaphone },
   { key: 'forms', href: '/forms', icon: FileText },
   { key: 'journeys', href: '/journeys', icon: Workflow },
+  { key: 'deals', href: '/deals', icon: Handshake },
   { key: 'copilot', href: '/copilot', icon: Sparkles },
   { key: 'settings', href: '/settings', icon: Settings },
 ] as const;

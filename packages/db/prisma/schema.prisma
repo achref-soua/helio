@@ -37,6 +37,9 @@ model Organization {
   forms        Form[]
   scoringRules ScoringRule[]
   pushSubscriptions PushSubscription[]
+  pipelines    Pipeline[]
+  pipelineStages PipelineStage[]
+  deals        Deal[]
 
   @@map("organization")
 }
@@ -64,6 +67,8 @@ model Workspace {
   forms        Form[]
   scoringRules ScoringRule[]
   pushSubscriptions PushSubscription[]
+  pipelines    Pipeline[]
+  deals        Deal[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -135,6 +140,7 @@ model Contact {
   emailSends   EmailSend[]
   journeyRuns  JourneyRun[]
   pushSubscriptions PushSubscription[]
+  deals        Deal[]
 
   @@unique([workspaceId, email])
   @@index([organizationId])
@@ -598,4 +604,103 @@ model Apikey {
   @@index([userId])
   @@index([key])
   @@map("apikey")
+}
+
+// ── CRM-lite (deals & pipelines) ───────────────────────────────────────
+
+/// How a pipeline stage counts for reporting: open deals are in flight,
+/// won/lost are terminal outcomes. A pipeline has exactly the stages its
+/// workspace configures, in `position` order.
+enum StageKind {
+  OPEN
+  WON
+  LOST
+
+  @@map("stage_kind")
+}
+
+enum DealStatus {
+  OPEN
+  WON
+  LOST
+
+  @@map("deal_status")
+}
+
+/// A sales pipeline (e.g. "New business"). Workspace-scoped; isolated by
+/// the standard RLS policy on organization_id.
+model Pipeline {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  name           String
+  /// Default pipeline for the workspace; new deals land here.
+  isDefault      Boolean  @default(false) @map("is_default")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  stages       PipelineStage[]
+  deals        Deal[]
+
+  @@unique([workspaceId, name])
+  @@index([organizationId])
+  @@map("pipeline")
+}
+
+/// One ordered column of a pipeline. The org id is denormalized so the
+/// standard RLS policy applies without a join.
+model PipelineStage {
+  id             String    @id
+  organizationId String    @map("organization_id")
+  workspaceId    String    @map("workspace_id")
+  pipelineId     String    @map("pipeline_id")
+  name           String
+  /// Sort order within the pipeline (0-based).
+  position       Int
+  kind           StageKind @default(OPEN)
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  pipeline     Pipeline     @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  deals        Deal[]
+
+  @@index([organizationId])
+  @@index([pipelineId, position])
+  @@map("pipeline_stage")
+}
+
+/// A deal/opportunity moving through a pipeline. Value is stored in minor
+/// units (cents) to avoid float drift. Optionally linked to a contact and
+/// owned by a workspace member (the auth user id).
+model Deal {
+  id             String     @id
+  organizationId String     @map("organization_id")
+  workspaceId    String     @map("workspace_id")
+  pipelineId     String     @map("pipeline_id")
+  stageId        String     @map("stage_id")
+  title          String
+  /// Amount in minor units (e.g. cents); pair with `currency`.
+  valueCents     Int        @default(0) @map("value_cents")
+  currency       String     @default("USD")
+  status         DealStatus @default(OPEN)
+  /// Sort order within the stage column (0-based).
+  position       Int        @default(0)
+  contactId      String?    @map("contact_id")
+  /// The owning member's auth user id (no hard FK across the auth split).
+  ownerId        String?    @map("owner_id")
+  closedAt       DateTime?  @map("closed_at")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  pipeline     Pipeline      @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  stage        PipelineStage @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  contact      Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([workspaceId, stageId, position])
+  @@map("deal")
 }

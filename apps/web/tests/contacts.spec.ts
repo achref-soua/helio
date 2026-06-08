@@ -59,6 +59,29 @@ test('import a CSV with validation summary', async ({ page }) => {
   await expect(page.getByRole('cell', { name: 'grace@example.com' })).toBeVisible();
 });
 
+test('migration: a Mailchimp export is detected and unsubscribers suppressed', async ({ page }) => {
+  const mailchimp = Buffer.from(
+    'Email Address,First Name,Last Name,Member Rating,OPTIN TIME,STATUS\n' +
+      'subbed@example.com,Sub,Scribed,5,2026-01-01,subscribed\n' +
+      'gone@example.com,Un,Subbed,2,2026-01-02,unsubscribed\n',
+  );
+  await page.goto('/contacts');
+  await page.getByRole('button', { name: 'Import CSV' }).click();
+  await page
+    .getByLabel('CSV file')
+    .setInputFiles({ name: 'mailchimp.csv', mimeType: 'text/csv', buffer: mailchimp });
+  await expect(page.getByTestId('import-source')).toHaveText('Detected a Mailchimp export');
+  await expect(page.getByTestId('import-summary')).toContainText(
+    '1 contact imported as unsubscribed',
+  );
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByText(/Imported 2 contacts/)).toBeVisible();
+
+  // The unsubscribed contact landed suppressed, not active.
+  const row = page.getByRole('row', { name: /gone@example\.com/ });
+  await expect(row.getByText('Unsubscribed')).toBeVisible();
+});
+
 test('lists: create, bulk add, filter, remove', async ({ page }) => {
   await page.goto('/contacts');
   await page.getByRole('button', { name: 'New list' }).click();
