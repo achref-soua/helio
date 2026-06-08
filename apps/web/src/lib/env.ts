@@ -13,4 +13,14 @@ export const env = createEnv({
   SMTP_HOST: z.string().default('localhost'),
   SMTP_PORT: z.coerce.number().int().default(1025),
   MAIL_FROM: z.string().default('Helio <no-reply@helio.local>'),
+  // Durable execution (campaign sends run on Temporal workers).
+  TEMPORAL_ADDRESS: z.string().min(1).default('localhost:7233'),
+  TEMPORAL_NAMESPACE: z.string().min(1).default('default'),
+  // Verifies the stateless unsubscribe tokens minted by the senders.
+  UNSUBSCRIBE_SECRET: z.string().min(24),
+  // Analytics reads (full profile); callers degrade gracefully without it.
+  CLICKHOUSE_URL: z.string().min(1).default('http://localhost:8123'),
+  CLICKHOUSE_USER: z.string().min(1).default('helio'),
+  CLICKHOUSE_PASSWORD: z.string().min(1).default('helio_dev_password'),
+  CLICKHOUSE_DB: z.string().min(1).default('helio'),
 });

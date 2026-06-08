@@ -60,7 +60,7 @@ test('owner invites a teammate who joins as viewer', async ({ page, browser, req
   await memberPage.goto(inviteLink);
   await expect(memberPage.getByText("You're invited")).toBeVisible();
   await memberPage.getByRole('button', { name: 'Accept invitation' }).click();
-  await expect(memberPage.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+  await expect(memberPage.getByRole('heading', { name: 'Overview' })).toBeVisible();
 
   // Scoped to the org: settings shows both members; the viewer cannot manage.
   await memberPage.goto('/settings');

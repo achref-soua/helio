@@ -22,10 +22,19 @@ model Organization {
   metadata  String?
   createdAt DateTime @default(now()) @map("created_at")
 
-  workspaces  Workspace[]
-  auditLogs   AuditLog[]
-  members     Member[]
-  invitations Invitation[]
+  workspaces   Workspace[]
+  auditLogs    AuditLog[]
+  members      Member[]
+  invitations  Invitation[]
+  contacts     Contact[]
+  contactLists ContactList[]
+  writeKeys    WriteKey[]
+  segments     Segment[]
+  emailTemplates EmailTemplate[]
+  emailSends   EmailSend[]
+  campaigns    Campaign[]
+  journeys     Journey[]
+  forms        Form[]
 
   @@map("organization")
 }
@@ -40,8 +49,17 @@ model Workspace {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   auditLogs    AuditLog[]
+  contacts     Contact[]
+  contactLists ContactList[]
+  writeKeys    WriteKey[]
+  segments     Segment[]
+  emailTemplates EmailTemplate[]
+  emailSends   EmailSend[]
+  campaigns    Campaign[]
+  journeys     Journey[]
+  forms        Form[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -66,6 +84,297 @@ model AuditLog {
 
   @@index([organizationId, createdAt])
   @@map("audit_log")
+}
+
+/// Deliverability state of a contact. Anything other than ACTIVE is
+/// suppressed from sending — enforced in the delivery layer.
+enum ContactStatus {
+  ACTIVE
+  UNSUBSCRIBED
+  BOUNCED
+  COMPLAINED
+
+  @@map("contact_status")
+}
+
+/// A person in the CDP. Workspace-scoped; the org id is denormalized so
+/// the standard RLS policy applies directly.
+model Contact {
+  id             String        @id
+  organizationId String        @map("organization_id")
+  workspaceId    String        @map("workspace_id")
+  email          String
+  firstName      String?       @map("first_name")
+  lastName       String?       @map("last_name")
+  attributes     Json          @default("{}")
+  status         ContactStatus @default(ACTIVE)
+  source         String?
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  listMembers  ContactListMember[]
+  emailSends   EmailSend[]
+  journeyRuns  JourneyRun[]
+
+  @@unique([workspaceId, email])
+  @@index([organizationId])
+  @@index([workspaceId, createdAt])
+  @@map("contact")
+}
+
+/// A static list of contacts (dynamic segments are a separate concept).
+model ContactList {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  name           String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  members      ContactListMember[]
+  campaigns    Campaign[]
+
+  @@unique([workspaceId, name])
+  @@index([organizationId])
+  @@map("contact_list")
+}
+
+model ContactListMember {
+  listId         String   @map("list_id")
+  contactId      String   @map("contact_id")
+  organizationId String   @map("organization_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  list    ContactList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  contact Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@id([listId, contactId])
+  @@index([contactId])
+  @@index([organizationId])
+  @@map("contact_list_member")
+}
+
+/// A dynamic audience: a stored AND/OR rule tree (shape owned by
+/// @helio/core's segmentRuleSchema) compiled to a contact predicate at
+/// query time, so membership is always live.
+model Segment {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  name           String
+  description    String?
+  rule           Json
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  campaigns    Campaign[]
+
+  @@unique([workspaceId, name])
+  @@index([organizationId])
+  @@map("segment")
+}
+
+/// A reusable email: subject + block document (shape owned by
+/// @helio/core's emailDocumentSchema), rendered by packages/emails.
+model EmailTemplate {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  name           String
+  subject        String
+  document       Json
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  campaigns    Campaign[]
+
+  @@unique([workspaceId, name])
+  @@index([organizationId])
+  @@map("email_template")
+}
+
+/// Workspace-scoped credential for the event ingestion endpoint. The
+/// value is a public-ish client-side token (it ships in browser code),
+/// so it only grants writes into its own workspace's event stream.
+model WriteKey {
+  id             String    @id
+  organizationId String    @map("organization_id")
+  workspaceId    String    @map("workspace_id")
+  key            String    @unique
+  name           String
+  createdAt      DateTime  @default(now()) @map("created_at")
+  revokedAt      DateTime? @map("revoked_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([workspaceId])
+  @@map("write_key")
+}
+
+/// Lifecycle of a one-shot email campaign.
+enum CampaignStatus {
+  DRAFT
+  SENDING
+  SENT
+  FAILED
+
+  @@map("campaign_status")
+}
+
+/// A one-shot email blast to a segment or list, executed durably by the
+/// campaign workflow (apps/workers, ADR-0011).
+model Campaign {
+  id             String         @id
+  organizationId String         @map("organization_id")
+  workspaceId    String         @map("workspace_id")
+  name           String
+  templateId     String         @map("template_id")
+  /// Exactly one audience source: a dynamic segment or a static list.
+  segmentId      String?        @map("segment_id")
+  listId         String?        @map("list_id")
+  status         CampaignStatus @default(DRAFT)
+  error          String?
+  sentAt         DateTime?      @map("sent_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  template     EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  segment      Segment?      @relation(fields: [segmentId], references: [id], onDelete: Restrict)
+  list         ContactList?  @relation(fields: [listId], references: [id], onDelete: Restrict)
+  sends        EmailSend[]
+
+  @@unique([workspaceId, name])
+  @@index([organizationId])
+  @@map("campaign")
+}
+
+/// Delivery state of an email send. The send pipeline considers
+/// anything but ACTIVE contacts suppressed before creating one.
+enum EmailSendStatus {
+  QUEUED
+  SENT
+  FAILED
+
+  @@map("email_send_status")
+}
+
+/// One email to one contact. The id doubles as the public tracking
+/// token in pixel/click URLs, so it must stay unguessable-enough
+/// (time-ordered random suffix) and leak nothing on its own.
+model EmailSend {
+  id             String          @id
+  organizationId String          @map("organization_id")
+  workspaceId    String          @map("workspace_id")
+  contactId      String          @map("contact_id")
+  campaignId     String?         @map("campaign_id")
+  email          String
+  subject        String
+  status         EmailSendStatus @default(QUEUED)
+  error          String?
+  sentAt         DateTime?       @map("sent_at")
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contact      Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  campaign     Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  /// One send per contact per campaign — activity retries cannot double-send.
+  @@unique([campaignId, contactId])
+  @@index([organizationId])
+  @@index([workspaceId, createdAt])
+  @@map("email_send")
+}
+
+/// Lifecycle of an automation journey.
+enum JourneyStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+
+  @@map("journey_status")
+}
+
+/// State of one contact's pass through a journey.
+enum JourneyRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+
+  @@map("journey_run_status")
+}
+
+/// An automation: a validated DAG (shape owned by @helio/core's
+/// journeyDefinitionSchema) executed durably per contact (ADR-0012).
+model Journey {
+  id             String        @id
+  organizationId String        @map("organization_id")
+  workspaceId    String        @map("workspace_id")
+  name           String
+  status         JourneyStatus @default(DRAFT)
+  definition     Json
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  runs         JourneyRun[]
+
+  @@unique([workspaceId, name])
+  @@index([organizationId])
+  @@index([workspaceId, status])
+  @@map("journey")
+}
+
+/// One contact's enrollment. Also the re-entry guard: a RUNNING row
+/// blocks duplicate enrollment of the same contact.
+model JourneyRun {
+  id             String           @id
+  organizationId String           @map("organization_id")
+  journeyId      String           @map("journey_id")
+  contactId      String           @map("contact_id")
+  status         JourneyRunStatus @default(RUNNING)
+  error          String?
+  startedAt      DateTime         @default(now()) @map("started_at")
+  completedAt    DateTime?        @map("completed_at")
+
+  journey Journey @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([journeyId, contactId, status])
+  @@index([organizationId])
+  @@map("journey_run")
+}
+
+/// A hosted signup form. Phase 1 keeps the fields fixed (email +
+/// first name); the drag-and-drop form builder is a Phase 2 feature.
+model Form {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  name           String
+  /// Shown as the page heading on the hosted form.
+  title          String
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, name])
+  @@index([organizationId])
+  @@map("form")
 }
 
 // ───────────────────────── Better-Auth tables ─────────────────────────

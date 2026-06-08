@@ -3,7 +3,18 @@
 import { Button } from '@helio/ui/components/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@helio/ui/components/sheet';
 import { cn } from '@helio/ui/lib/utils';
-import { LayoutDashboard, Menu, Route, Settings, Sun, Users, Workflow } from 'lucide-react';
+import {
+  FileText,
+  LayoutDashboard,
+  Mail,
+  Megaphone,
+  Menu,
+  Route,
+  Settings,
+  Sun,
+  Users,
+  Workflow,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -11,11 +22,15 @@ import { useState } from 'react';
 
 import { ThemeToggle } from '@/components/theme-toggle';
 import { UserMenu } from '@/components/user-menu';
+import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 
 const NAV_ITEMS = [
   { key: 'dashboard', href: '/', icon: LayoutDashboard },
   { key: 'contacts', href: '/contacts', icon: Users },
   { key: 'segments', href: '/segments', icon: Route },
+  { key: 'emails', href: '/emails', icon: Mail },
+  { key: 'campaigns', href: '/campaigns', icon: Megaphone },
+  { key: 'forms', href: '/forms', icon: FileText },
   { key: 'journeys', href: '/journeys', icon: Workflow },
   { key: 'settings', href: '/settings', icon: Settings },
 ] as const;
@@ -85,6 +100,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </SheetContent>
           </Sheet>
           <div className="ml-auto flex items-center gap-1">
+            <WorkspaceSwitcher />
             <ThemeToggle />
             <UserMenu />
           </div>

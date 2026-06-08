@@ -18,7 +18,9 @@ export default function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Everything except auth pages, auth/trpc APIs, health, and static assets.
-    '/((?!login|signup|accept-invitation|api/auth|api/trpc|api/healthz|_next|favicon.ico).*)',
+    // Everything except auth pages, auth/trpc APIs, health, static assets,
+    // and the public surfaces: u/* (unsubscribe) and f/* (hosted forms) —
+    // email recipients and form visitors are anonymous by definition.
+    '/((?!login|signup|accept-invitation|api/auth|api/trpc|api/healthz|u/|f/|_next|favicon.ico).*)',
   ],
 };

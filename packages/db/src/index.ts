@@ -1,3 +1,28 @@
 export { createPrismaClient, type PrismaClient } from './client';
-export type { AuditLog, Organization, Workspace } from './generated/prisma/client';
+export { compileSegmentRule } from './segments';
+// Prisma namespace (input types, DbNull markers) for callers storing JSON.
+export type {
+  AuditLog,
+  Campaign,
+  Contact,
+  ContactList,
+  ContactListMember,
+  EmailSend,
+  EmailTemplate,
+  Form,
+  Journey,
+  JourneyRun,
+  Organization,
+  Segment,
+  Workspace,
+  WriteKey,
+} from './generated/prisma/client';
+export { Prisma } from './generated/prisma/client';
+export {
+  CampaignStatus,
+  ContactStatus,
+  EmailSendStatus,
+  JourneyRunStatus,
+  JourneyStatus,
+} from './generated/prisma/enums';
 export { forTenant, type TenantClient } from './tenant';

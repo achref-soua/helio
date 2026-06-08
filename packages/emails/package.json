@@ -1,0 +1,31 @@
+{
+  "name": "@helio/emails",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Email rendering for Helio: block documents → responsive HTML + plain text via React Email.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@helio/core": "workspace:*",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.8",
+    "react": "^19.2.7"
+  },
+  "devDependencies": {
+    "@helio/config": "workspace:*",
+    "@types/node": "^25.9.2",
+    "@types/react": "^19.2.7",
+    "@vitest/coverage-v8": "^4.1.8",
+    "eslint": "^10.4.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}
