@@ -1,4 +1,5 @@
-import { ApplicationFailure, proxyActivities } from '@temporalio/workflow';
+import { isInAbTestSample } from '@helio/core';
+import { ApplicationFailure, proxyActivities, sleep } from '@temporalio/workflow';
 
 import type { CampaignActivities } from './activities';
 
@@ -36,21 +37,44 @@ export interface CampaignSendResult {
  */
 export async function campaignSendWorkflow(input: CampaignSendInput): Promise<CampaignSendResult> {
   const totals: CampaignSendResult = { sent: 0, failed: 0, skipped: 0 };
-  try {
-    await activities.startCampaign(input.campaignId);
 
+  // Page the audience and send the subset matching `include`. Durable and
+  // idempotent: the per-(campaign, contact) send row dedupes across the
+  // test and promote passes, so a contact is sent at most once.
+  async function sendAudience(
+    include: (contactId: string) => boolean,
+    forcedVariant?: 'a' | 'b',
+  ): Promise<void> {
     let cursor: string | null = null;
     do {
       const page: { contactIds: string[]; nextCursor: string | null } =
         await activities.listRecipients(input.campaignId, cursor, BATCH_SIZE);
-      if (page.contactIds.length > 0) {
-        const result = await sendActivities.sendToContacts(input.campaignId, page.contactIds);
+      const ids = page.contactIds.filter(include);
+      if (ids.length > 0) {
+        const result = await sendActivities.sendToContacts(input.campaignId, ids, forcedVariant);
         totals.sent += result.sent;
         totals.failed += result.failed;
         totals.skipped += result.skipped;
       }
       cursor = page.nextCursor;
     } while (cursor !== null);
+  }
+
+  try {
+    const ctx = await activities.startCampaign(input.campaignId);
+
+    if (ctx.abAutoWinner) {
+      // 1) Send both subjects to the test slice.
+      await sendAudience((id) => isInAbTestSample(id, ctx.abTestPercent));
+      // 2) Wait for opens to land, durably (survives worker restarts).
+      await sleep(ctx.abTestWindowSeconds * 1000);
+      // 3) Decide, then send the winning subject to the holdout.
+      const stats = await activities.abVariantStats(input.campaignId);
+      const winner = await activities.decideAbWinner(input.campaignId, stats);
+      await sendAudience((id) => !isInAbTestSample(id, ctx.abTestPercent), winner);
+    } else {
+      await sendAudience(() => true);
+    }
 
     await activities.completeCampaign(input.campaignId, totals.failed);
     return totals;

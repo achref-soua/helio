@@ -1,6 +1,7 @@
 import type { ClickHouseClient } from '@clickhouse/client';
 import type { SegmentRule } from '@helio/core';
 import {
+  abWinnerDecision,
   buildEventConditionQuery,
   clickRedirectUrl,
   type EmailDocument,
@@ -36,6 +37,11 @@ export interface SendBatchResult {
 export interface CampaignContext {
   organizationId: string;
   workspaceId: string;
+  /** Autonomous A/B winner config, resolved once for the workflow. */
+  abAutoWinner: boolean;
+  hasVariantB: boolean;
+  abTestPercent: number;
+  abTestWindowSeconds: number;
 }
 
 /**
@@ -76,14 +82,29 @@ export function createActivities(
   }
 
   return {
-    /** Move DRAFT → SENDING and hand the workflow its tenancy scope. */
+    /** Move DRAFT → SENDING and hand the workflow its tenancy + A/B scope. */
     async startCampaign(campaignId: string): Promise<CampaignContext> {
       const campaign = await prisma.campaign.update({
         where: { id: campaignId },
         data: { status: 'SENDING', error: null },
-        select: { organizationId: true, workspaceId: true },
+        select: {
+          organizationId: true,
+          workspaceId: true,
+          subjectB: true,
+          abAutoWinner: true,
+          abTestPercent: true,
+          abTestWindowSeconds: true,
+        },
       });
-      return campaign;
+      return {
+        organizationId: campaign.organizationId,
+        workspaceId: campaign.workspaceId,
+        // Auto-winner only makes sense with a second subject to test.
+        abAutoWinner: campaign.abAutoWinner && campaign.subjectB !== null,
+        hasVariantB: campaign.subjectB !== null,
+        abTestPercent: campaign.abTestPercent ?? 20,
+        abTestWindowSeconds: campaign.abTestWindowSeconds ?? 4 * 60 * 60,
+      };
     },
 
     /**
@@ -132,7 +153,11 @@ export function createActivities(
      * delivery, SENT rows are never re-sent, and rows left QUEUED by a
      * crash are retried (at-least-once within the batch — ADR-0011).
      */
-    async sendToContacts(campaignId: string, contactIds: string[]): Promise<SendBatchResult> {
+    async sendToContacts(
+      campaignId: string,
+      contactIds: string[],
+      forcedVariant?: 'a' | 'b',
+    ): Promise<SendBatchResult> {
       const campaign = await prisma.campaign.findUniqueOrThrow({
         where: { id: campaignId },
         include: { template: true },
@@ -156,8 +181,10 @@ export function createActivities(
           continue;
         }
         // A/B: assign the variant at claim time; retries reuse the row,
-        // so a contact can never receive both subjects.
-        const variant = campaign.subjectB ? (Math.random() < 0.5 ? 'a' : 'b') : null;
+        // so a contact can never receive both subjects. The promote phase
+        // forces the winning variant; the test phase splits at random.
+        const variant =
+          forcedVariant ?? (campaign.subjectB ? (Math.random() < 0.5 ? 'a' : 'b') : null);
         const send =
           existing ??
           (await prisma.emailSend.create({
@@ -217,6 +244,71 @@ export function createActivities(
         }
       }
       return result;
+    },
+
+    /**
+     * Per-variant sends (Postgres) and unique opens (ClickHouse) for the
+     * test slice. Opens are zero when ClickHouse is unconfigured — the
+     * decision then has no signal and falls back to the leading subject.
+     */
+    async abVariantStats(campaignId: string): Promise<{
+      a: { sent: number; opens: number };
+      b: { sent: number; opens: number };
+    }> {
+      const campaign = await prisma.campaign.findUniqueOrThrow({
+        where: { id: campaignId },
+        select: { workspaceId: true },
+      });
+      const sentRows = await prisma.emailSend.groupBy({
+        by: ['variant'],
+        where: { campaignId, status: 'SENT' },
+        _count: { _all: true },
+      });
+      const sent = { a: 0, b: 0 };
+      for (const row of sentRows) {
+        if (row.variant === 'a') sent.a = row._count._all;
+        if (row.variant === 'b') sent.b = row._count._all;
+      }
+
+      const opens = { a: 0, b: 0 };
+      if (clickhouse) {
+        const result = await clickhouse.query({
+          query: `SELECT JSONExtractString(properties, 'variant') AS variant,
+                         uniqIf(JSONExtractString(properties, 'sendId'), event = 'Email Opened') AS opens
+                  FROM events
+                  WHERE workspace_id = {workspaceId:String}
+                    AND campaign_id = {campaignId:String}
+                  GROUP BY variant`,
+          query_params: { workspaceId: campaign.workspaceId, campaignId },
+          format: 'JSONEachRow',
+        });
+        const rows = (await result.json()) as Array<{ variant: string; opens: string }>;
+        for (const row of rows) {
+          if (row.variant === 'a') opens.a = Number(row.opens);
+          if (row.variant === 'b') opens.b = Number(row.opens);
+        }
+      }
+      return { a: { sent: sent.a, opens: opens.a }, b: { sent: sent.b, opens: opens.b } };
+    },
+
+    /**
+     * Decide and persist the A/B winner, returning the variant to send to
+     * the holdout. A confident z-test winner wins; otherwise the higher
+     * open-rate subject (the leader) is promoted.
+     */
+    async decideAbWinner(
+      campaignId: string,
+      stats: { a: { sent: number; opens: number }; b: { sent: number; opens: number } },
+    ): Promise<'a' | 'b'> {
+      const decision = abWinnerDecision(stats.a, stats.b);
+      const promote = decision.winner ?? decision.leader;
+      await prisma.campaign.update({
+        where: { id: campaignId },
+        // Record the confident winner only; leader-by-fallback stays null
+        // so the UI can distinguish "decided" from "no clear winner".
+        data: { abWinner: decision.winner, abDecidedAt: new Date() },
+      });
+      return promote;
     },
 
     /** Terminal bookkeeping. */

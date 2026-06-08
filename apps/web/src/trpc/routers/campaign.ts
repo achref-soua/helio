@@ -45,11 +45,22 @@ export const campaignRouter = router({
           name: z.string().trim().min(1).max(80),
           templateId: z.string().min(1),
           subjectB: z.string().trim().min(1).max(300).optional(),
+          abAutoWinner: z.boolean().optional(),
+          abTestPercent: z.number().int().min(5).max(50).optional(),
+          abTestWindowSeconds: z
+            .number()
+            .int()
+            .min(15 * 60)
+            .max(7 * 24 * 60 * 60)
+            .optional(),
           segmentId: z.string().min(1).optional(),
           listId: z.string().min(1).optional(),
         })
         .refine((value) => !!value.segmentId !== !!value.listId, {
           message: 'choose exactly one audience: a segment or a list',
+        })
+        .refine((value) => !value.abAutoWinner || !!value.subjectB, {
+          message: 'auto-winner needs a subject B to test against',
         }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -68,6 +79,9 @@ export const campaignRouter = router({
           name: input.name,
           templateId: input.templateId,
           subjectB: input.subjectB,
+          abAutoWinner: input.abAutoWinner ?? false,
+          abTestPercent: input.abTestPercent,
+          abTestWindowSeconds: input.abTestWindowSeconds,
           segmentId: input.segmentId,
           listId: input.listId,
         },

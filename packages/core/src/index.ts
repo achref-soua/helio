@@ -1,4 +1,12 @@
 export {
+  type AbDecision,
+  type AbDecisionOptions,
+  type AbVariant,
+  abWinnerDecision,
+  isInAbTestSample,
+  type VariantStat,
+} from './ab-test';
+export {
   contactEmailSchema,
   normalizeContactRows,
   type NormalizedContactRow,
