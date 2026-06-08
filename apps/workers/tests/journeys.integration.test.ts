@@ -17,6 +17,7 @@ const CONFIG = {
   trackingUrl: 'http://t.helio.test',
   trackingSecret: 'tracking-secret-for-tests-0001',
   unsubscribeSecret: 'unsubscribe-secret-for-tests-1',
+  webhookSecret: 'webhook-secret-for-tests-000001',
 };
 
 describe('journey activities + trigger enrollment against Postgres', () => {
@@ -245,6 +246,66 @@ describe('journey activities + trigger enrollment against Postgres', () => {
         where: { journeyId, status: 'FAILED' },
       });
       expect(failed?.error).toBe('failed to start workflow');
+    });
+  });
+
+  describe('v2 activities', () => {
+    it('sendGate: caps on recent sends, defers in quiet hours, 0 otherwise', async () => {
+      // ada has 1 SENT mail from earlier tests; cap of 1 per week trips.
+      expect(await activities.sendGate(adaId, null, { maxEmails: 1, perDays: 7 })).toBe(-1);
+      expect(await activities.sendGate(adaId, null, { maxEmails: 10, perDays: 7 })).toBe(0);
+
+      const always = { start: '00:00', end: '23:59', timezone: 'UTC' };
+      expect(await activities.sendGate(adaId, always, null)).toBeGreaterThan(0);
+      expect(await activities.sendGate(adaId, null, null)).toBe(0);
+    });
+
+    it('applyTrait merges into attributes and tolerates unknown contacts', async () => {
+      await activities.applyTrait(adaId, 'variant', 'a');
+      const contact = await prisma.contact.findUniqueOrThrow({ where: { id: adaId } });
+      expect(contact.attributes).toMatchObject({ plan: 'pro', variant: 'a' });
+      await expect(activities.applyTrait('contact_ghost', 'x', 'y')).resolves.toBeUndefined();
+    });
+
+    it('callWebhook signs the payload and throws on non-2xx', async () => {
+      const { createServer } = await import('node:http');
+      const { createHmac } = await import('node:crypto');
+      const received: Array<{ signature: string | undefined; body: string }> = [];
+      let respondWith = 200;
+      const server = createServer((request, response) => {
+        let body = '';
+        request.on('data', (chunk: Buffer) => (body += chunk.toString()));
+        request.on('end', () => {
+          received.push({ signature: request.headers['x-helio-signature'] as string, body });
+          response.statusCode = respondWith;
+          response.end();
+        });
+      });
+      await new Promise<void>((resolve) => server.listen(0, resolve));
+      const port = (server.address() as { port: number }).port;
+      const url = `http://127.0.0.1:${port}/hook`;
+
+      try {
+        await activities.callWebhook(url, { journeyId: 'j', contactId: 'c', email: 'a@x.com' });
+        expect(received).toHaveLength(1);
+        const expected = createHmac('sha256', 'webhook-secret-for-tests-000001')
+          .update(received[0]!.body)
+          .digest('hex');
+        expect(received[0]!.signature).toBe(expected);
+        expect(JSON.parse(received[0]!.body)).toMatchObject({ journeyId: 'j', email: 'a@x.com' });
+
+        respondWith = 503;
+        await expect(
+          activities.callWebhook(url, { journeyId: 'j', contactId: 'c', email: 'a@x.com' }),
+        ).rejects.toThrowError(/503/);
+      } finally {
+        server.close();
+      }
+    });
+
+    it('contactEmail resolves and falls back to empty', async () => {
+      expect(await activities.contactEmail(adaId)).toBe('ada@example.com');
+      expect(await activities.contactEmail('contact_ghost')).toBe('');
     });
   });
 });

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { journeyDefinitionSchema, journeyNodeById, nextNodeId } from '../src/journeys';
+import {
+  journeyDefinitionSchema,
+  journeyNodeById,
+  nextNodeId,
+  quietHoursDelayMs,
+} from '../src/journeys';
 
 const valid = {
   trigger: { type: 'event', event: 'Signed Up' },
@@ -113,5 +118,88 @@ describe('graph helpers', () => {
     expect(nextNodeId(definition, 'n5')).toBeNull();
     expect(journeyNodeById(definition, 'n2')?.type).toBe('wait');
     expect(journeyNodeById(definition, 'ghost')).toBeNull();
+  });
+});
+
+describe('journey schema v2', () => {
+  const base = {
+    trigger: { type: 'event', event: 'Signed Up' },
+    startNodeId: 's',
+    nodes: [
+      { id: 's', type: 'ab_split', ratioA: 50 },
+      { id: 'ta', type: 'update_trait', key: 'variant', value: 'a' },
+      { id: 'tb', type: 'webhook', url: 'https://hooks.example.com/x' },
+      { id: 'e', type: 'end' },
+    ],
+    edges: [
+      { from: 's', to: 'ta', label: 'a' },
+      { from: 's', to: 'tb', label: 'b' },
+      { from: 'ta', to: 'e' },
+      { from: 'tb', to: 'e' },
+    ],
+  };
+
+  it('accepts ab_split, update_trait, and webhook nodes', () => {
+    expect(journeyDefinitionSchema.safeParse(base).success).toBe(true);
+  });
+
+  it('requires a and b edges on ab_split', () => {
+    const missing = { ...base, edges: base.edges.filter((edge) => edge.label !== 'b') };
+    const result = journeyDefinitionSchema.safeParse(missing);
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts quiet hours and frequency caps; rejects bad shapes', () => {
+    expect(
+      journeyDefinitionSchema.safeParse({
+        ...base,
+        quietHours: { start: '21:00', end: '08:00', timezone: 'Europe/Paris' },
+        frequencyCap: { maxEmails: 3, perDays: 7 },
+      }).success,
+    ).toBe(true);
+    expect(
+      journeyDefinitionSchema.safeParse({ ...base, quietHours: { start: '25:00', end: '08:00' } })
+        .success,
+    ).toBe(false);
+    expect(
+      journeyDefinitionSchema.safeParse({ ...base, frequencyCap: { maxEmails: 0, perDays: 7 } })
+        .success,
+    ).toBe(false);
+  });
+});
+
+describe('quietHoursDelayMs', () => {
+  it('returns 0 outside the window', () => {
+    expect(
+      quietHoursDelayMs(
+        { start: '21:00', end: '08:00', timezone: 'UTC' },
+        new Date('2026-06-08T12:00:00Z'),
+      ),
+    ).toBe(0);
+  });
+
+  it('defers to the end of a same-day window', () => {
+    expect(
+      quietHoursDelayMs(
+        { start: '09:00', end: '17:00', timezone: 'UTC' },
+        new Date('2026-06-08T16:30:00Z'),
+      ),
+    ).toBe(30 * 60_000);
+  });
+
+  it('handles windows wrapping past midnight on both sides', () => {
+    const quiet = { start: '21:00', end: '08:00', timezone: 'UTC' };
+    expect(quietHoursDelayMs(quiet, new Date('2026-06-08T23:00:00Z'))).toBe(9 * 60 * 60_000);
+    expect(quietHoursDelayMs(quiet, new Date('2026-06-08T06:00:00Z'))).toBe(2 * 60 * 60_000);
+  });
+
+  it('respects the configured timezone', () => {
+    // 12:00 UTC = 21:00 in Tokyo — inside a 21:00–08:00 Tokyo window.
+    expect(
+      quietHoursDelayMs(
+        { start: '21:00', end: '08:00', timezone: 'Asia/Tokyo' },
+        new Date('2026-06-08T12:00:00Z'),
+      ),
+    ).toBe(11 * 60 * 60_000);
   });
 });

@@ -36,6 +36,8 @@ export {
 } from './events';
 export { type Id, idTimestamp, isId, newId } from './id';
 export {
+  type FrequencyCap,
+  frequencyCapSchema,
   type JourneyDefinition,
   journeyDefinitionSchema,
   type JourneyEdge,
@@ -45,6 +47,9 @@ export {
   journeyNodeSchema,
   journeyTriggerSchema,
   nextNodeId,
+  type QuietHours,
+  quietHoursDelayMs,
+  quietHoursSchema,
 } from './journeys';
 export { hasRole, INVITABLE_ROLES, isRole, type Role, ROLES } from './rbac';
 export {

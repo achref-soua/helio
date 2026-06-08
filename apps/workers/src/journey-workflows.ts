@@ -13,6 +13,13 @@ const activities = proxyActivities<JourneyActivities>({
   retry: { maximumAttempts: 5 },
 });
 
+// External endpoints get fewer retries and a tighter ceiling — a broken
+// webhook should fail the run quickly, not hammer someone's server.
+const webhookActivities = proxyActivities<JourneyActivities>({
+  startToCloseTimeout: '30 seconds',
+  retry: { maximumAttempts: 3 },
+});
+
 export interface JourneyRunInput {
   journeyId: string;
   runId: string;
@@ -37,10 +44,20 @@ export async function journeyRunWorkflow(input: JourneyRunInput): Promise<{ step
       steps += 1;
 
       switch (node.type) {
-        case 'send_email':
-          await activities.sendJourneyEmail(input.journeyId, input.contactId, node.templateId);
+        case 'send_email': {
+          // Quiet hours defer; frequency caps skip (never queue forever).
+          const gate = await activities.sendGate(
+            input.contactId,
+            definition.quietHours ?? null,
+            definition.frequencyCap ?? null,
+          );
+          if (gate > 0) await sleep(gate);
+          if (gate !== -1) {
+            await activities.sendJourneyEmail(input.journeyId, input.contactId, node.templateId);
+          }
           currentId = nextNodeId(definition, node.id);
           break;
+        }
         case 'wait':
           await sleep(node.seconds * 1000);
           currentId = nextNodeId(definition, node.id);
@@ -48,6 +65,26 @@ export async function journeyRunWorkflow(input: JourneyRunInput): Promise<{ step
         case 'branch': {
           const matched = await activities.evaluateCondition(input.contactId, node.condition);
           currentId = nextNodeId(definition, node.id, matched ? 'yes' : 'no');
+          break;
+        }
+        case 'ab_split': {
+          // Temporal's sandbox PRNG is recorded — replay-safe randomness.
+          const toA = Math.random() * 100 < node.ratioA;
+          currentId = nextNodeId(definition, node.id, toA ? 'a' : 'b');
+          break;
+        }
+        case 'update_trait':
+          await activities.applyTrait(input.contactId, node.key, node.value);
+          currentId = nextNodeId(definition, node.id);
+          break;
+        case 'webhook': {
+          const email = await activities.contactEmail(input.contactId);
+          await webhookActivities.callWebhook(node.url, {
+            journeyId: input.journeyId,
+            contactId: input.contactId,
+            email,
+          });
+          currentId = nextNodeId(definition, node.id);
           break;
         }
         case 'end':

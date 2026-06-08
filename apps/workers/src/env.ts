@@ -34,6 +34,8 @@ export const env = createEnv({
   UNSUBSCRIBE_SECRET: z.string().min(24),
   KAFKA_BROKERS: z.string().min(1).default('localhost:19092'),
   EVENTS_TOPIC: z.string().min(1).default('helio.events.v1'),
+  /** Optional HMAC key for journey webhook signatures (x-helio-signature). */
+  WEBHOOK_SIGNING_SECRET: z.string().min(24).optional(),
   /** Consume tracked events and enroll contacts into ACTIVE journeys. */
   JOURNEY_TRIGGERS_ENABLED: z
     .enum(['true', 'false'])

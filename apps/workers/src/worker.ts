@@ -28,6 +28,7 @@ const activityConfig = {
   trackingUrl: env.PUBLIC_TRACKING_URL,
   trackingSecret: env.TRACKING_SECRET,
   unsubscribeSecret: env.UNSUBSCRIBE_SECRET,
+  webhookSecret: env.WEBHOOK_SIGNING_SECRET,
 };
 
 const worker = await Worker.create({
