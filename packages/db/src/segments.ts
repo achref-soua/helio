@@ -62,6 +62,12 @@ function compileCondition(
         ? { email: { in: resolved.emails } }
         : { email: { notIn: resolved.emails } };
     }
+    case 'score':
+      return condition.operator === 'gte'
+        ? { score: { gte: condition.value } }
+        : condition.operator === 'lte'
+          ? { score: { lte: condition.value } }
+          : { score: condition.value };
     case 'created_at': {
       if (condition.operator === 'in_last_days') {
         const since = new Date(Date.now() - condition.value * 24 * 60 * 60 * 1000);

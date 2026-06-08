@@ -157,7 +157,8 @@
       "email": "Email",
       "name": "Name",
       "status": "Status",
-      "added": "Added"
+      "added": "Added",
+      "score": "Score"
     },
     "status": {
       "ACTIVE": "Active",
@@ -175,6 +176,18 @@
       "parseError": "Could not parse that file as CSV.",
       "resultToast": "Imported {created} contacts ({skipped} already existed)",
       "genericError": "Import failed. Please try again."
+    },
+    "scoring": {
+      "title": "Scoring rules",
+      "subtitle": "Move contact scores when events happen.",
+      "event": "Event name",
+      "points": "Points",
+      "addAction": "Add rule",
+      "created": "Rule created",
+      "deleted": "Rule deleted",
+      "deleteAction": "Delete rule for {event}",
+      "empty": "No scoring rules yet.",
+      "manageAction": "Scoring rules"
     }
   },
   "segments": {
@@ -224,7 +237,8 @@
         "attribute": "Attribute",
         "status": "Status",
         "createdAt": "Created",
-        "event": "Did event"
+        "event": "Did event",
+        "score": "Score"
       },
       "operators": {
         "equals": "equals",
@@ -240,7 +254,9 @@
         "after": "after",
         "at_least": "at least",
         "at_most": "at most",
-        "never": "never"
+        "never": "never",
+        "gte": "is at least",
+        "lte": "is at most"
       },
       "statuses": {
         "ACTIVE": "Active",

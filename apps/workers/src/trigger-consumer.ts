@@ -1,7 +1,7 @@
 import { type EnrichedEvent } from '@helio/core';
 import { Kafka, logLevel } from 'kafkajs';
 
-import { enrollFromEvent, type TriggerDeps } from './journey-triggers';
+import { enrollFromEvent, scoreFromEvent, type TriggerDeps } from './journey-triggers';
 
 export interface TriggerConsumerOptions {
   brokers: string[];
@@ -41,6 +41,7 @@ export class JourneyTriggerConsumer {
           return; // poison message — the sink logs these already
         }
         try {
+          await scoreFromEvent(event, this.deps);
           await enrollFromEvent(event, this.deps);
         } catch (error) {
           // Enrollment is best-effort per event; failures must not stall

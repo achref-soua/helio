@@ -9,7 +9,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { InMemoryEmailProvider } from '../src/email-provider';
 import { createJourneyActivities, type JourneyActivities } from '../src/journey-activities';
-import { enrollFromEvent } from '../src/journey-triggers';
+import { enrollFromEvent, scoreFromEvent } from '../src/journey-triggers';
 
 const CONFIG = {
   mailFrom: 'Helio <no-reply@helio.test>',
@@ -171,6 +171,55 @@ describe('journey activities + trigger enrollment against Postgres', () => {
     expect(failed.status).toBe('FAILED');
     expect(failed.error).toBe('boom');
     await prisma.journeyRun.delete({ where: { id: run.id } });
+  });
+
+  describe('scoreFromEvent', () => {
+    it('applies matching rules atomically, including negatives', async () => {
+      await prisma.scoringRule.createMany({
+        data: [
+          {
+            id: newId('score'),
+            organizationId: orgId,
+            workspaceId: wsId,
+            event: 'Demo Booked',
+            points: 25,
+          },
+          {
+            id: newId('score'),
+            organizationId: orgId,
+            workspaceId: wsId,
+            event: 'Churn Risk',
+            points: -10,
+          },
+        ],
+      });
+      const deps = { prisma, temporal: {} as never, logger: pino({ level: 'silent' }) };
+      const base = {
+        message_id: newId('msg'),
+        organization_id: orgId,
+        workspace_id: wsId,
+        type: 'track' as const,
+        anonymous_id: '',
+        user_id: 'ada@example.com',
+        properties: '{}',
+        context: '{}',
+        timestamp: new Date().toISOString(),
+        received_at: new Date().toISOString(),
+      };
+
+      expect(await scoreFromEvent({ ...base, event: 'Demo Booked' }, deps)).toBe(true);
+      expect(await scoreFromEvent({ ...base, event: 'Demo Booked' }, deps)).toBe(true);
+      expect(await scoreFromEvent({ ...base, event: 'Churn Risk' }, deps)).toBe(true);
+      expect(await scoreFromEvent({ ...base, event: 'Unscored Event' }, deps)).toBe(false);
+      expect(
+        await scoreFromEvent({ ...base, event: 'Demo Booked', user_id: 'ghost@x.com' }, deps),
+      ).toBe(false);
+
+      const ada = await prisma.contact.findUniqueOrThrow({
+        where: { workspaceId_email: { workspaceId: wsId, email: 'ada@example.com' } },
+      });
+      expect(ada.score).toBe(25 + 25 - 10);
+    });
   });
 
   describe('enrollFromEvent', () => {

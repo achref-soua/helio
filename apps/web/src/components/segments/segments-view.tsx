@@ -48,6 +48,7 @@ function ruleToDraft(rule: SegmentRuleGroup): DraftGroup {
     draft.operator = child.operator;
     if (child.target === 'field') draft.field = child.field;
     if (child.target === 'attribute') draft.attributeKey = child.key;
+    if (child.target === 'score') draft.value = String(child.value);
     if (child.target === 'event') {
       draft.eventName = child.event;
       draft.eventCount = String(child.count);

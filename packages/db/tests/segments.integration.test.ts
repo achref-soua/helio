@@ -389,6 +389,34 @@ describe('segment rule compilation against Postgres', () => {
     ).toEqual(['ada@acme.com', 'grace@acme.com']);
   });
 
+  it('filters by score', async () => {
+    await admin.contact.updateMany({
+      where: { workspaceId: wsId, email: 'ada@acme.com' },
+      data: { score: 42 },
+    });
+    expect(
+      await emailsMatching({
+        kind: 'group',
+        op: 'and',
+        children: [{ kind: 'condition', target: 'score', operator: 'gte', value: 40 }],
+      }),
+    ).toEqual(['ada@acme.com']);
+    expect(
+      await emailsMatching({
+        kind: 'group',
+        op: 'and',
+        children: [{ kind: 'condition', target: 'score', operator: 'lte', value: 0 }],
+      }),
+    ).toEqual(['alan@other.org', 'grace@acme.com']);
+    expect(
+      await emailsMatching({
+        kind: 'group',
+        op: 'and',
+        children: [{ kind: 'condition', target: 'score', operator: 'equals', value: 42 }],
+      }),
+    ).toEqual(['ada@acme.com']);
+  });
+
   it('isolates segments by tenant (RLS)', async () => {
     const otherOrg = newId('org');
     await admin.organization.create({ data: { id: otherOrg, name: 'X', slug: 'seg-x' } });

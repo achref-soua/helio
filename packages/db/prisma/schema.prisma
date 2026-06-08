@@ -35,6 +35,7 @@ model Organization {
   campaigns    Campaign[]
   journeys     Journey[]
   forms        Form[]
+  scoringRules ScoringRule[]
 
   @@map("organization")
 }
@@ -60,6 +61,7 @@ model Workspace {
   campaigns    Campaign[]
   journeys     Journey[]
   forms        Form[]
+  scoringRules ScoringRule[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -107,6 +109,8 @@ model Contact {
   firstName      String?       @map("first_name")
   lastName       String?       @map("last_name")
   attributes     Json          @default("{}")
+  /// Rule-based engagement score (see ScoringRule); event-driven.
+  score          Int           @default(0)
   status         ContactStatus @default(ACTIVE)
   source         String?
   createdAt      DateTime      @default(now()) @map("created_at")
@@ -379,6 +383,24 @@ model Form {
   @@unique([workspaceId, name])
   @@index([organizationId])
   @@map("form")
+}
+
+/// Event-driven scoring: when a tracked event matches, the contact's
+/// score moves by `points`. Applied by the worker's event consumer.
+model ScoringRule {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  event          String
+  points         Int
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, event])
+  @@index([organizationId])
+  @@map("scoring_rule")
 }
 
 // ───────────────────────── Better-Auth tables ─────────────────────────

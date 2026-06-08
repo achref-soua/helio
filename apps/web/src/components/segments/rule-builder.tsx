@@ -15,7 +15,7 @@ import { useTranslations } from 'next-intl';
 export interface DraftCondition {
   id: string;
   kind: 'condition';
-  target: 'field' | 'attribute' | 'status' | 'created_at' | 'event';
+  target: 'field' | 'attribute' | 'status' | 'created_at' | 'event' | 'score';
   field: (typeof CONTACT_FIELDS)[number];
   attributeKey: string;
   operator: string;
@@ -67,6 +67,7 @@ const FIELD_OPERATORS = [
 const STATUS_OPERATORS = ['equals', 'not_equals'] as const;
 const CREATED_OPERATORS = ['in_last_days', 'before', 'after'] as const;
 const EVENT_OPERATORS = ['at_least', 'at_most', 'never'] as const;
+const SCORE_OPERATORS = ['gte', 'lte', 'equals'] as const;
 
 const VALUELESS = new Set(['is_set', 'is_not_set']);
 
@@ -74,6 +75,7 @@ function operatorsFor(target: DraftCondition['target']): readonly string[] {
   if (target === 'status') return STATUS_OPERATORS;
   if (target === 'created_at') return CREATED_OPERATORS;
   if (target === 'event') return EVENT_OPERATORS;
+  if (target === 'score') return SCORE_OPERATORS;
   return FIELD_OPERATORS;
 }
 
@@ -119,6 +121,11 @@ function conditionToRule(condition: DraftCondition): unknown {
   if (target === 'status') {
     if (!condition.value) return null;
     return { kind: 'condition', target, operator, value: condition.value };
+  }
+  if (target === 'score') {
+    const value = Number(condition.value);
+    if (!Number.isInteger(value)) return null;
+    return { kind: 'condition', target, operator, value };
   }
   if (target === 'event') {
     if (!condition.eventName.trim()) return null;
@@ -320,6 +327,7 @@ function ConditionEditor({
         <option value="status">{t('fields.status')}</option>
         <option value="created_at">{t('fields.createdAt')}</option>
         <option value="event">{t('fields.event')}</option>
+        <option value="score">{t('fields.score')}</option>
       </Select>
 
       {isEvent && (
@@ -380,7 +388,19 @@ function ConditionEditor({
         </span>
       )}
 
+      {condition.target === 'score' && (
+        <Input
+          aria-label={t('value')}
+          type="number"
+          placeholder="0"
+          value={condition.value}
+          onChange={(event) => onChange({ ...condition, value: event.target.value })}
+          className="w-24"
+        />
+      )}
+
       {!isEvent &&
+        condition.target !== 'score' &&
         !VALUELESS.has(condition.operator) &&
         (condition.target === 'status' ? (
           <Select
