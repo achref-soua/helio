@@ -126,4 +126,41 @@ describe('tracking app', () => {
     expect((await app.request('/healthz')).status).toBe(200);
     expect((await app.request('/readyz')).status).toBe(200);
   });
+
+  it('serves Prometheus metrics', async () => {
+    const response = await app.request('/metrics');
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('helio_tracking_');
+  });
+
+  it('readyz aggregates readiness probes and reports degradation', async () => {
+    const withProbes = createApp({
+      sends: resolver,
+      producer,
+      secret: SECRET,
+      readiness: {
+        clickhouse: () => Promise.resolve(),
+        broker: () => Promise.reject(new Error('down')),
+      },
+    });
+    const response = await withProbes.request('/readyz');
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({
+      status: 'degraded',
+      checks: { clickhouse: 'ok', broker: 'failed' },
+    });
+  });
+
+  it('still 302s a valid click when the bus publish fails', async () => {
+    producer.failNext = true;
+    const url = await clickRedirectUrl(
+      'http://t.local',
+      SECRET,
+      'snd_known',
+      'https://example.com/x',
+    );
+    const response = await app.request(url.replace('http://t.local', ''));
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe('https://example.com/x');
+  });
 });

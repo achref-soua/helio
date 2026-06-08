@@ -40,7 +40,7 @@ strict = true
 files = ["src"]
 
 [tool.pytest.ini_options]
-addopts = "--cov=helio_intelligence --cov-report=term --cov-fail-under=70"
+addopts = "--cov=helio_intelligence --cov-report=term --cov-fail-under=80"
 testpaths = ["tests"]
 
 [tool.coverage.run]

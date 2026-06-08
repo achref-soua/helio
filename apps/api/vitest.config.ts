@@ -6,7 +6,9 @@ export default createVitestConfig({
     testTimeout: 120_000,
     hookTimeout: 180_000,
     coverage: {
-      exclude: ['src/server.ts', 'src/scripts/**'],
+      // OTel tracing is dynamic-import glue that only runs with an OTLP
+      // endpoint configured; exercised in deployment, not unit tests.
+      exclude: ['src/server.ts', 'src/scripts/**', 'src/observability.ts'],
     },
   },
 });
