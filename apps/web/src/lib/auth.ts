@@ -1,4 +1,5 @@
 import { apiKey } from '@better-auth/api-key';
+import { sso } from '@better-auth/sso';
 import { createPrismaClient } from '@helio/db';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
@@ -80,6 +81,21 @@ export const auth = betterAuth({
     }),
     twoFactor(),
     apiKey(),
+    // Enterprise single sign-on (OIDC). Providers are registered per
+    // organization (see the sso tRPC router); a user who authenticates
+    // through an org's provider is provisioned into that org as the
+    // least-privileged role, which an admin can then elevate (ADR-0013).
+    sso({
+      organizationProvisioning: {
+        disabled: false,
+        // Helio's org roles are owner/admin/editor/viewer (@helio/core); SSO
+        // users join as the least-privileged viewer, which an admin elevates.
+        // The plugin's type only models Better-Auth's built-in member/admin
+        // roles, but writes this value verbatim to member.role, so we assert
+        // the role our application layer actually understands.
+        defaultRole: 'viewer' as string as 'member',
+      },
+    }),
     // Must stay last: makes Better-Auth set cookies in server actions.
     nextCookies(),
   ],

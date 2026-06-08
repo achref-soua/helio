@@ -11,6 +11,7 @@ import { formRouter } from './form';
 import { journeyRouter } from './journey';
 import { scoringRouter } from './scoring';
 import { segmentRouter } from './segment';
+import { ssoRouter } from './sso';
 import { workspaceRouter } from './workspace';
 
 export const appRouter = router({
@@ -32,6 +33,7 @@ export const appRouter = router({
   scoring: scoringRouter,
   crm: crmRouter,
   billing: billingRouter,
+  sso: ssoRouter,
 });
 
 export type AppRouter = typeof appRouter;

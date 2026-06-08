@@ -22,25 +22,26 @@ model Organization {
   metadata  String?
   createdAt DateTime @default(now()) @map("created_at")
 
-  workspaces   Workspace[]
-  auditLogs    AuditLog[]
-  members      Member[]
-  invitations  Invitation[]
-  contacts     Contact[]
-  contactLists ContactList[]
-  writeKeys    WriteKey[]
-  segments     Segment[]
-  emailTemplates EmailTemplate[]
-  emailSends   EmailSend[]
-  campaigns    Campaign[]
-  journeys     Journey[]
-  forms        Form[]
-  scoringRules ScoringRule[]
+  workspaces        Workspace[]
+  auditLogs         AuditLog[]
+  members           Member[]
+  invitations       Invitation[]
+  contacts          Contact[]
+  contactLists      ContactList[]
+  writeKeys         WriteKey[]
+  segments          Segment[]
+  emailTemplates    EmailTemplate[]
+  emailSends        EmailSend[]
+  campaigns         Campaign[]
+  journeys          Journey[]
+  forms             Form[]
+  scoringRules      ScoringRule[]
   pushSubscriptions PushSubscription[]
-  pipelines    Pipeline[]
-  pipelineStages PipelineStage[]
-  deals        Deal[]
-  subscription Subscription?
+  pipelines         Pipeline[]
+  pipelineStages    PipelineStage[]
+  deals             Deal[]
+  subscription      Subscription?
+  ssoProviders      SsoProvider[]
 
   @@map("organization")
 }
@@ -76,21 +77,21 @@ model Workspace {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  auditLogs    AuditLog[]
-  contacts     Contact[]
-  contactLists ContactList[]
-  writeKeys    WriteKey[]
-  segments     Segment[]
-  emailTemplates EmailTemplate[]
-  emailSends   EmailSend[]
-  campaigns    Campaign[]
-  journeys     Journey[]
-  forms        Form[]
-  scoringRules ScoringRule[]
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  auditLogs         AuditLog[]
+  contacts          Contact[]
+  contactLists      ContactList[]
+  writeKeys         WriteKey[]
+  segments          Segment[]
+  emailTemplates    EmailTemplate[]
+  emailSends        EmailSend[]
+  campaigns         Campaign[]
+  journeys          Journey[]
+  forms             Form[]
+  scoringRules      ScoringRule[]
   pushSubscriptions PushSubscription[]
-  pipelines    Pipeline[]
-  deals        Deal[]
+  pipelines         Pipeline[]
+  deals             Deal[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -131,38 +132,38 @@ enum ContactStatus {
 /// A person in the CDP. Workspace-scoped; the org id is denormalized so
 /// the standard RLS policy applies directly.
 model Contact {
-  id             String        @id
-  organizationId String        @map("organization_id")
-  workspaceId    String        @map("workspace_id")
-  email          String
-  firstName      String?       @map("first_name")
-  lastName       String?       @map("last_name")
-  attributes     Json          @default("{}")
+  id                    String        @id
+  organizationId        String        @map("organization_id")
+  workspaceId           String        @map("workspace_id")
+  email                 String
+  firstName             String?       @map("first_name")
+  lastName              String?       @map("last_name")
+  attributes            Json          @default("{}")
   /// Rule-based engagement score (see ScoringRule); event-driven.
-  score          Int           @default(0)
+  score                 Int           @default(0)
   /// AI predictions, recomputed in batches by the intelligence service.
   /// Conversion propensity and churn risk are both probabilities in [0,1];
   /// null until the first run. See apps/intelligence/scoring.
-  conversionProbability Float?    @map("conversion_probability")
-  churnRisk             Float?    @map("churn_risk")
-  predictionModel       String?   @map("prediction_model")
-  predictionComputedAt  DateTime? @map("prediction_computed_at")
+  conversionProbability Float?        @map("conversion_probability")
+  churnRisk             Float?        @map("churn_risk")
+  predictionModel       String?       @map("prediction_model")
+  predictionComputedAt  DateTime?     @map("prediction_computed_at")
   /// Hour of day (0–23, UTC) this contact is most likely to engage,
   /// derived from open/click history; null until computed. Used by
   /// send-time optimization to defer sends to the contact's best hour.
-  bestSendHour          Int?      @map("best_send_hour")
-  status         ContactStatus @default(ACTIVE)
-  source         String?
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
+  bestSendHour          Int?          @map("best_send_hour")
+  status                ContactStatus @default(ACTIVE)
+  source                String?
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
 
-  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  workspace    Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  listMembers  ContactListMember[]
-  emailSends   EmailSend[]
-  journeyRuns  JourneyRun[]
+  organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace         Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  listMembers       ContactListMember[]
+  emailSends        EmailSend[]
+  journeyRuns       JourneyRun[]
   pushSubscriptions PushSubscription[]
-  deals        Deal[]
+  deals             Deal[]
 
   @@unique([workspaceId, email])
   @@index([organizationId])
@@ -279,31 +280,31 @@ enum CampaignStatus {
 /// A one-shot email blast to a segment or list, executed durably by the
 /// campaign workflow (apps/workers, ADR-0011).
 model Campaign {
-  id             String         @id
-  organizationId String         @map("organization_id")
-  workspaceId    String         @map("workspace_id")
-  name           String
-  templateId     String         @map("template_id")
+  id                  String         @id
+  organizationId      String         @map("organization_id")
+  workspaceId         String         @map("workspace_id")
+  name                String
+  templateId          String         @map("template_id")
   /// Optional subject-line A/B test: template.subject is variant A.
-  subjectB       String?        @map("subject_b")
+  subjectB            String?        @map("subject_b")
   /// Autonomous winner selection: send both subjects to a test slice,
   /// wait, then send the statistically-better subject to the rest.
-  abAutoWinner        Boolean   @default(false) @map("ab_auto_winner")
+  abAutoWinner        Boolean        @default(false) @map("ab_auto_winner")
   /// Percent of the audience in the test slice (rest is the holdout).
-  abTestPercent       Int?      @map("ab_test_percent")
+  abTestPercent       Int?           @map("ab_test_percent")
   /// How long to gather opens before deciding the winner.
-  abTestWindowSeconds Int?      @map("ab_test_window_seconds")
+  abTestWindowSeconds Int?           @map("ab_test_window_seconds")
   /// The decided winner ('a' | 'b') and when, once the test concludes.
-  abWinner            String?   @map("ab_winner")
-  abDecidedAt         DateTime? @map("ab_decided_at")
+  abWinner            String?        @map("ab_winner")
+  abDecidedAt         DateTime?      @map("ab_decided_at")
   /// Exactly one audience source: a dynamic segment or a static list.
-  segmentId      String?        @map("segment_id")
-  listId         String?        @map("list_id")
-  status         CampaignStatus @default(DRAFT)
-  error          String?
-  sentAt         DateTime?      @map("sent_at")
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
+  segmentId           String?        @map("segment_id")
+  listId              String?        @map("list_id")
+  status              CampaignStatus @default(DRAFT)
+  error               String?
+  sentAt              DateTime?      @map("sent_at")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
 
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -484,35 +485,36 @@ model PushSubscription {
 // follow Better-Auth 1.6 (core + organization, twoFactor, apiKey plugins).
 
 model User {
-  id               String    @id
+  id               String   @id
   name             String
-  email            String    @unique
-  emailVerified    Boolean   @default(false) @map("email_verified")
+  email            String   @unique
+  emailVerified    Boolean  @default(false) @map("email_verified")
   image            String?
-  twoFactorEnabled Boolean?  @map("two_factor_enabled")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  twoFactorEnabled Boolean? @map("two_factor_enabled")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
-  sessions    Session[]
-  accounts    Account[]
-  members     Member[]
-  invitations Invitation[]
-  twofactors  TwoFactor[]
-  apikeys     Apikey[]
+  sessions     Session[]
+  accounts     Account[]
+  members      Member[]
+  invitations  Invitation[]
+  twofactors   TwoFactor[]
+  apikeys      Apikey[]
+  ssoProviders SsoProvider[]
 
   @@map("user")
 }
 
 model Session {
-  id                     String   @id
-  expiresAt              DateTime @map("expires_at")
-  token                  String   @unique
-  ipAddress              String?  @map("ip_address")
-  userAgent              String?  @map("user_agent")
-  userId                 String   @map("user_id")
-  activeOrganizationId   String?  @map("active_organization_id")
-  createdAt              DateTime @default(now()) @map("created_at")
-  updatedAt              DateTime @updatedAt @map("updated_at")
+  id                   String   @id
+  expiresAt            DateTime @map("expires_at")
+  token                String   @unique
+  ipAddress            String?  @map("ip_address")
+  userAgent            String?  @map("user_agent")
+  userId               String   @map("user_id")
+  activeOrganizationId String?  @map("active_organization_id")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -626,6 +628,30 @@ model Apikey {
   @@index([userId])
   @@index([key])
   @@map("apikey")
+}
+
+/// Enterprise single sign-on connection (Better-Auth SSO plugin). Like the
+/// rest of the auth domain this table is reached only through the admin
+/// client; the RLS app role is denied access entirely, so the OIDC client
+/// secret held in `oidc_config` never lives in a tenant-readable table. A
+/// provider is bound to one organization — users who authenticate through
+/// it are provisioned into that org (see ADR-0013).
+model SsoProvider {
+  id             String  @id
+  issuer         String
+  domain         String
+  oidcConfig     String? @map("oidc_config")
+  samlConfig     String? @map("saml_config")
+  userId         String  @map("user_id")
+  providerId     String  @unique @map("provider_id")
+  organizationId String? @map("organization_id")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([organizationId])
+  @@map("sso_provider")
 }
 
 // ── CRM-lite (deals & pipelines) ───────────────────────────────────────

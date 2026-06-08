@@ -107,6 +107,36 @@
       "viewer": "Viewer"
     }
   },
+  "sso": {
+    "title": "Single sign-on",
+    "subtitle": "Let members of your domains sign in through your identity provider (OIDC).",
+    "addAction": "Add provider",
+    "addTitle": "Add an SSO provider",
+    "addSubtitle": "Members whose email matches the domain will be routed to this identity provider.",
+    "addSubmit": "Save provider",
+    "added": "SSO provider added",
+    "working": "Saving…",
+    "empty": "No identity providers yet. Add one to enable single sign-on for your team.",
+    "removeLabel": "Remove the SSO provider for {domain}",
+    "genericError": "Something went wrong. Please try again.",
+    "fields": {
+      "domain": "Email domain",
+      "providerId": "Provider ID",
+      "issuer": "Issuer URL",
+      "clientId": "Client ID",
+      "clientSecret": "Client secret",
+      "manual": "Set endpoints manually (skip discovery)",
+      "authorizationEndpoint": "Authorization endpoint",
+      "tokenEndpoint": "Token endpoint",
+      "jwksEndpoint": "JWKS endpoint"
+    },
+    "columns": {
+      "domain": "Domain",
+      "issuer": "Issuer",
+      "callback": "Callback URL",
+      "actions": "Actions"
+    }
+  },
   "userMenu": {
     "open": "Open user menu",
     "signOut": "Sign out"
@@ -126,6 +156,10 @@
     "noAccount": "No account yet?",
     "hasAccount": "Already have an account?",
     "working": "Working…",
+    "or": "or",
+    "ssoAction": "Sign in with SSO",
+    "ssoEmailRequired": "Enter your work email to continue with single sign-on.",
+    "ssoNoProvider": "No single sign-on is configured for that email domain.",
     "genericError": "Something went wrong. Please try again."
   },
   "errors": {
