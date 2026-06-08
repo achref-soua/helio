@@ -93,6 +93,25 @@ export {
   unwrapOr,
 } from './result';
 export {
+  activeFromPatch,
+  activeFromScimUser,
+  displayNameFromScimUser,
+  emailFromScimUser,
+  generateScimToken,
+  hashScimToken,
+  parseUserNameFilter,
+  SCIM_CONTENT_TYPE,
+  SCIM_ERROR_SCHEMA,
+  SCIM_LIST_SCHEMA,
+  SCIM_PATCH_SCHEMA,
+  SCIM_USER_SCHEMA,
+  scimError,
+  scimListResponse,
+  type ScimUser,
+  type ScimUserInput,
+  toScimUser,
+} from './scim';
+export {
   buildEventConditionQuery,
   CONTACT_FIELDS,
   CONTACT_STATUSES,

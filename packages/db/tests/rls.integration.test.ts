@@ -209,4 +209,17 @@ describe('row-level security tenant isolation', () => {
     // The admin client (auth kernel) still sees it.
     expect(await admin.ssoProvider.count({ where: { organizationId: orgA.id } })).toBe(1);
   });
+
+  it('the SCIM token table is walled off from the RLS app role entirely', async () => {
+    // SCIM tokens gate identity provisioning; the table is auth-domain and
+    // its grant is revoked from the app role outright.
+    await admin.scimToken.create({
+      data: { id: newId('scim'), organizationId: orgA.id, tokenHash: 'deadbeef'.repeat(8) },
+    });
+    await expect(app.scimToken.findMany()).rejects.toThrowError(/permission denied/i);
+    await expect(forTenant(app, orgA.id).scimToken.findMany()).rejects.toThrowError(
+      /permission denied/i,
+    );
+    expect(await admin.scimToken.count({ where: { organizationId: orgA.id } })).toBe(1);
+  });
 });

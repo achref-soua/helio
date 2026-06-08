@@ -137,6 +137,23 @@
       "actions": "Actions"
     }
   },
+  "scim": {
+    "title": "SCIM provisioning",
+    "subtitle": "Let your identity provider create and deactivate members automatically (SCIM 2.0).",
+    "active": "Active",
+    "endpoint": "SCIM base URL",
+    "generate": "Generate token",
+    "regenerate": "Regenerate token",
+    "revoke": "Revoke",
+    "revoked": "SCIM token revoked",
+    "lastUsed": "Last used {when}",
+    "genericError": "Something went wrong. Please try again.",
+    "tokenTitle": "Your SCIM bearer token",
+    "tokenSubtitle": "Copy it into your identity provider now — it's shown only once. Regenerating replaces it.",
+    "copy": "Copy",
+    "copied": "Copied to clipboard",
+    "done": "Done"
+  },
   "userMenu": {
     "open": "Open user menu",
     "signOut": "Sign out"

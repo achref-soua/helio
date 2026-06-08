@@ -1,3 +1,4 @@
+import { generateScimToken, newId } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
@@ -5,6 +6,11 @@ import { auth, authDb } from '@/lib/auth';
 import { env } from '@/lib/env';
 
 import { orgProcedure, requireRole, router } from '../init';
+
+/** Base URL an IdP points SCIM at, e.g. https://app/scim/v2. */
+function scimBaseUrl(): string {
+  return `${env.APP_URL}/scim/v2`;
+}
 
 const endpoint = z.string().url();
 
@@ -115,4 +121,39 @@ export const ssoRouter = router({
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
       return { ok: true };
     }),
+
+  // ── SCIM provisioning token (one per org) ──────────────────────────────
+
+  scimStatus: orgProcedure.query(async ({ ctx }) => {
+    requireRole(ctx.memberRole, 'admin');
+    const token = await authDb.scimToken.findUnique({
+      where: { organizationId: ctx.organizationId },
+      select: { createdAt: true, lastUsedAt: true },
+    });
+    return {
+      configured: Boolean(token),
+      createdAt: token?.createdAt ?? null,
+      lastUsedAt: token?.lastUsedAt ?? null,
+      baseUrl: scimBaseUrl(),
+    };
+  }),
+
+  generateScimToken: orgProcedure.mutation(async ({ ctx }) => {
+    requireRole(ctx.memberRole, 'admin');
+    const { token, hash } = await generateScimToken();
+    // One token per org: regenerating replaces (and invalidates) the old one.
+    await authDb.scimToken.upsert({
+      where: { organizationId: ctx.organizationId },
+      create: { id: newId('scim'), organizationId: ctx.organizationId, tokenHash: hash },
+      update: { tokenHash: hash, lastUsedAt: null },
+    });
+    // The plaintext is returned exactly once; only its hash is stored.
+    return { token, baseUrl: scimBaseUrl() };
+  }),
+
+  revokeScimToken: orgProcedure.mutation(async ({ ctx }) => {
+    requireRole(ctx.memberRole, 'admin');
+    await authDb.scimToken.deleteMany({ where: { organizationId: ctx.organizationId } });
+    return { ok: true };
+  }),
 });
