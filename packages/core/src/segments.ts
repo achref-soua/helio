@@ -87,6 +87,13 @@ const createdAtConditionSchema = z.union([
   }),
 ]);
 
+const scoreConditionSchema = z.object({
+  kind: z.literal('condition'),
+  target: z.literal('score'),
+  operator: z.enum(['gte', 'lte', 'equals']),
+  value: z.number().int().min(-100000).max(100000),
+});
+
 /** Behavioral condition over the event store (resolved via ClickHouse). */
 const eventConditionSchema = z.object({
   kind: z.literal('condition'),
@@ -104,6 +111,7 @@ export const segmentConditionSchema = z.union([
   statusConditionSchema,
   createdAtConditionSchema,
   eventConditionSchema,
+  scoreConditionSchema,
 ]);
 export type SegmentCondition = z.infer<typeof segmentConditionSchema>;
 

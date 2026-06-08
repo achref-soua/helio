@@ -15,6 +15,21 @@ export interface TriggerDeps {
  * resolve the contact by email (identity resolution proper is Phase 2),
  * and start one durable run unless the contact already has one running.
  */
+/** Apply matching scoring rules: one atomic score bump per event. */
+export async function scoreFromEvent(event: EnrichedEvent, deps: TriggerDeps): Promise<boolean> {
+  if (event.type !== 'track' || !event.user_id) return false;
+  const rule = await deps.prisma.scoringRule.findUnique({
+    where: { workspaceId_event: { workspaceId: event.workspace_id, event: event.event } },
+    select: { points: true },
+  });
+  if (!rule) return false;
+  const updated = await deps.prisma.contact.updateMany({
+    where: { workspaceId: event.workspace_id, email: event.user_id },
+    data: { score: { increment: rule.points } },
+  });
+  return updated.count > 0;
+}
+
 export async function enrollFromEvent(event: EnrichedEvent, deps: TriggerDeps): Promise<number> {
   if (event.type !== 'track' || !event.user_id) return 0;
 
