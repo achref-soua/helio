@@ -13,6 +13,7 @@ dependencies = [
     "openai>=1.50",
     "anthropic>=0.39",
     "asyncpg>=0.30",
+    "mcp>=1.2",
 ]
 
 [dependency-groups]
@@ -52,3 +53,6 @@ asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["src"]
+# Process entrypoints wire real services (DB, LLM, stdio) and are
+# exercised in deployment, not unit tests — like the TS server.ts files.
+omit = ["*/__main__.py"]

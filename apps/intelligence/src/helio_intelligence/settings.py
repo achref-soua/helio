@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     # self-hosted LLMs work out of the box.
     llm_require_tls: bool = True
 
+    # MCP server scope: the single workspace external agents may drive.
+    # The server refuses to start without both (it would have no tenant).
+    mcp_organization_id: str = ""
+    mcp_workspace_id: str = ""
+
     @property
     def llm_configured(self) -> bool:
         return bool(self.llm_api_key.get_secret_value()) or self.llm_provider.lower() in {
