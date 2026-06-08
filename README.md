@@ -49,7 +49,8 @@ Marketing automation today forces a bad choice:
 - ✅ **CRM-lite** — pipelines with configurable stages and a deal board; deals close and reopen as they move, all tenant-isolated
 - ✅ **Migration & ingestion** — one-click importers that detect HubSpot/Mailchimp/Klaviyo exports (mapping who's unsubscribed), and a Segment/RudderStack-compatible HTTP Tracking API so existing instrumentation points straight at Helio
 - ✅ **Billing** — opt-in Stripe billing with plan-gated usage limits and a signature-verified webhook; self-hosted stays unlimited and unmetered
-- 🗺️ **Platform integrations** — SSO/SCIM, generated SDKs, outbound webhooks, docs site
+- ✅ **Enterprise SSO** — per-organization OIDC single sign-on, routed by email domain, with a server-authoritative org binding; the IdP client secret is walled off from the tenant database role
+- 🗺️ **Platform integrations** — SCIM provisioning, generated SDKs, outbound webhooks, docs site
 
 ### The product in action
 
@@ -187,7 +188,7 @@ Hot-path budgets (ingestion ≥ 5k events/s, API reads p95 < 150 ms) have a comm
 ## Documentation
 
 - [Architecture (C4) & trust boundaries](docs/architecture.md) · [Decision log (ADRs)](docs/adr) · [Threat model](docs/threat-model.md)
-- [Local-dev runbook](docs/runbooks/local-dev.md) · [API spec (OpenAPI 3.1)](apps/api/openapi.json)
+- [Local-dev runbook](docs/runbooks/local-dev.md) · [Single sign-on (OIDC) setup](docs/sso.md) · [API spec (OpenAPI 3.1)](apps/api/openapi.json)
 
 ## Contributing & policies
 

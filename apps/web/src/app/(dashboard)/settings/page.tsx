@@ -6,6 +6,7 @@ import { auth } from '@/lib/auth';
 
 import { BillingPanel } from './billing-panel';
 import { MembersPanel } from './members-panel';
+import { SsoPanel } from './sso-panel';
 
 export default async function SettingsPage() {
   const requestHeaders = await headers();
@@ -43,6 +44,7 @@ export default async function SettingsPage() {
         canManage={me?.role === 'owner' || me?.role === 'admin'}
       />
       <BillingPanel />
+      {(me?.role === 'owner' || me?.role === 'admin') && <SsoPanel canManage />}
     </div>
   );
 }

@@ -178,4 +178,35 @@ describe('row-level security tenant isolation', () => {
     });
     expect(mine?.plan).toBe('PRO');
   });
+
+  it('the SSO provider table is walled off from the RLS app role entirely', async () => {
+    // SSO providers hold the OIDC client secret. Like the rest of the auth
+    // domain the table is reached only through the admin client; the app
+    // role's grant is revoked outright (not merely RLS-filtered), so it can
+    // never read the secret even with a tenant context set.
+    const userId = newId('user');
+    await admin.user.create({
+      data: { id: userId, name: 'IdP Admin', email: `idp-${userId}@example.com` },
+    });
+    await admin.ssoProvider.create({
+      data: {
+        id: newId('sso'),
+        issuer: 'https://idp.example.com',
+        domain: 'example.com',
+        providerId: `okta-${userId}`,
+        oidcConfig: JSON.stringify({ clientId: 'id', clientSecret: 'shh' }),
+        userId,
+        organizationId: orgA.id,
+      },
+    });
+
+    // Revoked grant => hard permission error, with or without tenant context.
+    await expect(app.ssoProvider.findMany()).rejects.toThrowError(/permission denied/i);
+    await expect(forTenant(app, orgA.id).ssoProvider.findMany()).rejects.toThrowError(
+      /permission denied/i,
+    );
+
+    // The admin client (auth kernel) still sees it.
+    expect(await admin.ssoProvider.count({ where: { organizationId: orgA.id } })).toBe(1);
+  });
 });
