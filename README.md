@@ -48,7 +48,8 @@ Marketing automation today forces a bad choice:
 - ✅ **Agent-ready** — an MCP server exposes Helio's capabilities as tools, so external AI agents can drive campaigns programmatically
 - ✅ **CRM-lite** — pipelines with configurable stages and a deal board; deals close and reopen as they move, all tenant-isolated
 - ✅ **Migration & ingestion** — one-click importers that detect HubSpot/Mailchimp/Klaviyo exports (mapping who's unsubscribed), and a Segment/RudderStack-compatible HTTP Tracking API so existing instrumentation points straight at Helio
-- 🗺️ **Platform integrations** — Stripe billing, SSO/SCIM, generated SDKs, webhooks
+- ✅ **Billing** — opt-in Stripe billing with plan-gated usage limits and a signature-verified webhook; self-hosted stays unlimited and unmetered
+- 🗺️ **Platform integrations** — SSO/SCIM, generated SDKs, outbound webhooks, docs site
 
 ### The product in action
 
@@ -180,7 +181,8 @@ Hot-path budgets (ingestion ≥ 5k events/s, API reads p95 < 150 ms) have a comm
 | **v0.4**  | AI: copilot, NL→segment, NL→journey, brand-voice generation, MCP server                               |
 | **v0.5**  | AI, cont'd: predictive scoring & churn, send-time optimization, autonomous A/B winner selection       |
 | **v0.6**  | Platform: HubSpot/Mailchimp/Klaviyo importers, Segment-compatible ingestion, CRM-lite deal board      |
-| **v1.0**  | Platform, cont'd: Stripe billing, SSO/SCIM, generated SDKs, docs site, public demo                    |
+| **v0.7**  | Platform: opt-in Stripe billing with plan-gated usage limits and a signature-verified webhook         |
+| **v1.0**  | Platform, cont'd: SSO/SCIM, generated SDKs, docs site, public demo                                    |
 
 ## Documentation
 
