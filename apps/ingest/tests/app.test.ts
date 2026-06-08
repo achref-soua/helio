@@ -20,7 +20,7 @@ function makeApp(overrides: Partial<Parameters<typeof createApp>[0]> = {}) {
     // ioredis-mock instances share one store, so rate-limit counters
     // accumulate across tests — keep the default budget out of reach.
     redis: new RedisMock() as unknown as RedisLike,
-    rateLimit: { max: 10_000, windowSeconds: 60 },
+    rateLimit: { max: 10_000, windowSeconds: 3600 },
     now: () => new Date('2026-06-08T10:00:00.000Z'),
     ...overrides,
   });
@@ -156,7 +156,7 @@ describe('ingest app', () => {
       keys: {
         resolve: () => Promise.resolve({ organizationId: 'org_rl', workspaceId: 'ws_rl' }),
       },
-      rateLimit: { max: 2, windowSeconds: 60 },
+      rateLimit: { max: 2, windowSeconds: 3600 },
     }).app;
     for (let i = 0; i < 2; i++) {
       expect((await post(limitedApp, goodBatch, { 'x-write-key': KNOWN })).status).toBe(202);

@@ -9,11 +9,19 @@ export type {
   ContactListMember,
   EmailSend,
   EmailTemplate,
+  Journey,
+  JourneyRun,
   Organization,
   Segment,
   Workspace,
   WriteKey,
 } from './generated/prisma/client';
 export { Prisma } from './generated/prisma/client';
-export { CampaignStatus, ContactStatus, EmailSendStatus } from './generated/prisma/enums';
+export {
+  CampaignStatus,
+  ContactStatus,
+  EmailSendStatus,
+  JourneyRunStatus,
+  JourneyStatus,
+} from './generated/prisma/enums';
 export { forTenant, type TenantClient } from './tenant';
