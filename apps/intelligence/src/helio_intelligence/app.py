@@ -30,35 +30,44 @@ def create_app() -> FastAPI:
         ),
     )
 
-    # The copilot needs both an LLM and the database; wire it only when
-    # both are configured so the service still boots for health checks
-    # and metrics on a bare deploy.
+    # The copilot and generators need an LLM (and the copilot the
+    # database). The routes are always registered — they return an
+    # actionable 503 until configured, so the service still boots for
+    # health checks and metrics on a bare deploy.
+    from .copilot_api import create_copilot_router
+    from .generation_api import create_generation_router
+
+    app.include_router(create_copilot_router())
+    app.include_router(create_generation_router())
+
     if settings.llm_configured and settings.database_url:
         from .agent import Copilot
-        from .copilot_api import create_copilot_router, get_copilot
+        from .agent.nl_journey import NlJourneyGenerator
+        from .agent.nl_segment import NlSegmentGenerator
+        from .copilot_api import get_copilot
         from .data import Database, OrgRepository
+        from .generation_api import (
+            get_journey_generator,
+            get_repository,
+            get_segment_generator,
+        )
         from .llm import create_llm_provider
 
         database = Database(settings.database_url)
         repository = OrgRepository(database)
         provider = create_llm_provider(settings)
 
-        def _build_copilot() -> Copilot:
-            return Copilot(
-                provider=provider,
-                repository=repository,
-                temperature=settings.llm_temperature,
-                max_tokens=settings.llm_max_tokens,
-            )
-
-        app.dependency_overrides[get_copilot] = _build_copilot
-        app.include_router(create_copilot_router())
+        app.dependency_overrides[get_copilot] = lambda: Copilot(
+            provider=provider,
+            repository=repository,
+            temperature=settings.llm_temperature,
+            max_tokens=settings.llm_max_tokens,
+        )
+        app.dependency_overrides[get_segment_generator] = lambda: NlSegmentGenerator(provider)
+        app.dependency_overrides[get_journey_generator] = lambda: NlJourneyGenerator(provider)
+        app.dependency_overrides[get_repository] = lambda: repository
         app.state.database = database
     else:
-        # Still expose the route so callers get an actionable 503.
-        from .copilot_api import create_copilot_router
-
-        app.include_router(create_copilot_router())
         app.state.database = None
 
     @app.middleware("http")
