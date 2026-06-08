@@ -3,6 +3,7 @@ import { campaignRouter } from './campaign';
 import { contactRouter } from './contact';
 import { contactListRouter } from './contact-list';
 import { emailTemplateRouter } from './email-template';
+import { journeyRouter } from './journey';
 import { segmentRouter } from './segment';
 import { workspaceRouter } from './workspace';
 
@@ -18,6 +19,7 @@ export const appRouter = router({
   segment: segmentRouter,
   emailTemplate: emailTemplateRouter,
   campaign: campaignRouter,
+  journey: journeyRouter,
 });
 
 export type AppRouter = typeof appRouter;
