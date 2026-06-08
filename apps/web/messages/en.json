@@ -429,6 +429,7 @@
       "sendEmail": "Send email",
       "template": "Template",
       "pickTemplate": "Pick a template…",
+      "optimizeSendTime": "Optimize send time (AI)",
       "wait": "Wait",
       "waitHours": "Wait duration (hours)",
       "hours": "hours",

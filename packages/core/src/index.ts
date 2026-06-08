@@ -50,6 +50,7 @@ export {
   type QuietHours,
   quietHoursDelayMs,
   quietHoursSchema,
+  sendTimeDelayMs,
 } from './journeys';
 export { type PushNotification, type PushSubscriptionInput, pushSubscriptionSchema } from './push';
 export { hasRole, INVITABLE_ROLES, isRole, type Role, ROLES } from './rbac';

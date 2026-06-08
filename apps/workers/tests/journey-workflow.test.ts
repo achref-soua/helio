@@ -233,7 +233,12 @@ describe('journeyRunWorkflow v2 nodes', () => {
       contactId: 'contact_2',
       email: 'ada@example.com',
     });
-    expect(activities.sendGate).toHaveBeenCalledWith('contact_2', V2.quietHours, V2.frequencyCap);
+    expect(activities.sendGate).toHaveBeenCalledWith(
+      'contact_2',
+      V2.quietHours,
+      V2.frequencyCap,
+      false,
+    );
     expect(activities.sendJourneyEmail).toHaveBeenCalledTimes(1);
   });
 

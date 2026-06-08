@@ -73,9 +73,16 @@ contact, scoped to one workspace:
   (no activity in the last 30 days, among contacts old enough to judge),
   deliberately excluding the recency/short-window features that define it.
 
+The same run also computes **send-time optimization**: each contact's
+best engagement hour (`contact.best_send_hour`, UTC) from their open/click
+history, falling back to the workspace's overall peak hour when a contact
+has too little history. A journey's send-email node can opt in to defer
+sends to that hour (combined with quiet hours).
+
 Behavioral features come from ClickHouse; predictions are written back to
-Postgres (`contact.conversion_probability` / `churn_risk`) inside an
-RLS-scoped transaction, so a run can only ever touch its own organization.
+Postgres (`contact.conversion_probability` / `churn_risk` /
+`best_send_hour`) inside an RLS-scoped transaction, so a run can only ever
+touch its own organization.
 When a workspace has too little labeled data to train, the model falls
 back to a transparent monotonic engagement heuristic, and the response
 reports which path ran (`conversion_method` / `churn_method`) so the UI

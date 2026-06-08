@@ -23,6 +23,7 @@ from .features import (
     safe_event_names,
 )
 from .model import train
+from .send_time import DEFAULT_HOUR, best_hours
 
 _AGGREGATE_SQL = """
 SELECT
@@ -53,8 +54,17 @@ UPDATE contact
 SET conversion_probability = $2,
     churn_risk = $3,
     prediction_model = $4,
+    best_send_hour = $5,
     prediction_computed_at = now()
-WHERE id = $1 AND workspace_id = $5
+WHERE id = $1 AND workspace_id = $6
+"""
+
+_SEND_HOUR_SQL = """
+SELECT user_id AS email, toHour(timestamp) AS hour, count() AS count
+FROM events
+WHERE workspace_id = {workspace_id:String} AND user_id != ''
+  AND event IN ('Email Opened', 'Email Clicked')
+GROUP BY user_id, hour
 """
 
 
@@ -65,6 +75,7 @@ class ScoringResult:
     churn_method: str
     converted: int
     churned: int
+    send_hour_fallback: int
 
 
 class ScoringService:
@@ -84,7 +95,7 @@ class ScoringService:
             contact_rows = await scoped.fetch(_CONTACTS_SQL, workspace_id)
             contacts = [dict(row) for row in contact_rows]
         if not contacts:
-            return ScoringResult(0, "none", "none", 0, 0)
+            return ScoringResult(0, "none", "none", 0, 0, DEFAULT_HOUR)
 
         aggregates = await self._ch.query(_AGGREGATE_SQL, {"workspace_id": workspace_id})
         converted_emails = await self._converted_emails(workspace_id)
@@ -95,6 +106,9 @@ class ScoringService:
 
         churn_method, churn_risk = self._fit_churn(frame)
 
+        hour_rows = await self._ch.query(_SEND_HOUR_SQL, {"workspace_id": workspace_id})
+        per_email_hour, fallback_hour = best_hours(hour_rows)
+
         model_tag = f"conv:{conversion.method};churn:{churn_method}"
         updates = [
             (
@@ -102,6 +116,7 @@ class ScoringService:
                 round(float(conversion_prob[i]), 4),
                 round(float(churn_risk[i]), 4),
                 model_tag,
+                per_email_hour.get(frame.emails[i], fallback_hour),
                 workspace_id,
             )
             for i in range(frame.size)
@@ -115,6 +130,7 @@ class ScoringService:
             churn_method=churn_method,
             converted=int(frame.converted.sum()),
             churned=int(frame.churned.sum()),
+            send_hour_fallback=fallback_hour,
         )
 
     def _fit_churn(self, frame: FeatureFrame) -> tuple[str, NDArray[np.float64]]:
