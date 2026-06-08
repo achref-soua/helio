@@ -1,0 +1,28 @@
+{
+  "name": "@helio/bus",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Event-bus boundary for Helio: broker-agnostic producer interface with the Kafka-protocol implementation (ADR-0007).",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@helio/core": "workspace:*",
+    "kafkajs": "^2.2.4"
+  },
+  "devDependencies": {
+    "@helio/config": "workspace:*",
+    "@types/node": "^25.9.2",
+    "@vitest/coverage-v8": "^4.1.8",
+    "eslint": "^10.4.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}

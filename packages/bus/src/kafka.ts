@@ -3,14 +3,17 @@ import { Kafka, logLevel, type Producer } from 'kafkajs';
 
 import type { EventBusProducer } from './types';
 
-/** Kafka-protocol producer (Redpanda by default; ADR-0007). */
+/**
+ * Kafka-protocol producer. Messages are keyed by workspace so each
+ * workspace's events stay ordered within a partition.
+ */
 export class KafkaEventProducer implements EventBusProducer {
   private readonly producer: Producer;
 
   constructor(
     brokers: string[],
     private readonly topic: string,
-    clientId = 'helio-tracking',
+    clientId: string,
   ) {
     const kafka = new Kafka({ clientId, brokers, logLevel: logLevel.NOTHING });
     this.producer = kafka.producer({ allowAutoTopicCreation: true });
@@ -32,20 +35,5 @@ export class KafkaEventProducer implements EventBusProducer {
         value: JSON.stringify(event),
       })),
     });
-  }
-}
-
-/** Test double: collects published events in memory. */
-export class InMemoryEventProducer implements EventBusProducer {
-  readonly published: EnrichedEvent[] = [];
-  failNext = false;
-
-  publish(events: EnrichedEvent[]): Promise<void> {
-    if (this.failNext) {
-      this.failNext = false;
-      return Promise.reject(new Error('bus unavailable'));
-    }
-    this.published.push(...events);
-    return Promise.resolve();
   }
 }

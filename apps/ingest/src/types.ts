@@ -1,13 +1,10 @@
-import type { EnrichedEvent } from '@helio/core';
+import type { EventBusProducer } from '@helio/bus';
 import type { Redis } from 'ioredis';
+
+export type { EventBusProducer } from '@helio/bus';
 
 /** Minimal Redis surface the service needs — satisfied by ioredis and mocks. */
 export type RedisLike = Pick<Redis, 'incr' | 'expire' | 'ttl' | 'ping'>;
-
-/** Broker-agnostic producer boundary (ADR-0007): Redpanda today, swappable. */
-export interface EventBusProducer {
-  publish(events: EnrichedEvent[]): Promise<void>;
-}
 
 /** What the auth middleware needs to know about a write key. */
 export interface ResolvedWriteKey {

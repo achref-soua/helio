@@ -1,8 +1,8 @@
+import { InMemoryEventProducer } from '@helio/bus';
 import RedisMock from 'ioredis-mock';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createApp } from '../src/app';
-import { InMemoryEventProducer } from '../src/bus';
 import type { RedisLike, ResolvedWriteKey, WriteKeyResolver } from '../src/types';
 
 const KNOWN = 'wk_test_aaaaaaaaaaaaaaaaaaaaaaaaa';
