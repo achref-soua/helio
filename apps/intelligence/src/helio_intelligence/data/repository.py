@@ -92,6 +92,17 @@ class OrgRepository:
             )
             return [dict(row) for row in rows]
 
+    async def template_options(
+        self, organization_id: str, workspace_id: str
+    ) -> list[dict[str, str]]:
+        """Template ids + names — what NL→journey needs to wire send nodes."""
+        async with self._db.scoped(organization_id) as scoped:
+            rows = await scoped.fetch(
+                "SELECT id, name FROM email_template WHERE workspace_id = $1 ORDER BY created_at",
+                workspace_id,
+            )
+            return [{"id": row["id"], "name": row["name"]} for row in rows]
+
     async def list_scoring_rules(
         self, organization_id: str, workspace_id: str
     ) -> list[dict[str, Any]]:
