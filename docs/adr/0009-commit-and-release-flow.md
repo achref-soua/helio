@@ -13,3 +13,16 @@ Short-lived branches off `develop`; squash-merge with the PR title as the commit
 ## Consequences
 
 One tidy commit per feature; releases are mechanical. Squash-merging stacked PRs requires rebasing successors — accepted as routine.
+
+## Amendment (2026-06-08, v0.2.0)
+
+Squashing release PRs broke the trainline: the v0.1.0 squash left `main`
+without `develop`'s commit lineage, so every later `develop → main` PR
+conflicted wholesale. Corrected during the v0.2.0 release:
+
+- **Feature PRs into `develop`: squash-merge** (unchanged — one tidy
+  commit per feature, linear history enforced on `develop`).
+- **Release PRs into `main`: merge commits.** `main` no longer requires
+  linear history; it records one merge commit per release on top of the
+  shared history. A one-time `-s ours` bridge merge reconciled the
+  v0.1.0 squash (develop's tree, byte-for-byte, was kept).
