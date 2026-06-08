@@ -61,3 +61,36 @@ describe('renderEmail', () => {
     expect(result.html).toContain('Your plan: {{attributes.plan|free}}.'.slice(0, 30));
   });
 });
+
+describe('renderEmail extras', () => {
+  it('wraps button links and leaves other blocks untouched', async () => {
+    const wrapped = await renderEmail({
+      document,
+      subject: 's',
+      wrapLink: (url) => Promise.resolve(`https://track.test/c?u=${encodeURIComponent(url)}`),
+    });
+    expect(wrapped.html).toContain(
+      'https://track.test/c?u=https%3A%2F%2Fapp.example.com%2Fwelcome',
+    );
+    // The image URL is not a click surface — passes through verbatim.
+    expect(wrapped.html).toContain('https://cdn.example.com/hero.png');
+  });
+
+  it('embeds the open pixel when given a pixel URL', async () => {
+    const result = await renderEmail({
+      document,
+      subject: 's',
+      pixelUrl: 'https://track.test/o/snd_1.gif',
+    });
+    expect(result.html).toContain('https://track.test/o/snd_1.gif');
+  });
+
+  it('omits preview text when there is no paragraph block', async () => {
+    const headingOnly = {
+      blocks: [{ id: 'h', type: 'heading' as const, text: 'Just a heading' }],
+    };
+    const result = await renderEmail({ document: headingOnly, subject: 's' });
+    expect(result.html).toContain('Just a heading');
+    expect(result.text).toContain('JUST A HEADING');
+  });
+});

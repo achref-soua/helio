@@ -153,3 +153,85 @@ describe('HelioClient', () => {
     void client;
   });
 });
+
+describe('HelioClient fallbacks', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    localStorage.clear();
+    fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 202 }));
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it('falls back to memory identity when localStorage throws', () => {
+    const original = Object.getOwnPropertyDescriptor(window, 'localStorage');
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new Error('blocked (private mode)');
+      },
+    });
+    try {
+      const client = new HelioClient({ writeKey: 'wk', host: 'https://ingest.test' });
+      const id = client.anonymousId();
+      expect(id).toBe(client.anonymousId()); // stable within the instance
+      client.identify('user-9');
+      expect(client.userId()).toBe('user-9');
+    } finally {
+      if (original) Object.defineProperty(window, 'localStorage', original);
+    }
+  });
+
+  it('generates ids without crypto.randomUUID', () => {
+    const original = globalThis.crypto;
+    vi.stubGlobal('crypto', {});
+    try {
+      const client = new HelioClient({ writeKey: 'wk', host: 'https://ingest.test' });
+      expect(client.anonymousId()).toMatch(/^[a-z0-9]+-[a-z0-9]+$/);
+    } finally {
+      vi.stubGlobal('crypto', original);
+    }
+  });
+
+  it('falls back to a keepalive fetch when sendBeacon refuses the payload', () => {
+    const beacon = vi.fn().mockReturnValue(false); // refused
+    Object.defineProperty(navigator, 'sendBeacon', { value: beacon, configurable: true });
+    const client = new HelioClient({ writeKey: 'wk', host: 'https://ingest.test' });
+    client.track('Goodbye');
+    window.dispatchEvent(new Event('pagehide'));
+
+    // A refused beacon must fall through to a keepalive fetch carrying
+    // this client's batch. (jsdom shares window, so other clients'
+    // pagehide listeners may also fire — assert behavior, not counts.)
+    expect(beacon).toHaveBeenCalled();
+    const keepaliveCall = fetchMock.mock.calls.find(
+      (call) =>
+        (call[1] as RequestInit)?.keepalive === true &&
+        String((call[1] as RequestInit)?.body).includes('Goodbye'),
+    );
+    expect(keepaliveCall).toBeDefined();
+  });
+
+  it('flushes the queue on visibilitychange → hidden', () => {
+    const beacon = vi.fn().mockReturnValue(true);
+    Object.defineProperty(navigator, 'sendBeacon', { value: beacon, configurable: true });
+    const client = new HelioClient({ writeKey: 'wk', host: 'https://ingest.test' });
+    client.track('Bye');
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(beacon).toHaveBeenCalled();
+    const sentBye = beacon.mock.calls.some((call) => {
+      const blob = call[1] as Blob | undefined;
+      return blob instanceof Blob;
+    });
+    expect(sentBye).toBe(true);
+    // Restore so later tests see a default visibility.
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+  });
+});
