@@ -8,6 +8,7 @@ import { requestLogging } from './middleware/logging';
 import { notFoundResponse, problemResponse } from './middleware/problem';
 import { rateLimit } from './middleware/rate-limit';
 import { metricsRegistry } from './observability';
+import { contactRoutes } from './routes/contacts';
 import { stripeWebhookRoutes } from './routes/stripe-webhook';
 import { workspaceRoutes } from './routes/workspaces';
 import type { GatewayDeps, GatewayEnv } from './types';
@@ -61,6 +62,7 @@ export function createApp(deps: GatewayDeps) {
   app.use('/v1/*', rateLimit(deps.redis, deps.rateLimit));
   app.use('/v1/*', idempotency(deps.redis));
   app.route('/', workspaceRoutes(deps));
+  app.route('/', contactRoutes(deps));
 
   app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
     type: 'http',

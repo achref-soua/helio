@@ -43,6 +43,37 @@ curl -X POST https://<host>/v1/workspaces \
   -d '{"name":"Production","slug":"production"}'
 ```
 
+## Example: contacts
+
+Full CRUD over the CDP. Contacts are workspace-scoped (`workspaceId` is
+required to create one) and email is unique per workspace.
+
+```bash
+# Create a contact (idempotent). Email is normalized (trimmed, lowercased).
+curl -X POST https://<host>/v1/contacts \
+  -H "Authorization: Bearer $HELIO_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d '{"workspaceId":"ws_...","email":"jane@example.com","firstName":"Jane","attributes":{"plan":"trial"}}'
+
+# List (cursor-paginated, newest first). Filter by workspace, list, or search.
+curl "https://<host>/v1/contacts?workspaceId=ws_...&limit=50" -H "Authorization: Bearer $HELIO_KEY"
+# → { "data": [ ... ], "nextCursor": "contact_..." }
+# Fetch the next page by passing the returned cursor:
+curl "https://<host>/v1/contacts?workspaceId=ws_...&cursor=contact_..." -H "Authorization: Bearer $HELIO_KEY"
+
+# Retrieve, update (PATCH — null clears a field), and delete (GDPR erasure).
+curl https://<host>/v1/contacts/contact_... -H "Authorization: Bearer $HELIO_KEY"
+curl -X PATCH https://<host>/v1/contacts/contact_... \
+  -H "Authorization: Bearer $HELIO_KEY" -H "Content-Type: application/json" \
+  -d '{"firstName":null,"status":"UNSUBSCRIBED"}'
+curl -X DELETE https://<host>/v1/contacts/contact_... -H "Authorization: Bearer $HELIO_KEY"
+```
+
+A create returns `409` if the email already exists in the workspace, `404` if
+the referenced workspace does not exist, and `403` if the organization's plan
+contact limit (hosted deployments only — self-hosted is uncapped) is reached.
+
 The full surface — request/response schemas and every endpoint — is the
 OpenAPI document, which the contract test keeps in lockstep with the code.
 See [ADR-0015](adr/0015-gateway-api-keys.md) for the auth design.
