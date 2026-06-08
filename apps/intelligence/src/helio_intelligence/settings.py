@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     log_level: str = "info"
     service_name: str = "intelligence"
 
+    # Domain data: the RLS-bound app connection (helio_app role). Every
+    # copilot read runs inside a transaction that sets app.org_id, so the
+    # database physically prevents cross-organization access — the copilot
+    # can never see another tenant's data, even on a buggy query.
+    database_url: str = ""
+
     # LLM gateway (provider-agnostic: openai | anthropic | groq | ollama
     # | local). Test target is Llama 3 via Groq; local/ollama point at a
     # self-hosted OpenAI-compatible server for full data sovereignty.

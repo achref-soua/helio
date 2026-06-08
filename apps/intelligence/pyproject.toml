@@ -12,6 +12,7 @@ dependencies = [
     "prometheus-client>=0.25.0",
     "openai>=1.50",
     "anthropic>=0.39",
+    "asyncpg>=0.30",
 ]
 
 [dependency-groups]
@@ -22,6 +23,8 @@ dev = [
     "ruff>=0.7",
     "mypy>=1.13",
     "pytest-asyncio>=0.24",
+    "testcontainers>=4.8",
+    "asyncpg-stubs>=0.30",
 ]
 
 [build-system]
