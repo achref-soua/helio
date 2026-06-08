@@ -64,6 +64,21 @@
     "working": "Joining…",
     "genericError": "This invitation can't be accepted. It may have expired."
   },
+  "billing": {
+    "title": "Billing",
+    "selfHosted": "Self-hosted — unlimited contacts, no metering.",
+    "priced": "${price}/month",
+    "contactsUsage": "Contacts",
+    "usageOf": "{count, number} / {limit, number}",
+    "usageUnlimited": "{count, number}",
+    "nearLimit": "You're close to your plan's contact limit. Upgrade to keep importing.",
+    "plans": {
+      "FREE": "Free",
+      "PRO": "Pro",
+      "SCALE": "Scale",
+      "UNLIMITED": "Unlimited"
+    }
+  },
   "members": {
     "title": "Settings",
     "subtitle": "Members and access for {org}",

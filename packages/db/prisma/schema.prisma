@@ -40,8 +40,30 @@ model Organization {
   pipelines    Pipeline[]
   pipelineStages PipelineStage[]
   deals        Deal[]
+  subscription Subscription?
 
   @@map("organization")
+}
+
+/// Billing plan for an organization. Defaults to UNLIMITED — Helio is
+/// self-hostable and free to run; hosted deployments wire Stripe, whose
+/// webhook upgrades/downgrades the plan. One row per org.
+model Subscription {
+  id                   String    @id
+  organizationId       String    @unique @map("organization_id")
+  /// One of @helio/core's Plan values (FREE | PRO | SCALE | UNLIMITED).
+  plan                 String    @default("UNLIMITED")
+  /// Stripe subscription status (active, past_due, canceled, …) or null.
+  status               String?
+  stripeCustomerId     String?   @map("stripe_customer_id")
+  stripeSubscriptionId String?   @map("stripe_subscription_id")
+  currentPeriodEnd     DateTime? @map("current_period_end")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("subscription")
 }
 
 /// A working environment inside an organization (e.g. "Production",
