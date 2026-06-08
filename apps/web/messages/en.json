@@ -13,6 +13,7 @@
     "emails": "Emails",
     "campaigns": "Campaigns",
     "forms": "Forms",
+    "deals": "Deals",
     "copilot": "Copilot"
   },
   "theme": {
@@ -382,6 +383,27 @@
     "doneBody": "{email} will no longer receive marketing email.",
     "invalidTitle": "Link not recognized",
     "invalidBody": "This unsubscribe link is invalid or no longer applies."
+  },
+  "deals": {
+    "title": "Deals",
+    "subtitle": "Track opportunities through your pipeline — drag-free, keyboard-friendly stages.",
+    "defaultPipelineName": "New business",
+    "emptyTitle": "No pipeline yet",
+    "emptyBody": "Create your first pipeline to start tracking deals. It comes with Lead, Qualified, Proposal, Won, and Lost stages.",
+    "createPipeline": "Create pipeline",
+    "pipelineCreated": "Pipeline created",
+    "newDeal": "New deal",
+    "newDealSubtitle": "Add an opportunity to the pipeline.",
+    "dealTitle": "Title",
+    "dealValue": "Value",
+    "dealStage": "Stage",
+    "createDeal": "Create deal",
+    "dealCreated": "Deal created",
+    "dealDeleted": "Deal deleted",
+    "moveTo": "Move {title} to another stage",
+    "deleteDeal": "Delete {title}",
+    "cancel": "Cancel",
+    "genericError": "Something went wrong. Please try again."
   },
   "journeys": {
     "title": "Journeys",
