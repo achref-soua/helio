@@ -18,4 +18,9 @@ export const env = createEnv({
   TEMPORAL_NAMESPACE: z.string().min(1).default('default'),
   // Verifies the stateless unsubscribe tokens minted by the senders.
   UNSUBSCRIBE_SECRET: z.string().min(24),
+  // Analytics reads (full profile); callers degrade gracefully without it.
+  CLICKHOUSE_URL: z.string().min(1).default('http://localhost:8123'),
+  CLICKHOUSE_USER: z.string().min(1).default('helio'),
+  CLICKHOUSE_PASSWORD: z.string().min(1).default('helio_dev_password'),
+  CLICKHOUSE_DB: z.string().min(1).default('helio'),
 });

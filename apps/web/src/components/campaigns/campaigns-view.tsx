@@ -49,6 +49,11 @@ export function CampaignsView() {
   const [templateId, setTemplateId] = useState('');
   const [audience, setAudience] = useState(''); // "segment:<id>" | "list:<id>"
 
+  const engagementQuery = useQuery({
+    ...trpc.analytics.campaignEngagement.queryOptions({ workspaceId: workspaceId ?? '' }),
+    enabled: !!workspaceId,
+    refetchInterval: 30_000,
+  });
   const campaignsQuery = useQuery({
     ...trpc.campaign.list.queryOptions(
       { workspaceId: workspaceId ?? '' },
@@ -245,6 +250,11 @@ export function CampaignsView() {
                       sent: campaign.sendCounts.SENT ?? 0,
                       failed: campaign.sendCounts.FAILED ?? 0,
                     })}
+                    {engagementQuery.data?.byCampaign[campaign.id] &&
+                      ` · ${t('engagement', {
+                        opens: engagementQuery.data.byCampaign[campaign.id]!.uniqueOpens,
+                        clicks: engagementQuery.data.byCampaign[campaign.id]!.clicks,
+                      })}`}
                   </span>
                 )}
                 <div className="ml-auto flex gap-1">
