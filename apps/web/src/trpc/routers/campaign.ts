@@ -44,6 +44,7 @@ export const campaignRouter = router({
           workspaceId: z.string().min(1),
           name: z.string().trim().min(1).max(80),
           templateId: z.string().min(1),
+          subjectB: z.string().trim().min(1).max(300).optional(),
           segmentId: z.string().min(1).optional(),
           listId: z.string().min(1).optional(),
         })
@@ -66,6 +67,7 @@ export const campaignRouter = router({
           workspaceId: input.workspaceId,
           name: input.name,
           templateId: input.templateId,
+          subjectB: input.subjectB,
           segmentId: input.segmentId,
           listId: input.listId,
         },

@@ -48,6 +48,7 @@ export function CampaignsView() {
   const [name, setName] = useState('');
   const [templateId, setTemplateId] = useState('');
   const [audience, setAudience] = useState(''); // "segment:<id>" | "list:<id>"
+  const [subjectB, setSubjectB] = useState('');
 
   const engagementQuery = useQuery({
     ...trpc.analytics.campaignEngagement.queryOptions({ workspaceId: workspaceId ?? '' }),
@@ -91,6 +92,7 @@ export function CampaignsView() {
         workspaceId,
         name: name.trim(),
         templateId,
+        subjectB: subjectB.trim() || undefined,
         segmentId: kind === 'segment' ? id : undefined,
         listId: kind === 'list' ? id : undefined,
       });
@@ -100,6 +102,7 @@ export function CampaignsView() {
       setName('');
       setTemplateId('');
       setAudience('');
+      setSubjectB('');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('genericError'));
     }
@@ -202,6 +205,16 @@ export function CampaignsView() {
                   ))}
                 </Select>
               </div>
+              <div className="grid gap-2 sm:col-span-3">
+                <Label htmlFor="campaign-subject-b">{t('subjectB')}</Label>
+                <Input
+                  id="campaign-subject-b"
+                  value={subjectB}
+                  onChange={(event) => setSubjectB(event.target.value)}
+                  placeholder={t('subjectBPlaceholder')}
+                  maxLength={300}
+                />
+              </div>
               <div className="flex gap-2 sm:col-span-3">
                 <Button type="submit" disabled={createCampaign.isPending}>
                   {t('createAction')}
@@ -231,9 +244,12 @@ export function CampaignsView() {
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-base">{campaign.name}</CardTitle>
-                  <Badge variant={STATUS_VARIANT[campaign.status]}>
-                    {t(`status.${campaign.status}`)}
-                  </Badge>
+                  <span className="flex gap-1">
+                    {campaign.subjectB && <Badge variant="outline">{t('abBadge')}</Badge>}
+                    <Badge variant={STATUS_VARIANT[campaign.status]}>
+                      {t(`status.${campaign.status}`)}
+                    </Badge>
+                  </span>
                 </div>
                 <CardDescription className="flex items-center gap-1">
                   <Megaphone className="size-3.5" aria-hidden />
@@ -254,6 +270,18 @@ export function CampaignsView() {
                       ` · ${t('engagement', {
                         opens: engagementQuery.data.byCampaign[campaign.id]!.uniqueOpens,
                         clicks: engagementQuery.data.byCampaign[campaign.id]!.clicks,
+                      })}`}
+                    {campaign.subjectB &&
+                      engagementQuery.data?.byCampaign[campaign.id]?.variants &&
+                      Object.keys(engagementQuery.data.byCampaign[campaign.id]!.variants).length >
+                        0 &&
+                      ` · ${t('variantSplit', {
+                        a:
+                          engagementQuery.data.byCampaign[campaign.id]!.variants.a?.uniqueOpens ??
+                          0,
+                        b:
+                          engagementQuery.data.byCampaign[campaign.id]!.variants.b?.uniqueOpens ??
+                          0,
                       })}`}
                   </span>
                 )}

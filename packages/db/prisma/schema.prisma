@@ -238,6 +238,8 @@ model Campaign {
   workspaceId    String         @map("workspace_id")
   name           String
   templateId     String         @map("template_id")
+  /// Optional subject-line A/B test: template.subject is variant A.
+  subjectB       String?        @map("subject_b")
   /// Exactly one audience source: a dynamic segment or a static list.
   segmentId      String?        @map("segment_id")
   listId         String?        @map("list_id")
@@ -280,6 +282,8 @@ model EmailSend {
   campaignId     String?         @map("campaign_id")
   email          String
   subject        String
+  /// A/B variant this send received ('a' or 'b'), when testing.
+  variant        String?
   status         EmailSendStatus @default(QUEUED)
   error          String?
   sentAt         DateTime?       @map("sent_at")

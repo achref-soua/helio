@@ -244,4 +244,48 @@ describe('campaign activities against Postgres', () => {
     // 4 ACTIVE members of the list (unsubscribed excluded).
     expect(page.contactIds).toHaveLength(4);
   });
+
+  describe('campaign A/B', () => {
+    it('assigns sticky variants and renders the matching subject', async () => {
+      const abCampaignId = newId('cmp');
+      await prisma.campaign.create({
+        data: {
+          id: abCampaignId,
+          organizationId: orgId,
+          workspaceId: wsId,
+          name: 'Subject duel',
+          templateId,
+          listId,
+          subjectB: 'Variant B wins {{firstName|friend}}',
+        },
+      });
+      const page = await runActivity(activities.listRecipients, abCampaignId, null, 100);
+      await runActivity(activities.sendToContacts, abCampaignId, page.contactIds);
+
+      const sends = await prisma.emailSend.findMany({ where: { campaignId: abCampaignId } });
+      expect(sends.length).toBeGreaterThan(0);
+      expect(sends.every((send) => send.variant === 'a' || send.variant === 'b')).toBe(true);
+
+      for (const send of sends.filter((row) => row.status === 'SENT')) {
+        // Earlier tests also mailed these contacts — take the latest.
+        const mail = provider.sent.filter((message) => message.to === send.email).at(-1)!;
+        if (send.variant === 'b') {
+          expect(mail.subject).toMatch(/^Variant B wins /);
+        } else {
+          expect(mail.subject).toMatch(/^Hi /); // template subject = A
+        }
+      }
+
+      // Retry keeps the variant sticky — no contact sees both subjects.
+      const before = sends.map((send) => [send.contactId, send.variant]);
+      await runActivity(activities.sendToContacts, abCampaignId, page.contactIds);
+      const after = await prisma.emailSend.findMany({ where: { campaignId: abCampaignId } });
+      expect(after.map((send) => [send.contactId, send.variant])).toEqual(before);
+    });
+
+    it('leaves variant null without a subject B', async () => {
+      const sends = await prisma.emailSend.findMany({ where: { campaignId } });
+      expect(sends.every((send) => send.variant === null)).toBe(true);
+    });
+  });
 });

@@ -37,7 +37,12 @@ function engagementEvent(
     event,
     anonymous_id: '',
     user_id: send.email,
-    properties: JSON.stringify({ sendId, campaignId: send.campaignId, ...properties }),
+    properties: JSON.stringify({
+      sendId,
+      campaignId: send.campaignId,
+      ...(send.variant ? { variant: send.variant } : {}),
+      ...properties,
+    }),
     context: JSON.stringify({ channel: 'email' }),
     timestamp: receivedAt.toISOString(),
     received_at: receivedAt.toISOString(),
