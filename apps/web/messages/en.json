@@ -12,7 +12,8 @@
     "toggleNavigation": "Toggle navigation",
     "emails": "Emails",
     "campaigns": "Campaigns",
-    "forms": "Forms"
+    "forms": "Forms",
+    "copilot": "Copilot"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -481,5 +482,29 @@
     "thanksBody": "Thanks for signing up — we'll be in touch.",
     "notFoundTitle": "Form not found",
     "notFoundBody": "This form doesn't exist or was removed."
+  },
+  "copilot": {
+    "title": "AI Copilot",
+    "beta": "Beta",
+    "subtitle": "Ask about your audience, or describe a segment or journey and let AI draft it.",
+    "chatTitle": "Ask the copilot",
+    "chatSubtitle": "Grounded in this workspace's data — it only sees your organization.",
+    "chatEmpty": "Ask anything: “How many pro contacts do I have?”, “Which journeys are active?”",
+    "chatPlaceholder": "Ask the copilot…",
+    "thinking": "Thinking…",
+    "send": "Send",
+    "error": "The copilot couldn't do that",
+    "draft": "Draft",
+    "segmentTitle": "Describe a segment",
+    "segmentSubtitle": "Plain English → a segment rule you can save.",
+    "segmentPlaceholder": "e.g. pro customers who opened an email in the last week",
+    "createSegment": "Create this segment",
+    "segmentCreated": "Segment created",
+    "journeyTitle": "Describe a journey",
+    "journeySubtitle": "Plain English → a journey wired to your templates.",
+    "journeyPlaceholder": "e.g. welcome email, wait 2 days, then upsell pro users",
+    "journeySteps": "{count, plural, one {# step} other {# steps}}",
+    "createJourney": "Create this journey",
+    "journeyCreated": "Journey created"
   }
 }
