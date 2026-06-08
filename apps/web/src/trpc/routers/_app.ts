@@ -4,6 +4,7 @@ import { campaignRouter } from './campaign';
 import { contactRouter } from './contact';
 import { contactListRouter } from './contact-list';
 import { copilotRouter } from './copilot';
+import { crmRouter } from './crm';
 import { emailTemplateRouter } from './email-template';
 import { formRouter } from './form';
 import { journeyRouter } from './journey';
@@ -28,6 +29,7 @@ export const appRouter = router({
   copilot: copilotRouter,
   form: formRouter,
   scoring: scoringRouter,
+  crm: crmRouter,
 });
 
 export type AppRouter = typeof appRouter;

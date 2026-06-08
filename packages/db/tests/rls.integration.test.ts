@@ -109,4 +109,62 @@ describe('row-level security tenant isolation', () => {
     expect(await forTenant(app, orgB.id).auditLog.count()).toBe(0);
     expect(await forTenant(app, orgA.id).auditLog.count()).toBe(1);
   });
+
+  it('CRM pipelines, stages, and deals are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const pipelineId = newId('pipe');
+    const stageId = newId('stg');
+    await tenantA.pipeline.create({
+      data: {
+        id: pipelineId,
+        organizationId: orgA.id,
+        workspaceId: workspaceA,
+        name: 'New business',
+        stages: {
+          create: [
+            {
+              id: stageId,
+              organizationId: orgA.id,
+              workspaceId: workspaceA,
+              name: 'Lead',
+              position: 0,
+            },
+          ],
+        },
+      },
+    });
+    await tenantA.deal.create({
+      data: {
+        id: newId('deal'),
+        organizationId: orgA.id,
+        workspaceId: workspaceA,
+        pipelineId,
+        stageId,
+        title: 'Big contract',
+        valueCents: 500000,
+      },
+    });
+
+    // Org B sees none of it, even by direct id.
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.pipeline.count()).toBe(0);
+    expect(await tenantB.deal.count()).toBe(0);
+    expect(await tenantB.pipeline.findUnique({ where: { id: pipelineId } })).toBeNull();
+
+    // Org B cannot smuggle a deal into Org A's pipeline.
+    await expect(
+      tenantB.deal.create({
+        data: {
+          id: newId('deal'),
+          organizationId: orgA.id,
+          workspaceId: workspaceA,
+          pipelineId,
+          stageId,
+          title: 'Smuggled',
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.deal.count()).toBe(1);
+  });
 });
