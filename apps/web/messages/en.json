@@ -125,6 +125,8 @@
     "total": "{count} total",
     "addAction": "Add contact",
     "importAction": "Import CSV",
+    "predictAction": "Recompute predictions",
+    "predictionsDone": "Scored {count} contacts",
     "searchPlaceholder": "Search email or name…",
     "allContacts": "All contacts",
     "newList": "New list",
@@ -159,7 +161,8 @@
       "name": "Name",
       "status": "Status",
       "added": "Added",
-      "score": "Score"
+      "score": "Score",
+      "churnRisk": "Churn risk"
     },
     "status": {
       "ACTIVE": "Active",
@@ -239,7 +242,13 @@
         "status": "Status",
         "createdAt": "Created",
         "event": "Did event",
-        "score": "Score"
+        "score": "Score",
+        "prediction": "AI prediction"
+      },
+      "predictionMetric": "Metric",
+      "metrics": {
+        "conversionProbability": "Conversion probability",
+        "churnRisk": "Churn risk"
       },
       "operators": {
         "equals": "equals",

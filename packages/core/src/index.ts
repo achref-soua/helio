@@ -77,6 +77,7 @@ export {
   type EventCondition,
   eventConditionKey,
   extractEventConditions,
+  PREDICTION_METRICS,
   type SegmentCondition,
   segmentConditionSchema,
   type SegmentRule,

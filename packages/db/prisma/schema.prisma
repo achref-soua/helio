@@ -113,6 +113,13 @@ model Contact {
   attributes     Json          @default("{}")
   /// Rule-based engagement score (see ScoringRule); event-driven.
   score          Int           @default(0)
+  /// AI predictions, recomputed in batches by the intelligence service.
+  /// Conversion propensity and churn risk are both probabilities in [0,1];
+  /// null until the first run. See apps/intelligence/scoring.
+  conversionProbability Float?    @map("conversion_probability")
+  churnRisk             Float?    @map("churn_risk")
+  predictionModel       String?   @map("prediction_model")
+  predictionComputedAt  DateTime? @map("prediction_computed_at")
   status         ContactStatus @default(ACTIVE)
   source         String?
   createdAt      DateTime      @default(now()) @map("created_at")
