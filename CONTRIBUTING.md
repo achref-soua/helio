@@ -30,7 +30,7 @@ Git hooks (secret scanning, format check, commit-message lint) install automatic
 - Work happens on short-lived branches off `develop`:
   `feature/<area>-<short-desc>`, `fix/<short-desc>`, `chore/<short-desc>`, `docs/<short-desc>`, `refactor/<short-desc>`.
 
-Both `main` and `develop` are protected: changes land only through pull requests with green CI, squash-merged to keep history linear (one commit per feature).
+Both `main` and `develop` are protected: changes land only through pull requests with green CI. Feature PRs into `develop` are **squash-merged** (one commit per feature, linear history); release PRs into `main` use **merge commits** so the branches share history (see ADR-0009's amendment).
 
 ## Commit messages
 
