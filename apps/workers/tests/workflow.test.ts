@@ -1,4 +1,4 @@
-import { SENDS_TASK_QUEUE } from '@helio/core';
+import { isInAbTestSample, SENDS_TASK_QUEUE } from '@helio/core';
 import { TestWorkflowEnvironment } from '@temporalio/testing';
 import { Worker } from '@temporalio/worker';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -60,9 +60,62 @@ describe('campaignSendWorkflow', () => {
     const result = await run(activities);
     expect(result).toEqual({ sent: 3, failed: 0, skipped: 0 });
     expect(listRecipients).toHaveBeenCalledTimes(2);
-    expect(sendToContacts).toHaveBeenNthCalledWith(1, 'cmp_1', ['c1', 'c2']);
-    expect(sendToContacts).toHaveBeenNthCalledWith(2, 'cmp_1', ['c3']);
+    expect(sendToContacts).toHaveBeenNthCalledWith(1, 'cmp_1', ['c1', 'c2'], undefined);
+    expect(sendToContacts).toHaveBeenNthCalledWith(2, 'cmp_1', ['c3'], undefined);
     expect(completeCampaign).toHaveBeenCalledWith('cmp_1', 0);
+  });
+
+  it('auto-winner: tests a slice, waits, decides, then promotes to the holdout', async () => {
+    const allIds = Array.from({ length: 12 }, (_, i) => `c${i}`);
+    const percent = 50;
+    const testIds = allIds.filter((id) => isInAbTestSample(id, percent));
+    const holdoutIds = allIds.filter((id) => !isInAbTestSample(id, percent));
+    expect(testIds.length).toBeGreaterThan(0);
+    expect(holdoutIds.length).toBeGreaterThan(0);
+
+    // listRecipients is called once per pass; one page covers everyone.
+    const listRecipients = vi.fn(async () => ({ contactIds: allIds, nextCursor: null }));
+    const sendToContacts = vi.fn(async (_id: string, ids: string[]) => ({
+      sent: ids.length,
+      failed: 0,
+      skipped: 0,
+    }));
+    const abVariantStats = vi.fn(async () => ({
+      a: { sent: 3, opens: 1 },
+      b: { sent: 3, opens: 2 },
+    }));
+    const decideAbWinner = vi.fn(async () => 'b' as const);
+    const activities = {
+      startCampaign: vi.fn(async () => ({
+        organizationId: 'org',
+        workspaceId: 'ws',
+        abAutoWinner: true,
+        hasVariantB: true,
+        abTestPercent: percent,
+        abTestWindowSeconds: 3600,
+      })),
+      listRecipients,
+      sendToContacts,
+      abVariantStats,
+      decideAbWinner,
+      completeCampaign: vi.fn(async () => {}),
+      failCampaign: vi.fn(async () => {}),
+    } as unknown as CampaignActivities;
+
+    const result = await run(activities);
+
+    // Everyone got exactly one email across the two passes.
+    expect(result.sent).toBe(allIds.length);
+    // Test pass: the slice, no forced variant (random a/b).
+    expect(sendToContacts).toHaveBeenNthCalledWith(1, 'cmp_1', testIds, undefined);
+    // Decision happened on the gathered stats…
+    expect(abVariantStats).toHaveBeenCalledWith('cmp_1');
+    expect(decideAbWinner).toHaveBeenCalledWith('cmp_1', {
+      a: { sent: 3, opens: 1 },
+      b: { sent: 3, opens: 2 },
+    });
+    // …and the holdout got the winning subject 'b'.
+    expect(sendToContacts).toHaveBeenNthCalledWith(2, 'cmp_1', holdoutIds, 'b');
   });
 
   it('aggregates failures and reports them to completeCampaign', async () => {

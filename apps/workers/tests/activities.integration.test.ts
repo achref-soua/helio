@@ -153,7 +153,11 @@ describe('campaign activities against Postgres', () => {
 
   it('startCampaign transitions to SENDING', async () => {
     const context = await runActivity(activities.startCampaign, campaignId);
-    expect(context).toEqual({ organizationId: orgId, workspaceId: wsId });
+    expect(context).toMatchObject({
+      organizationId: orgId,
+      workspaceId: wsId,
+      abAutoWinner: false, // no subjectB on this campaign
+    });
     const campaign = await prisma.campaign.findUniqueOrThrow({ where: { id: campaignId } });
     expect(campaign.status).toBe('SENDING');
   });
@@ -286,6 +290,119 @@ describe('campaign activities against Postgres', () => {
     it('leaves variant null without a subject B', async () => {
       const sends = await prisma.emailSend.findMany({ where: { campaignId } });
       expect(sends.every((send) => send.variant === null)).toBe(true);
+    });
+
+    it('abVariantStats counts SENT per variant (opens 0 without ClickHouse)', async () => {
+      const id = newId('cmp');
+      await prisma.campaign.create({
+        data: {
+          id,
+          organizationId: orgId,
+          workspaceId: wsId,
+          name: 'Stats duel',
+          templateId,
+          listId,
+          subjectB: 'B',
+        },
+      });
+      const rows: Array<[string, 'SENT' | 'QUEUED']> = [
+        ['a', 'SENT'],
+        ['a', 'SENT'],
+        ['b', 'SENT'],
+        ['b', 'QUEUED'], // not counted (not SENT)
+      ];
+      // A distinct contact per send (the unique (campaign, contact) key).
+      const contactIds = await Promise.all(
+        rows.map(async (_row, i) => {
+          const cid = newId('contact');
+          await prisma.contact.create({
+            data: {
+              id: cid,
+              organizationId: orgId,
+              workspaceId: wsId,
+              email: `stat${i}@x.com`,
+            },
+          });
+          return cid;
+        }),
+      );
+      await prisma.emailSend.createMany({
+        data: rows.map(([variant, status], i) => ({
+          id: newId('snd'),
+          organizationId: orgId,
+          workspaceId: wsId,
+          contactId: contactIds[i]!,
+          campaignId: id,
+          email: `stat${i}@x.com`,
+          subject: 'x',
+          variant,
+          status,
+        })),
+      });
+      const stats = await runActivity(activities.abVariantStats, id);
+      expect(stats.a.sent).toBe(2);
+      expect(stats.b.sent).toBe(1);
+      expect(stats.a.opens).toBe(0); // no ClickHouse in this harness
+
+      // With ClickHouse present, opens are read from the event store.
+      const fakeClickhouse = {
+        query: async () => ({
+          json: async () => [
+            { variant: 'a', opens: '1' },
+            { variant: 'b', opens: '3' },
+          ],
+        }),
+      } as unknown as Parameters<typeof createActivities>[3];
+      const withCh = createActivities(prisma, provider, CONFIG, fakeClickhouse);
+      const chStats = await runActivity(withCh.abVariantStats, id);
+      expect(chStats.a).toEqual({ sent: 2, opens: 1 });
+      expect(chStats.b).toEqual({ sent: 1, opens: 3 });
+    });
+
+    it('decideAbWinner persists a confident winner and promotes it', async () => {
+      const id = newId('cmp');
+      await prisma.campaign.create({
+        data: {
+          id,
+          organizationId: orgId,
+          workspaceId: wsId,
+          name: 'Decide duel',
+          templateId,
+          listId,
+          subjectB: 'B',
+        },
+      });
+      // b clearly wins (32% vs 18% over a large sample).
+      const promote = await runActivity(activities.decideAbWinner, id, {
+        a: { sent: 1000, opens: 180 },
+        b: { sent: 1000, opens: 320 },
+      });
+      expect(promote).toBe('b');
+      const campaign = await prisma.campaign.findUniqueOrThrow({ where: { id } });
+      expect(campaign.abWinner).toBe('b');
+      expect(campaign.abDecidedAt).not.toBeNull();
+
+      // An inconclusive test promotes the leader but records no winner.
+      const id2 = newId('cmp');
+      await prisma.campaign.create({
+        data: {
+          id: id2,
+          organizationId: orgId,
+          workspaceId: wsId,
+          name: 'Toss up',
+          templateId,
+          listId,
+          subjectB: 'B',
+        },
+      });
+      const promote2 = await runActivity(activities.decideAbWinner, id2, {
+        a: { sent: 50, opens: 25 },
+        b: { sent: 50, opens: 24 },
+      });
+      expect(['a', 'b']).toContain(promote2);
+      const campaign2 = await prisma.campaign.findUniqueOrThrow({ where: { id: id2 } });
+      expect(campaign2.abWinner).toBeNull();
+      expect(campaign2.abDecidedAt).not.toBeNull();
     });
   });
 });

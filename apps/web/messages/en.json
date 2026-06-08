@@ -360,7 +360,10 @@
     "engagement": "{opens} opened · {clicks} clicks",
     "subjectB": "Subject B (optional A/B test)",
     "subjectBPlaceholder": "Variant subject — the template's subject is A",
+    "autoWinner": "Auto-pick the winner (test a slice, then send the best subject to the rest)",
     "abBadge": "A/B",
+    "autoWinnerBadge": "Auto-winner",
+    "winnerBadge": "Winner: {variant}",
     "variantSplit": "A {a} vs B {b} opens"
   },
   "unsubscribe": {
