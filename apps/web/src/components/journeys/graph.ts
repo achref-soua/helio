@@ -15,6 +15,7 @@ export interface TriggerData {
 }
 export interface SendEmailData {
   templateId: string;
+  optimizeSendTime?: boolean;
   [key: string]: unknown;
 }
 export interface WaitData {
@@ -106,7 +107,7 @@ export function definitionToCanvas(definition: JourneyDefinition): {
         id: node.id,
         type: 'send_email',
         position,
-        data: { templateId: node.templateId },
+        data: { templateId: node.templateId, optimizeSendTime: node.optimizeSendTime ?? false },
       });
     } else if (node.type === 'wait') {
       nodes.push({
@@ -197,6 +198,7 @@ export function canvasToDefinition(
         id: node.id,
         type: 'send_email',
         templateId: data.templateId,
+        ...(data.optimizeSendTime ? { optimizeSendTime: true } : {}),
         position,
       });
     } else if (node.type === 'wait') {

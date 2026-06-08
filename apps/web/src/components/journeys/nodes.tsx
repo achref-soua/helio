@@ -89,6 +89,15 @@ export function SendEmailNode({ id, data, selected }: NodeProps) {
           </option>
         ))}
       </Select>
+      <label className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
+        <input
+          type="checkbox"
+          className="nodrag"
+          checked={send.optimizeSendTime ?? false}
+          onChange={(event) => updateNodeData(id, { optimizeSendTime: event.target.checked })}
+        />
+        {t('optimizeSendTime')}
+      </label>
       <Handle type="target" position={Position.Top} />
       <Handle type="source" position={Position.Bottom} />
     </div>

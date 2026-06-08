@@ -11,6 +11,7 @@ import {
   quietHoursDelayMs,
   type SegmentCondition,
   type SegmentRule,
+  sendTimeDelayMs,
   unsubscribeUrl,
 } from '@helio/core';
 import { compileSegmentRule, type Prisma, type PrismaClient } from '@helio/db';
@@ -128,6 +129,7 @@ export function createJourneyActivities(
       contactId: string,
       quietHours: QuietHours | null,
       frequencyCap: FrequencyCap | null,
+      optimizeSendTime = false,
     ): Promise<number> {
       if (frequencyCap) {
         const since = new Date(Date.now() - frequencyCap.perDays * 86_400_000);
@@ -136,7 +138,23 @@ export function createJourneyActivities(
         });
         if (recent >= frequencyCap.maxEmails) return -1;
       }
-      return quietHours ? quietHoursDelayMs(quietHours, new Date()) : 0;
+      const now = new Date();
+      // First defer to the contact's best engagement hour (if enabled and
+      // known), then apply quiet hours at that future instant — so the two
+      // never collide and a send always lands in an allowed, optimal slot.
+      let stoDelay = 0;
+      if (optimizeSendTime) {
+        const contact = await prisma.contact.findUnique({
+          where: { id: contactId },
+          select: { bestSendHour: true },
+        });
+        if (contact?.bestSendHour != null) {
+          stoDelay = sendTimeDelayMs(contact.bestSendHour, now);
+        }
+      }
+      const candidate = new Date(now.getTime() + stoDelay);
+      const quietDelay = quietHours ? quietHoursDelayMs(quietHours, candidate) : 0;
+      return stoDelay + quietDelay;
     },
 
     /** Merge one trait into the contact's attributes JSON. */

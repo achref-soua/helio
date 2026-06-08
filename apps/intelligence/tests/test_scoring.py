@@ -17,6 +17,7 @@ from helio_intelligence.scoring.features import (
     safe_event_names,
 )
 from helio_intelligence.scoring.model import train
+from helio_intelligence.scoring.send_time import best_hours
 from helio_intelligence.scoring_api import get_scoring_service
 
 
@@ -134,11 +135,19 @@ class _FakeDb:
 
 
 class _FakeCh:
-    def __init__(self, aggregates: list[dict[str, Any]], converted: list[str]) -> None:
+    def __init__(
+        self,
+        aggregates: list[dict[str, Any]],
+        converted: list[str],
+        hours: list[dict[str, Any]] | None = None,
+    ) -> None:
         self._aggregates = aggregates
         self._converted = converted
+        self._hours = hours or []
 
     async def query(self, sql: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+        if "toHour" in sql:
+            return self._hours
         if "GROUP BY user_id" in sql:
             return self._aggregates
         return [{"email": e} for e in self._converted]
@@ -151,7 +160,10 @@ async def test_service_recompute_writes_scoped_predictions() -> None:
         for i in range(6)
     ]
     db = _FakeDb(contacts)
-    ch = _FakeCh(aggregates, converted=["u5@x.com"])
+    # u0 engages most at hour 9; everyone else falls back to the workspace
+    # peak (also 9 here, the only engagement).
+    hours = [{"email": "u0@x.com", "hour": 9, "count": 5}]
+    ch = _FakeCh(aggregates, converted=["u5@x.com"], hours=hours)
     service = ScoringService(db, ch, conversion_events=["Order Completed"])  # type: ignore[arg-type]
 
     result = await service.recompute("org_a", "ws_a")
@@ -159,11 +171,14 @@ async def test_service_recompute_writes_scoped_predictions() -> None:
     assert result.scored == 6
     assert db.writes  # predictions persisted
     assert all(org == "org_a" for org in db.scoped_orgs)  # RLS-scoped to the org
-    # Each write tuple is (id, conversion_prob, churn_risk, model_tag, workspace_id).
+    # Each write tuple is (id, conversion_prob, churn_risk, model_tag,
+    # best_send_hour, workspace_id).
     first = db.writes[0]
-    assert first[4] == "ws_a"
+    assert first[5] == "ws_a"
     assert 0.0 <= first[1] <= 1.0 and 0.0 <= first[2] <= 1.0
     assert first[3].startswith("conv:")
+    assert first[4] == 9  # u0's best hour
+    assert result.send_hour_fallback == 9
 
 
 async def test_service_handles_empty_workspace() -> None:
@@ -201,8 +216,45 @@ def test_scoring_endpoint_returns_counts() -> None:
     body = response.json()
     assert body["scored"] == 3
     assert "conversion_method" in body and "churn_method" in body
+    assert 0 <= body["send_hour_fallback"] <= 23
     # Sanity: the response is JSON-serializable ints, not numpy types.
     assert json.dumps(body)
+
+
+# --- Send-time optimization --------------------------------------------------
+
+
+def test_best_hours_picks_per_contact_peak_and_workspace_fallback() -> None:
+    rows = [
+        {"email": "a@x.com", "hour": 9, "count": 4},
+        {"email": "a@x.com", "hour": 14, "count": 1},
+        {"email": "b@x.com", "hour": 20, "count": 1},  # below threshold
+    ]
+    best, fallback = best_hours(rows, min_events=3)
+    assert best == {"a@x.com": 9}  # a peaks at 9; b too sparse to trust
+    assert fallback == 9  # workspace-wide peak (4+1 at 9 vs 1 at 14/20)
+
+
+def test_best_hours_ties_break_to_earlier_hour() -> None:
+    rows = [
+        {"email": "a@x.com", "hour": 18, "count": 3},
+        {"email": "a@x.com", "hour": 6, "count": 3},
+    ]
+    best, _ = best_hours(rows, min_events=3)
+    assert best["a@x.com"] == 6
+
+
+def test_best_hours_defaults_when_no_engagement() -> None:
+    best, fallback = best_hours([], default_hour=11)
+    assert best == {}
+    assert fallback == 11
+
+
+def test_best_hours_ignores_out_of_range_hours() -> None:
+    rows = [{"email": "a@x.com", "hour": 99, "count": 50}]
+    best, fallback = best_hours(rows, min_events=1, default_hour=13)
+    assert best == {}  # the bogus hour is dropped, leaving nothing
+    assert fallback == 13
 
 
 # --- ClickHouse client -------------------------------------------------------

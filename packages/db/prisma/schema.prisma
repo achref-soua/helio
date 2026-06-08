@@ -120,6 +120,10 @@ model Contact {
   churnRisk             Float?    @map("churn_risk")
   predictionModel       String?   @map("prediction_model")
   predictionComputedAt  DateTime? @map("prediction_computed_at")
+  /// Hour of day (0–23, UTC) this contact is most likely to engage,
+  /// derived from open/click history; null until computed. Used by
+  /// send-time optimization to defer sends to the contact's best hour.
+  bestSendHour          Int?      @map("best_send_hour")
   status         ContactStatus @default(ACTIVE)
   source         String?
   createdAt      DateTime      @default(now()) @map("created_at")

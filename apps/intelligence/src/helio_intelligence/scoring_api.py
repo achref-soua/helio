@@ -27,6 +27,7 @@ class RecomputeResponse(BaseModel):
     churn_method: str
     converted: int
     churned: int
+    send_hour_fallback: int
 
 
 def get_scoring_service() -> ScoringService:
@@ -51,6 +52,7 @@ def create_scoring_router() -> APIRouter:
             churn_method=result.churn_method,
             converted=result.converted,
             churned=result.churned,
+            send_hour_fallback=result.send_hour_fallback,
         )
 
     return router
