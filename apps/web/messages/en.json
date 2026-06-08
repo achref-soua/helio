@@ -30,10 +30,6 @@
     },
     "emptyHint": "Connect a data source or import contacts to light this up."
   },
-  "placeholder": {
-    "title": "Coming soon",
-    "body": "This area ships in an upcoming milestone."
-  },
   "onboarding": {
     "title": "Create your organization",
     "subtitle": "Where your team, contacts, and journeys live",
@@ -324,5 +320,65 @@
     "doneBody": "{email} will no longer receive marketing email.",
     "invalidTitle": "Link not recognized",
     "invalidBody": "This unsubscribe link is invalid or no longer applies."
+  },
+  "journeys": {
+    "title": "Journeys",
+    "total": "{count, plural, one {# journey} other {# journeys}}",
+    "newJourney": "New journey",
+    "createTitle": "Create a journey",
+    "editTitle": "Edit journey",
+    "editorSubtitle": "Wire the trigger through sends, waits, and branches. Runs execute durably per contact.",
+    "created": "Journey created",
+    "updated": "Journey updated",
+    "activated": "Journey activated",
+    "paused": "Journey paused",
+    "deleted": "Journey deleted",
+    "genericError": "Something went wrong",
+    "activate": "Activate",
+    "pause": "Pause",
+    "activateAction": "Activate {name}",
+    "pauseAction": "Pause {name}",
+    "deleteAction": "Delete {name}",
+    "triggerSummary": "On “{event}” · {steps, plural, one {# step} other {# steps}}",
+    "runCounts": "{running} running · {completed} completed",
+    "emptyTitle": "No journeys yet",
+    "emptyBody": "Automate a welcome series: trigger on an event, send, wait, branch.",
+    "status": {
+      "DRAFT": "Draft",
+      "ACTIVE": "Active",
+      "PAUSED": "Paused"
+    },
+    "editor": {
+      "name": "Name",
+      "save": "Save journey",
+      "cancel": "Cancel",
+      "addSend": "Send email",
+      "addWait": "Wait",
+      "addBranch": "Branch",
+      "addEnd": "End",
+      "connectHint": "New steps wire themselves to the open end; drag between handles to rewire."
+    },
+    "nodes": {
+      "trigger": "Trigger",
+      "triggerEvent": "Trigger event",
+      "triggerEventPlaceholder": "e.g. Signed Up",
+      "sendEmail": "Send email",
+      "template": "Template",
+      "pickTemplate": "Pick a template…",
+      "wait": "Wait",
+      "waitHours": "Wait duration (hours)",
+      "hours": "hours",
+      "branch": "Branch",
+      "branchAttribute": "Attribute name",
+      "branchAttributePlaceholder": "e.g. plan",
+      "branchOperator": "Branch operator",
+      "branchValue": "Branch value",
+      "branchValuePlaceholder": "Value",
+      "equals": "equals",
+      "notEquals": "does not equal",
+      "yes": "Yes",
+      "no": "No",
+      "end": "End"
+    }
   }
 }
