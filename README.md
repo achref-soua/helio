@@ -167,7 +167,7 @@ for service in web api ingest tracking workers intelligence; do
 done
 ```
 
-Compose profiles cover local/self-host topologies; the Helm chart and managed-cloud walkthrough ship with the v1 platform milestone.
+Compose profiles cover local/self-host topologies. For Kubernetes, a Helm chart lives in [`infra/helm/helio`](infra/helm/helio) — `helm install helio ./infra/helm/helio` brings up all six services with health probes, optional Ingress and autoscaling, and (for evaluation) bundled Postgres + Redis; point it at managed datastores for production. The managed-cloud walkthrough ships with the v1 milestone.
 
 ## Performance
 

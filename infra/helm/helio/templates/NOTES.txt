@@ -1,0 +1,39 @@
+Helio {{ .Chart.AppVersion }} has been deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Services deployed:
+{{- range $name, $svc := .Values.services }}
+  - {{ $name }}{{ if $svc.port }} (port {{ $svc.port }}){{ end }}
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+
+Reachable via Ingress:
+{{- range .Values.ingress.hosts }}
+  - http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+{{- else }}
+
+Ingress is disabled. Reach the dashboard by port-forwarding:
+
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "helio.fullname" . }}-web 3000:3000
+
+Then open http://localhost:3000
+{{- end }}
+
+{{- if not .Values.migrations.enabled }}
+
+NOTE: database migrations are disabled. Apply the schema once with an image
+that contains the @helio/db package (this also creates the RLS roles):
+
+  helm upgrade {{ .Release.Name }} ... \
+    --set migrations.enabled=true \
+    --set migrations.image=<your-migrations-image>
+{{- end }}
+
+{{- if and .Values.secrets.create (not .Values.secrets.existingSecret) }}
+
+SECURITY: this release rendered its Secret from chart values. For production,
+manage secrets out-of-band and set `secrets.existingSecret` instead.
+{{- end }}
+
+Documentation: https://github.com/achref-soua/helio  •  run the docs site with `task docs`.

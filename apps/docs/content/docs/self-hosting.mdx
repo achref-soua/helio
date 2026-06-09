@@ -97,6 +97,22 @@ Compose profiles cover local and self-host topologies:
 - **`observability`** — adds the OpenTelemetry collector, Prometheus, and
   Grafana.
 
-A Helm chart and a managed-cloud walkthrough ship with the v1 platform
-milestone. See the [configuration reference](/docs/configuration) for every
-environment variable each service reads.
+### Kubernetes (Helm)
+
+A Helm chart lives in [`infra/helm/helio`](https://github.com/achref-soua/helio/tree/main/infra/helm/helio):
+
+```bash
+helm install helio ./infra/helm/helio \
+  --namespace helio --create-namespace \
+  --set secrets.data.BETTER_AUTH_SECRET="$(openssl rand -hex 32)"
+```
+
+It deploys all six services with health probes and resource requests, optional
+Ingress and autoscaling, and — for evaluation — bundled Postgres (pgvector) and
+Redis. For production, set `secrets.existingSecret`, disable the bundled
+datastores, and point at managed Postgres/Redis/ClickHouse. The chart's
+[README](https://github.com/achref-soua/helio/tree/main/infra/helm/helio#readme)
+documents every value; a managed-cloud walkthrough ships with the v1 milestone.
+
+See the [configuration reference](/docs/configuration) for every environment
+variable each service reads.

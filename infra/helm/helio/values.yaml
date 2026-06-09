@@ -1,0 +1,197 @@
+# Default values for the Helio chart.
+# This is a YAML-formatted file. Override with `-f my-values.yaml` or `--set`.
+
+# -- Container image coordinates. Images are published to GHCR as
+# `<registry>/<namespace>/helio-<service>:<tag>` by the release pipeline.
+image:
+  registry: ghcr.io
+  namespace: achref-soua
+  # Image tag. Empty string defaults to the chart's appVersion.
+  tag: ''
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ''
+fullnameOverride: ''
+
+serviceAccount:
+  create: true
+  name: ''
+  annotations: {}
+
+# Pod- and container-level security. Every Helio image already runs as the
+# non-root `helio` user; these make that explicit and drop privileges.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  # The Next.js standalone server writes a cache at runtime, so the root
+  # filesystem is left writable by default. Harden per-service if you mount a
+  # writable cache volume.
+  readOnlyRootFilesystem: false
+
+# Default compute resources for every service (override per service below).
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 512Mi
+
+# -- Non-secret configuration, rendered into a ConfigMap and `envFrom`'d by
+# every service. Point the endpoints at your in-cluster or managed backends.
+config:
+  NODE_ENV: production
+  APP_URL: https://helio.example.com
+  MAIL_FROM: 'Helio <no-reply@helio.example.com>'
+  PUBLIC_TRACKING_URL: https://track.helio.example.com
+  RATE_LIMIT_MAX: '100'
+  RATE_LIMIT_WINDOW_S: '60'
+  # Event / analytics / orchestration plane (the "full" profile services).
+  # Recommended: deploy these from their official charts/operators and point
+  # here, or disable the features that use them.
+  KAFKA_BROKERS: helio-redpanda:9092
+  EVENTS_TOPIC: helio.events.v1
+  CLICKHOUSE_URL: http://helio-clickhouse:8123
+  TEMPORAL_ADDRESS: helio-temporal:7233
+  TEMPORAL_NAMESPACE: default
+  # Intelligence plane (AI). See the docs for provider options.
+  INTEL_LLM_PROVIDER: groq
+  INTEL_LLM_MODEL: llama-3.3-70b-versatile
+
+# -- Sensitive configuration. Either let the chart render a Secret from the
+# values below, or set `existingSecret` to a Secret you manage out-of-band
+# (recommended for production — keep secrets out of values files).
+secrets:
+  existingSecret: ''
+  create: true
+  data:
+    # openssl rand -hex 32
+    BETTER_AUTH_SECRET: ''
+    # Tenant-scoped (RLS) and admin (migrations) Postgres connections.
+    DATABASE_URL: ''
+    DATABASE_ADMIN_URL: ''
+    REDIS_URL: ''
+    # openssl rand -hex 24 (each)
+    TRACKING_SECRET: ''
+    UNSUBSCRIBE_SECRET: ''
+    # Optional — only when the intelligence plane talks to a hosted LLM.
+    INTEL_LLM_API_KEY: ''
+
+# -- The application services. Each entry becomes a Deployment; entries with a
+# `port` also get a ClusterIP Service and HTTP health probes.
+services:
+  web:
+    port: 3000
+    healthPath: /api/healthz
+    replicas: 2
+  api:
+    port: 4000
+    healthPath: /healthz
+    replicas: 2
+  ingest:
+    port: 4100
+    healthPath: /healthz
+    replicas: 2
+  tracking:
+    port: 4200
+    healthPath: /healthz
+    replicas: 2
+  intelligence:
+    port: 8000
+    healthPath: /healthz
+    replicas: 1
+  workers:
+    # Temporal worker — no inbound HTTP, so no Service and no HTTP probes.
+    replicas: 1
+
+# -- Horizontal Pod Autoscaling. Applies to the listed services; their static
+# replica counts are ignored while enabled.
+autoscaling:
+  enabled: false
+  services:
+    - web
+    - api
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 75
+
+# -- Ingress. Route public hosts to the dashboard, gateway, and tracking.
+ingress:
+  enabled: false
+  className: ''
+  annotations: {}
+  hosts:
+    - host: helio.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: web
+    - host: api.helio.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: api
+    - host: track.helio.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: tracking
+  tls: []
+  #  - secretName: helio-tls
+  #    hosts:
+  #      - helio.example.com
+
+# -- Optional in-cluster Postgres (with pgvector) for evaluation. For
+# production, disable this and point DATABASE_URL/DATABASE_ADMIN_URL at a
+# managed instance.
+postgresql:
+  enabled: true
+  image: pgvector/pgvector:pg16
+  auth:
+    username: helio
+    password: helio
+    database: helio
+  persistence:
+    enabled: true
+    size: 8Gi
+    storageClass: ''
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# -- Optional in-cluster Redis for evaluation. Disable for a managed cache.
+redis:
+  enabled: true
+  image: redis:7-alpine
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: ''
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# -- Database migration Job (Helm hook, runs before the app on install/upgrade).
+# Disabled by default: enable it and point `image` at a build that contains the
+# `@helio/db` package and the Prisma CLI (the migrations create the RLS roles).
+migrations:
+  enabled: false
+  image: ''
+  command:
+    - pnpm
+    - '--filter'
+    - '@helio/db'
+    - 'db:deploy'
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podAnnotations: {}
