@@ -8,6 +8,8 @@ import {
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { emitWebhookEvent } from '@/lib/webhooks';
+
 import { orgProcedure, requireRole, router } from '../init';
 import { resolvePlan, type TenantDb } from './billing';
 
@@ -124,6 +126,11 @@ export const contactRouter = router({
           targetType: 'contact',
           targetId: contact.id,
         },
+      });
+      await emitWebhookEvent(ctx, 'contact.created', {
+        id: contact.id,
+        email: contact.email,
+        workspaceId: contact.workspaceId,
       });
       return contact;
     }),

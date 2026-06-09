@@ -12,6 +12,7 @@ import { env } from './env';
 import { createJourneyActivities } from './journey-activities';
 import { WebPushProvider } from './push-provider';
 import { JourneyTriggerConsumer } from './trigger-consumer';
+import { createWebhookActivities } from './webhook-activities';
 
 const connection = await NativeConnection.connect({ address: env.TEMPORAL_ADDRESS });
 
@@ -59,6 +60,7 @@ const worker = await Worker.create({
           })
         : undefined,
     ),
+    ...createWebhookActivities(),
   },
 });
 

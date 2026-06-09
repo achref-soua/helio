@@ -200,6 +200,37 @@ describe('row-level security tenant isolation', () => {
     expect(await tenantA.task.count()).toBe(1);
   });
 
+  it('webhook endpoints (and their secrets) are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const endpointId = newId('whe');
+    await tenantA.webhookEndpoint.create({
+      data: {
+        id: endpointId,
+        organizationId: orgA.id,
+        url: 'https://a.example/hook',
+        secret: 'whsec_a',
+        events: ['deal.won'],
+      },
+    });
+
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.webhookEndpoint.count()).toBe(0);
+    expect(await tenantB.webhookEndpoint.findUnique({ where: { id: endpointId } })).toBeNull();
+    await expect(
+      tenantB.webhookEndpoint.create({
+        data: {
+          id: newId('whe'),
+          organizationId: orgA.id,
+          url: 'https://b.example/hook',
+          secret: 'whsec_b',
+          events: ['deal.won'],
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.webhookEndpoint.count()).toBe(1);
+  });
+
   it('subscriptions are tenant-isolated', async () => {
     await forTenant(app, orgA.id).subscription.create({
       data: { id: newId('sub'), organizationId: orgA.id, plan: 'PRO' },

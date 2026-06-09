@@ -13,6 +13,7 @@ import { journeyRouter } from './journey';
 import { scoringRouter } from './scoring';
 import { segmentRouter } from './segment';
 import { ssoRouter } from './sso';
+import { webhookRouter } from './webhook';
 import { workspaceRouter } from './workspace';
 
 export const appRouter = router({
@@ -36,6 +37,7 @@ export const appRouter = router({
   billing: billingRouter,
   sso: ssoRouter,
   apiKey: apiKeyRouter,
+  webhook: webhookRouter,
 });
 
 export type AppRouter = typeof appRouter;

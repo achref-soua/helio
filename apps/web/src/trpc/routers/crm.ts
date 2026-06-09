@@ -2,6 +2,8 @@ import { newId, taskPrioritySchema, taskStatusSchema, taskTypeSchema } from '@he
 import { type inferProcedureBuilderResolverOptions, TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { emitWebhookEvent } from '@/lib/webhooks';
+
 import { orgProcedure, requireRole, router } from '../init';
 
 type OrgContext = inferProcedureBuilderResolverOptions<typeof orgProcedure>['ctx'];
@@ -141,6 +143,19 @@ export const crmRouter = router({
         },
       });
       await writeAudit(ctx, input.workspaceId, 'deal.created', 'deal', deal.id);
+      await emitWebhookEvent(
+        ctx,
+        deal.status === 'WON' ? 'deal.won' : deal.status === 'LOST' ? 'deal.lost' : 'deal.created',
+        {
+          id: deal.id,
+          title: deal.title,
+          valueCents: deal.valueCents,
+          currency: deal.currency,
+          status: deal.status,
+          workspaceId: deal.workspaceId,
+          contactId: deal.contactId,
+        },
+      );
       return deal;
     }),
 
@@ -175,6 +190,13 @@ export const crmRouter = router({
         },
       });
       await writeAudit(ctx, deal.workspaceId, 'deal.moved', 'deal', input.id);
+      if (stage.kind === 'WON' || stage.kind === 'LOST') {
+        await emitWebhookEvent(ctx, stage.kind === 'WON' ? 'deal.won' : 'deal.lost', {
+          id: input.id,
+          status: stage.kind,
+          workspaceId: deal.workspaceId,
+        });
+      }
       return { id: input.id };
     }),
 
@@ -321,6 +343,13 @@ export const crmRouter = router({
       });
       const action = done ? 'task.completed' : 'task.reopened';
       await writeAudit(ctx, task.workspaceId, action, 'task', input.id);
+      if (done) {
+        await emitWebhookEvent(ctx, 'task.completed', {
+          id: input.id,
+          title: task.title,
+          workspaceId: task.workspaceId,
+        });
+      }
       return { id: input.id, status: input.status };
     }),
 
