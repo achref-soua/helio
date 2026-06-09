@@ -86,6 +86,13 @@ export const journeyNodeSchema = z.discriminatedUnion('type', [
     body: z.string().trim().min(1).max(1024),
     position: positionSchema.optional(),
   }),
+  z.object({
+    id: nodeIdSchema,
+    type: z.literal('send_in_app'),
+    /** The InAppMessage whose content is queued for the contact. */
+    messageId: z.string().trim().min(1).max(64),
+    position: positionSchema.optional(),
+  }),
   z.object({ id: nodeIdSchema, type: z.literal('end'), position: positionSchema.optional() }),
 ]);
 export type JourneyNode = z.infer<typeof journeyNodeSchema>;

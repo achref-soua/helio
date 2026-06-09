@@ -4,6 +4,7 @@ import { Input } from '@helio/ui/components/input';
 import { useQuery } from '@tanstack/react-query';
 import { Handle, type NodeProps, Position, useReactFlow } from '@xyflow/react';
 import {
+  AppWindow,
   Bell,
   GitBranch,
   Mail,
@@ -25,6 +26,7 @@ import type {
   AbSplitData,
   BranchData,
   SendEmailData,
+  SendInAppData,
   SendPushData,
   SendSmsData,
   SendWhatsappData,
@@ -353,6 +355,40 @@ export function SendWhatsappNode({ id, data, selected }: NodeProps) {
   );
 }
 
+export function SendInAppNode({ id, data, selected }: NodeProps) {
+  const t = useTranslations('journeys.nodes');
+  const trpc = useTRPC();
+  const workspaceId = useActiveWorkspaceId();
+  const { updateNodeData } = useReactFlow();
+  const inApp = data as SendInAppData;
+  const messages = useQuery({
+    ...trpc.inAppMessage.list.queryOptions({ workspaceId: workspaceId ?? '' }),
+    enabled: !!workspaceId,
+  });
+  return (
+    <div className={shell(selected)} data-testid="node-send-in-app">
+      <Header icon={AppWindow} label={t('sendInApp')} />
+      <Select
+        aria-label={t('inAppMessage')}
+        value={inApp.messageId}
+        onChange={(event) => updateNodeData(id, { messageId: event.target.value })}
+        className="nodrag"
+      >
+        <option value="" disabled>
+          {t('pickInAppMessage')}
+        </option>
+        {messages.data?.map((message) => (
+          <option key={message.id} value={message.id}>
+            {message.name}
+          </option>
+        ))}
+      </Select>
+      <Handle type="target" position={Position.Top} />
+      <Handle type="source" position={Position.Bottom} />
+    </div>
+  );
+}
+
 export const nodeTypes = {
   trigger: TriggerNode,
   send_email: SendEmailNode,
@@ -364,5 +400,6 @@ export const nodeTypes = {
   send_push: SendPushNode,
   send_sms: SendSmsNode,
   send_whatsapp: SendWhatsappNode,
+  send_in_app: SendInAppNode,
   end: EndNode,
 };

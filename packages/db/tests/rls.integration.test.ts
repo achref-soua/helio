@@ -406,6 +406,39 @@ describe('row-level security tenant isolation', () => {
     expect(await tenantA.widget.count()).toBe(1);
   });
 
+  it('in-app messages are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const messageId = newId('iam');
+    await tenantA.inAppMessage.create({
+      data: {
+        id: messageId,
+        organizationId: orgA.id,
+        workspaceId: workspaceA,
+        name: 'Welcome',
+        title: 'Welcome aboard',
+        body: 'Glad you’re here',
+      },
+    });
+
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.inAppMessage.count()).toBe(0);
+    expect(await tenantB.inAppMessage.findUnique({ where: { id: messageId } })).toBeNull();
+    await expect(
+      tenantB.inAppMessage.create({
+        data: {
+          id: newId('iam'),
+          organizationId: orgA.id,
+          workspaceId: workspaceA,
+          name: 'X',
+          title: 'X',
+          body: 'X',
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.inAppMessage.count()).toBe(1);
+  });
+
   it('subscriptions are tenant-isolated', async () => {
     await forTenant(app, orgA.id).subscription.create({
       data: { id: newId('sub'), organizationId: orgA.id, plan: 'PRO' },

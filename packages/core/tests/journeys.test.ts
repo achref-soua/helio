@@ -74,6 +74,25 @@ describe('journeyDefinitionSchema', () => {
     expect(journeyDefinitionSchema.safeParse(withWhatsapp).success).toBe(true);
   });
 
+  it('accepts a send_in_app node and rejects an empty messageId', () => {
+    const withInApp = {
+      trigger: { type: 'event', event: 'Signed Up' },
+      startNodeId: 'i1',
+      nodes: [
+        { id: 'i1', type: 'send_in_app', messageId: 'iam_123' },
+        { id: 'i2', type: 'end' },
+      ],
+      edges: [{ from: 'i1', to: 'i2' }],
+    };
+    expect(journeyDefinitionSchema.safeParse(withInApp).success).toBe(true);
+    expect(
+      journeyDefinitionSchema.safeParse({
+        ...withInApp,
+        nodes: [{ id: 'i1', type: 'send_in_app', messageId: '' }, withInApp.nodes[1]],
+      }).success,
+    ).toBe(false);
+  });
+
   it('rejects unknown start nodes, dangling edges, and duplicate ids', () => {
     expect(journeyDefinitionSchema.safeParse({ ...valid, startNodeId: 'ghost' }).success).toBe(
       false,

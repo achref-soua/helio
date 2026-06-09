@@ -276,6 +276,32 @@ export function createJourneyActivities(
       return { sent: result === 'sent' ? 1 : 0 };
     },
 
+    /**
+     * Queue an in-app message for a contact. The tracking SDK fetches unseen
+     * deliveries for the current identity and renders them. No external
+     * provider: delivery is a row the SDK drains. No-ops when the contact is
+     * suppressed or the message is missing/paused.
+     */
+    async sendJourneyInApp(contactId: string, messageId: string): Promise<{ queued: number }> {
+      const contact = await prisma.contact.findUnique({ where: { id: contactId } });
+      if (!contact || contact.status !== 'ACTIVE') return { queued: 0 };
+      const message = await prisma.inAppMessage.findFirst({
+        where: { id: messageId, workspaceId: contact.workspaceId, active: true },
+        select: { id: true },
+      });
+      if (!message) return { queued: 0 };
+      await prisma.inAppDelivery.create({
+        data: {
+          id: newId('iad'),
+          organizationId: contact.organizationId,
+          workspaceId: contact.workspaceId,
+          messageId: message.id,
+          contactId,
+        },
+      });
+      return { queued: 1 };
+    },
+
     async completeRun(runId: string): Promise<void> {
       await prisma.journeyRun.update({
         where: { id: runId },

@@ -18,6 +18,7 @@ import {
   useNodesState,
 } from '@xyflow/react';
 import {
+  AppWindow,
   Bell,
   GitBranch,
   Mail,
@@ -99,6 +100,7 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
       | 'send_push'
       | 'send_sms'
       | 'send_whatsapp'
+      | 'send_in_app'
       | 'end',
   ) {
     const id = nextCanvasId(type);
@@ -124,7 +126,9 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
                     ? { title: '', body: '', url: '' }
                     : type === 'send_sms' || type === 'send_whatsapp'
                       ? { body: '' }
-                      : {};
+                      : type === 'send_in_app'
+                        ? { messageId: '' }
+                        : {};
     setNodes((current) => [...current, { id, type, position, data }]);
     if (tailId) {
       const tailNode = nodes.find((node) => node.id === tailId);
@@ -213,6 +217,9 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
         </Button>
         <Button variant="outline" size="sm" onClick={() => addNode('send_whatsapp')}>
           <MessageCircle aria-hidden /> {t('addSendWhatsapp')}
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => addNode('send_in_app')}>
+          <AppWindow aria-hidden /> {t('addSendInApp')}
         </Button>
         <Button variant="outline" size="sm" onClick={() => addNode('end')}>
           <Square aria-hidden /> {t('addEnd')}

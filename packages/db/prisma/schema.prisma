@@ -58,6 +58,8 @@ model Organization {
   sendingDomains    SendingDomain[]
   landingPages      LandingPage[]
   widgets           Widget[]
+  inAppMessages     InAppMessage[]
+  inAppDeliveries   InAppDelivery[]
 
   @@map("organization")
 }
@@ -115,6 +117,8 @@ model Workspace {
   sendingDomains    SendingDomain[]
   landingPages      LandingPage[]
   widgets           Widget[]
+  inAppMessages     InAppMessage[]
+  inAppDeliveries   InAppDelivery[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -191,6 +195,7 @@ model Contact {
   deals             Deal[]
   tasks             Task[]
   meetings          Meeting[]
+  inAppDeliveries   InAppDelivery[]
 
   @@unique([workspaceId, email])
   @@index([organizationId])
@@ -1124,4 +1129,50 @@ model Widget {
   @@index([organizationId])
   @@index([workspaceId, active])
   @@map("widget")
+}
+
+/// In-app message content shown inside the customer's own product to
+/// identified visitors. Journeys queue a per-contact InAppDelivery; the
+/// tracking SDK fetches unseen deliveries for the current identity.
+model InAppMessage {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  name           String
+  title          String
+  body           String
+  ctaLabel       String?  @map("cta_label")
+  ctaUrl         String?  @map("cta_url")
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  deliveries   InAppDelivery[]
+
+  @@index([organizationId])
+  @@index([workspaceId, active])
+  @@map("in_app_message")
+}
+
+/// One queued in-app message for one contact. Created when a journey hits a
+/// send_in_app node; cleared (seenAt set) when the SDK reports it displayed.
+model InAppDelivery {
+  id             String    @id
+  organizationId String    @map("organization_id")
+  workspaceId    String    @map("workspace_id")
+  messageId      String    @map("message_id")
+  contactId      String    @map("contact_id")
+  seenAt         DateTime? @map("seen_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  message      InAppMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  contact      Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([contactId, seenAt])
+  @@map("in_app_delivery")
 }

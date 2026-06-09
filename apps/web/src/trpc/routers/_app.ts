@@ -11,6 +11,7 @@ import { crmRouter } from './crm';
 import { deliverabilityRouter } from './deliverability';
 import { emailTemplateRouter } from './email-template';
 import { formRouter } from './form';
+import { inAppMessageRouter } from './inAppMessage';
 import { integrationsRouter } from './integrations';
 import { journeyRouter } from './journey';
 import { landingRouter } from './landing';
@@ -52,6 +53,7 @@ export const appRouter = router({
   support: supportRouter,
   deliverability: deliverabilityRouter,
   widget: widgetRouter,
+  inAppMessage: inAppMessageRouter,
 });
 
 export type AppRouter = typeof appRouter;
