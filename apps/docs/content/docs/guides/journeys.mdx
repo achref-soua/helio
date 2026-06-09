@@ -32,16 +32,17 @@ A contact can enter a journey from:
 The canvas validates your graph (no dangling edges, exactly one path per
 branch) and round-trips losslessly. Available nodes:
 
-| Node           | Does                                                 |
-| -------------- | ---------------------------------------------------- |
-| `send_email`   | Send a template; optional send-time optimization.    |
-| `send_push`    | Send a web push notification (VAPID).                |
-| `wait`         | Durable delay (minutes to weeks), survives restarts. |
-| `branch`       | Split on live contact data / segment membership.     |
-| `ab_split`     | Randomly split traffic N ways for experimentation.   |
-| `update_trait` | Write an attribute on the contact.                   |
-| `webhook`      | Call an external URL (optionally HMAC-signed).       |
-| `end`          | Terminate this contact's journey.                    |
+| Node           | Does                                                                   |
+| -------------- | ---------------------------------------------------------------------- |
+| `send_email`   | Send a template; optional send-time optimization.                      |
+| `send_push`    | Send a web push notification (VAPID).                                  |
+| `send_sms`     | Text the contact via Twilio (`{{token}}` personalized; needs a phone). |
+| `wait`         | Durable delay (minutes to weeks), survives restarts.                   |
+| `branch`       | Split on live contact data / segment membership.                       |
+| `ab_split`     | Randomly split traffic N ways for experimentation.                     |
+| `update_trait` | Write an attribute on the contact.                                     |
+| `webhook`      | Call an external URL (optionally HMAC-signed).                         |
+| `end`          | Terminate this contact's journey.                                      |
 
 ## Guardrails
 

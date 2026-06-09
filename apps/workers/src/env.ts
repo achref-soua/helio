@@ -44,6 +44,10 @@ export const env = createEnv({
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().default('mailto:push@helio.local'),
+  /** Twilio credentials for SMS; send_sms nodes no-op when unset. */
+  TWILIO_ACCOUNT_SID: z.string().optional(),
+  TWILIO_AUTH_TOKEN: z.string().optional(),
+  TWILIO_FROM: z.string().optional(),
   /** Consume tracked events and enroll contacts into ACTIVE journeys. */
   JOURNEY_TRIGGERS_ENABLED: z
     .enum(['true', 'false'])

@@ -9,6 +9,7 @@ import {
   openPixelUrl,
   type QuietHours,
   quietHoursDelayMs,
+  renderTokens,
   type SegmentCondition,
   type SegmentRule,
   sendTimeDelayMs,
@@ -20,6 +21,7 @@ import { renderEmail } from '@helio/emails';
 import type { ActivityConfig } from './activities';
 import type { EmailProvider } from './email-provider';
 import type { PushProvider } from './push-provider';
+import type { SmsProvider } from './sms-provider';
 
 export interface LoadedJourney {
   organizationId: string;
@@ -37,6 +39,7 @@ export function createJourneyActivities(
   provider: EmailProvider,
   config: ActivityConfig,
   pushProvider?: PushProvider,
+  smsProvider?: SmsProvider,
 ) {
   return {
     async loadJourney(journeyId: string): Promise<LoadedJourney> {
@@ -230,6 +233,26 @@ export function createJourneyActivities(
         }
       }
       return { sent };
+    },
+
+    /**
+     * Text a contact via the SMS provider. Skips contacts that are
+     * suppressed, have no phone number, or when no provider is configured.
+     * The body supports {{token}} personalization.
+     */
+    async sendJourneySms(contactId: string, body: string): Promise<{ sent: number }> {
+      const contact = await prisma.contact.findUnique({ where: { id: contactId } });
+      if (!contact || contact.status !== 'ACTIVE' || !contact.phone || !smsProvider) {
+        return { sent: 0 };
+      }
+      const rendered = renderTokens(body, {
+        email: contact.email,
+        firstName: contact.firstName,
+        lastName: contact.lastName,
+        attributes: (contact.attributes ?? {}) as Record<string, unknown>,
+      });
+      const result = await smsProvider.send(contact.phone, rendered);
+      return { sent: result === 'sent' ? 1 : 0 };
     },
 
     async completeRun(runId: string): Promise<void> {

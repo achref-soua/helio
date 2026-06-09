@@ -294,7 +294,8 @@
       "deleteAction": "Delete rule for {event}",
       "empty": "No scoring rules yet.",
       "manageAction": "Scoring rules"
-    }
+    },
+    "phone": "Phone"
   },
   "segments": {
     "title": "Segments",
@@ -546,7 +547,8 @@
       "capPer": "per",
       "capDays": "Cap window (days)",
       "capDaysSuffix": "days",
-      "addSendPush": "Web push"
+      "addSendPush": "Web push",
+      "addSendSms": "SMS"
     },
     "nodes": {
       "trigger": "Trigger",
@@ -586,7 +588,10 @@
       "pushBody": "Notification body",
       "pushBodyPlaceholder": "Short message",
       "pushUrl": "Click-through URL",
-      "pushUrlPlaceholder": "https:// (optional)"
+      "pushUrlPlaceholder": "https:// (optional)",
+      "sendSms": "Send SMS",
+      "smsBody": "SMS message",
+      "smsBodyPlaceholder": "Hi {{firstName}}, …"
     }
   },
   "forms": {

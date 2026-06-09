@@ -49,6 +49,10 @@ export interface SendPushData {
   url: string;
   [key: string]: unknown;
 }
+export interface SendSmsData {
+  body: string;
+  [key: string]: unknown;
+}
 
 export interface JourneySettings {
   quietHoursEnabled: boolean;
@@ -139,6 +143,8 @@ export function definitionToCanvas(definition: JourneyDefinition): {
         position,
         data: { title: node.title, body: node.body, url: node.url ?? '' },
       });
+    } else if (node.type === 'send_sms') {
+      nodes.push({ id: node.id, type: 'send_sms', position, data: { body: node.body } });
     } else if (node.type === 'branch') {
       const condition = node.condition as { key?: string; operator?: string; value?: string };
       nodes.push({
@@ -250,6 +256,10 @@ export function canvasToDefinition(
         ...(data.url.trim() ? { url: data.url.trim() } : {}),
         position,
       });
+    } else if (node.type === 'send_sms') {
+      const data = node.data as SendSmsData;
+      if (!data.body.trim()) issues.push('sms: enter a message');
+      definitionNodes.push({ id: node.id, type: 'send_sms', body: data.body, position });
     } else if (node.type === 'branch') {
       const data = node.data as BranchData;
       if (!data.attributeKey || !data.value) issues.push('branch: set attribute and value');

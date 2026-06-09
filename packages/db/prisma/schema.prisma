@@ -152,6 +152,8 @@ model Contact {
   organizationId        String        @map("organization_id")
   workspaceId           String        @map("workspace_id")
   email                 String
+  /// E.164 phone number for SMS/WhatsApp; null when unknown.
+  phone                 String?
   firstName             String?       @map("first_name")
   lastName              String?       @map("last_name")
   attributes            Json          @default("{}")

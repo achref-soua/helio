@@ -42,6 +42,25 @@ describe('journeyDefinitionSchema', () => {
     expect(journeyDefinitionSchema.safeParse(valid).success).toBe(true);
   });
 
+  it('accepts a send_sms node and rejects an empty body', () => {
+    const withSms = {
+      trigger: { type: 'event', event: 'Signed Up' },
+      startNodeId: 's1',
+      nodes: [
+        { id: 's1', type: 'send_sms', body: 'Hi {{firstName}}' },
+        { id: 's2', type: 'end' },
+      ],
+      edges: [{ from: 's1', to: 's2' }],
+    };
+    expect(journeyDefinitionSchema.safeParse(withSms).success).toBe(true);
+    expect(
+      journeyDefinitionSchema.safeParse({
+        ...withSms,
+        nodes: [{ id: 's1', type: 'send_sms', body: '' }, withSms.nodes[1]],
+      }).success,
+    ).toBe(false);
+  });
+
   it('rejects unknown start nodes, dangling edges, and duplicate ids', () => {
     expect(journeyDefinitionSchema.safeParse({ ...valid, startNodeId: 'ghost' }).success).toBe(
       false,

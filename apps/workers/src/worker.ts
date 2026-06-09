@@ -11,6 +11,7 @@ import { SmtpEmailProvider } from './email-provider';
 import { env } from './env';
 import { createJourneyActivities } from './journey-activities';
 import { WebPushProvider } from './push-provider';
+import { TwilioSmsProvider } from './sms-provider';
 import { JourneyTriggerConsumer } from './trigger-consumer';
 import { createWebhookActivities } from './webhook-activities';
 
@@ -57,6 +58,13 @@ const worker = await Worker.create({
             publicKey: env.VAPID_PUBLIC_KEY,
             privateKey: env.VAPID_PRIVATE_KEY,
             subject: env.VAPID_SUBJECT,
+          })
+        : undefined,
+      env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM
+        ? new TwilioSmsProvider({
+            accountSid: env.TWILIO_ACCOUNT_SID,
+            authToken: env.TWILIO_AUTH_TOKEN,
+            from: env.TWILIO_FROM,
           })
         : undefined,
     ),
