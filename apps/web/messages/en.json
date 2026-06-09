@@ -783,5 +783,30 @@
       "email": "Please enter a valid email.",
       "taken": "That slot was just taken — please pick another."
     }
+  },
+  "integrations": {
+    "title": "Integrations",
+    "subtitle": "Connect external platforms; their events sync into your CDP.",
+    "connectShopify": "Connect Shopify",
+    "connectTitle": "Connect a Shopify store",
+    "connectSubtitle": "Paste your shop domain and the app secret used to sign Shopify webhooks.",
+    "shopDomain": "Shop domain",
+    "secret": "Webhook signing secret",
+    "connect": "Connect",
+    "connecting": "Connecting…",
+    "connected": "Store connected",
+    "empty": "No integrations connected yet.",
+    "enabled": "Active",
+    "disabled": "Paused",
+    "disconnectLabel": "Disconnect {account}",
+    "webhookHint": "Point your Shopify webhooks at",
+    "topics": "subscribing to",
+    "genericError": "Something went wrong. Please try again.",
+    "columns": {
+      "provider": "Provider",
+      "account": "Account",
+      "status": "Status",
+      "actions": "Actions"
+    }
   }
 }

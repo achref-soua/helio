@@ -10,6 +10,7 @@ import { rateLimit } from './middleware/rate-limit';
 import { metricsRegistry } from './observability';
 import { contactRoutes } from './routes/contacts';
 import { listRoutes } from './routes/lists';
+import { shopifyWebhookRoutes } from './routes/shopify-webhook';
 import { stripeWebhookRoutes } from './routes/stripe-webhook';
 import { workspaceRoutes } from './routes/workspaces';
 import type { GatewayDeps, GatewayEnv } from './types';
@@ -54,9 +55,10 @@ export function createApp(deps: GatewayDeps) {
     return c.json({ status: ready ? 'ok' : 'degraded', checks }, ready ? 200 : 503);
   });
 
-  // Stripe webhooks authenticate by signature, not the bearer token, so
+  // Provider webhooks authenticate by signature, not the bearer token, so
   // they mount before the /v1 auth middleware.
   app.route('/', stripeWebhookRoutes(deps));
+  app.route('/', shopifyWebhookRoutes(deps));
 
   // Authenticated (per-org API key), rate-limited, idempotent API surface.
   app.use('/v1/*', apiKeyAuth(deps));

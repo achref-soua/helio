@@ -147,6 +147,15 @@ export {
   type StringOperator,
 } from './segments';
 export {
+  SHOPIFY_TOPICS,
+  type ShopifyContact,
+  shopifyContactForTopic,
+  shopifyContactFromCustomer,
+  shopifyContactFromOrder,
+  type ShopifyTopic,
+  verifyShopifyHmac,
+} from './shopify';
+export {
   compareTasks,
   groupTasksByBucket,
   isTaskOverdue,

@@ -7,6 +7,7 @@ import { auth } from '@/lib/auth';
 import { ApiKeysPanel } from './api-keys-panel';
 import { BillingPanel } from './billing-panel';
 import { BrandingPanel } from './branding-panel';
+import { IntegrationsPanel } from './integrations-panel';
 import { MembersPanel } from './members-panel';
 import { ScimPanel } from './scim-panel';
 import { SsoPanel } from './sso-panel';
@@ -54,6 +55,7 @@ export default async function SettingsPage() {
           <ScimPanel canManage />
           <ApiKeysPanel canManage />
           <WebhooksPanel canManage />
+          <IntegrationsPanel canManage />
           <BrandingPanel canManage />
         </>
       )}
