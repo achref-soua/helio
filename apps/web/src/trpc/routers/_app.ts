@@ -10,6 +10,7 @@ import { copilotRouter } from './copilot';
 import { crmRouter } from './crm';
 import { emailTemplateRouter } from './email-template';
 import { formRouter } from './form';
+import { integrationsRouter } from './integrations';
 import { journeyRouter } from './journey';
 import { schedulingRouter } from './scheduling';
 import { scoringRouter } from './scoring';
@@ -42,6 +43,7 @@ export const appRouter = router({
   apiKey: apiKeyRouter,
   webhook: webhookRouter,
   branding: brandingRouter,
+  integrations: integrationsRouter,
 });
 
 export type AppRouter = typeof appRouter;

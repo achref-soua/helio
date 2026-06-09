@@ -53,7 +53,8 @@ Marketing automation today forces a bad choice:
 - ✅ **SDKs & docs** — typed REST SDKs for JavaScript/TypeScript and Python, generated from the OpenAPI spec, plus a full documentation site (Fumadocs)
 - ✅ **Outbound webhooks** — subscribe endpoints to lifecycle events (contacts, deals, tasks); each delivery is HMAC-signed with the endpoint's own secret over a timestamped scheme and sent on a durable, retrying workflow, with a one-click test ping
 - ✅ **White-labeling** — per-organization display name, accent color, and logo applied across the dashboard shell and hosted pages; the accent drives the primary token with an auto-picked legible foreground, validated hex-only so it can't inject markup
-- 🗺️ **Platform integrations** — Shopify & Salesforce, ad-audience sync
+- ✅ **Shopify** — connect a store and stream `customers/create|update` and `orders/create` into the CDP; every webhook is HMAC-verified, the shop domain resolves the org, and buyers gain `shopify_*` traits you can segment on
+- 🗺️ **Platform integrations** — Salesforce, ad-audience sync
 
 ### The product in action
 
@@ -188,7 +189,7 @@ Hot-path budgets (ingestion ≥ 5k events/s, API reads p95 < 150 ms) have a comm
 | **v0.7**  | Platform: opt-in Stripe billing with plan-gated usage limits and a signature-verified webhook            |
 | **v0.8**  | Platform: enterprise SSO & SCIM, generated REST SDKs (JS + Python), documentation site, richer demo seed |
 | **v0.9**  | Platform: Kubernetes Helm chart, and production & managed-cloud deployment guides                        |
-| **v1.0**  | Launch: Shopify/Salesforce integrations, load-test results, public demo, tagged v1.0.0                   |
+| **v1.0**  | Launch: Salesforce integration, load-test results, public demo, tagged v1.0.0                            |
 
 ## Documentation
 

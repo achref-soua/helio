@@ -270,6 +270,38 @@ describe('row-level security tenant isolation', () => {
     expect(await tenantA.meeting.count()).toBe(1);
   });
 
+  it('integrations (and their secrets) are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const integrationId = newId('intg');
+    await tenantA.integration.create({
+      data: {
+        id: integrationId,
+        organizationId: orgA.id,
+        workspaceId: workspaceA,
+        provider: 'SHOPIFY',
+        externalId: 'a.myshopify.com',
+        secret: 'shh',
+      },
+    });
+
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.integration.count()).toBe(0);
+    expect(await tenantB.integration.findUnique({ where: { id: integrationId } })).toBeNull();
+    await expect(
+      tenantB.integration.create({
+        data: {
+          id: newId('intg'),
+          organizationId: orgA.id,
+          workspaceId: workspaceA,
+          provider: 'SALESFORCE',
+          secret: 'token',
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.integration.count()).toBe(1);
+  });
+
   it('subscriptions are tenant-isolated', async () => {
     await forTenant(app, orgA.id).subscription.create({
       data: { id: newId('sub'), organizationId: orgA.id, plan: 'PRO' },

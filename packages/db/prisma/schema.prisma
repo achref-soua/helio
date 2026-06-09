@@ -53,6 +53,7 @@ model Organization {
   webhookEndpoints  WebhookEndpoint[]
   bookingPages      BookingPage[]
   meetings          Meeting[]
+  integrations      Integration[]
 
   @@map("organization")
 }
@@ -106,6 +107,7 @@ model Workspace {
   tasks             Task[]
   bookingPages      BookingPage[]
   meetings          Meeting[]
+  integrations      Integration[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -951,4 +953,40 @@ model Meeting {
   @@index([organizationId])
   @@index([workspaceId, startAt])
   @@map("meeting")
+}
+
+enum IntegrationProvider {
+  SHOPIFY
+  SALESFORCE
+
+  @@map("integration_provider")
+}
+
+/// A connection to an external platform. Shopify uses `secret` to verify
+/// inbound webhooks and `externalId` to resolve the shop; Salesforce stores
+/// an access token in `secret`. Workspace-scoped and RLS-isolated; the inbound
+/// webhook resolves the org through the admin client by (provider, externalId).
+model Integration {
+  id             String              @id
+  organizationId String              @map("organization_id")
+  workspaceId    String              @map("workspace_id")
+  provider       IntegrationProvider
+  /// External identifier used to route inbound calls (e.g. the Shopify shop
+  /// domain). Unique per provider so a shop maps to exactly one org.
+  externalId     String?             @map("external_id")
+  /// Webhook-signing secret (Shopify) or access token (Salesforce).
+  secret         String?
+  /// Provider-specific configuration as JSON.
+  config         Json                @default("{}")
+  enabled        Boolean             @default(true)
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, provider])
+  @@unique([provider, externalId])
+  @@index([organizationId])
+  @@map("integration")
 }
