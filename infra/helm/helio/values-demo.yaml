@@ -1,0 +1,67 @@
+# Demo overlay for a public try-it-yourself instance.
+#
+#   helm install helio-demo ./infra/helm/helio \
+#     --namespace helio-demo --create-namespace \
+#     --values ./infra/helm/helio/values-demo.yaml \
+#     --set secrets.data.BETTER_AUTH_SECRET="$(openssl rand -hex 32)"
+#
+# A demo is shared and internet-exposed: keep it in its own namespace, reset it
+# on a schedule, and don't point it at production data. See the "Running a
+# public demo" section of the docs.
+
+# Bundled in-cluster datastores keep a demo self-contained (not for production).
+postgresql:
+  enabled: true
+  persistence:
+    enabled: false # ephemeral — a redeploy resets the demo
+redis:
+  enabled: true
+  persistence:
+    enabled: false
+
+# Single replica per service is plenty for a demo.
+services:
+  web:
+    replicas: 1
+  api:
+    replicas: 1
+  ingest:
+    replicas: 1
+  tracking:
+    replicas: 1
+  intelligence:
+    replicas: 1
+  workers:
+    replicas: 1
+
+autoscaling:
+  enabled: false
+
+config:
+  APP_URL: https://demo.helio.example.com
+  PUBLIC_TRACKING_URL: https://demo.helio.example.com
+  # Leave the AI provider unset by default so a public demo can't run up an LLM
+  # bill; set INTEL_LLM_PROVIDER=ollama + a local model to demo AI for free.
+  INTEL_LLM_PROVIDER: ollama
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: demo.helio.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: web
+  tls:
+    - secretName: helio-demo-tls
+      hosts:
+        - demo.helio.example.com
+
+# Run migrations on install; seed the demo workspace separately (see docs) with
+# an image that bundles @helio/db, e.g. by running `db:seed` as a one-off Job.
+migrations:
+  enabled: true
+  image: ghcr.io/achref-soua/helio-web:0.8.0
