@@ -4,9 +4,11 @@ import { Button } from '@helio/ui/components/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@helio/ui/components/sheet';
 import { cn } from '@helio/ui/lib/utils';
 import {
+  CalendarClock,
   FileText,
   Handshake,
   LayoutDashboard,
+  ListTodo,
   Mail,
   Megaphone,
   Menu,
@@ -35,6 +37,8 @@ const NAV_ITEMS = [
   { key: 'forms', href: '/forms', icon: FileText },
   { key: 'journeys', href: '/journeys', icon: Workflow },
   { key: 'deals', href: '/deals', icon: Handshake },
+  { key: 'tasks', href: '/tasks', icon: ListTodo },
+  { key: 'scheduling', href: '/scheduling', icon: CalendarClock },
   { key: 'copilot', href: '/copilot', icon: Sparkles },
   { key: 'settings', href: '/settings', icon: Settings },
 ] as const;
@@ -68,24 +72,37 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function Wordmark() {
+export interface BrandMark {
+  name: string | null;
+  logoUrl: string | null;
+}
+
+function Wordmark({ brand }: { brand?: BrandMark }) {
   const t = useTranslations('app');
+  const name = brand?.name || t('name');
   return (
     <Link href="/" className="flex items-center gap-2 px-4 font-semibold">
-      <Sun className="text-primary size-5" aria-hidden />
-      {t('name')}
+      {brand?.logoUrl ? (
+        // User-supplied logo from any host; next/image would need per-tenant
+        // domain config, so a plain decorative <img> is the right tool here.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={brand.logoUrl} alt="" className="size-5 rounded object-contain" />
+      ) : (
+        <Sun className="text-primary size-5" aria-hidden />
+      )}
+      {name}
     </Link>
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, brand }: { children: React.ReactNode; brand?: BrandMark }) {
   const t = useTranslations('nav');
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <div className="flex min-h-svh">
       <aside className="bg-sidebar border-sidebar-border hidden w-60 shrink-0 flex-col gap-6 border-r py-4 md:flex">
-        <Wordmark />
+        <Wordmark brand={brand} />
         <NavLinks />
       </aside>
 

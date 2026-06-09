@@ -1,0 +1,38 @@
+---
+title: White-labeling
+description: Put your own name, accent color, and logo on the dashboard and hosted pages.
+---
+
+Each organization can rebrand Helio as its own product. Branding is set under
+**Settings → Branding** (admins only) and applies instantly across the
+dashboard shell and every public hosted page.
+
+## What you can set
+
+| Field            | Effect                                                                      |
+| ---------------- | --------------------------------------------------------------------------- |
+| **Display name** | Replaces the "Helio" wordmark in the sidebar and on hosted forms.           |
+| **Accent color** | A `#rrggbb` hex applied as the primary color (buttons, links, focus rings). |
+| **Logo URL**     | An image shown beside the wordmark and atop hosted forms.                   |
+
+Anything left blank falls back to the Helio defaults, so partial branding (say,
+just a color) works fine.
+
+## How it applies
+
+The display name and logo render in the [dashboard](/docs) shell and on
+[hosted forms](/docs/guides/forms). The accent color is injected as the
+`--primary` CSS variable; Helio picks a legible foreground (black or white)
+automatically from the color's luminance, so text on your accent stays readable.
+
+<Callout>
+  The accent color is re-validated as a hex literal before it is written into the page, so a custom
+  color can never inject markup.
+</Callout>
+
+## Scope
+
+Branding is per-organization and tenant-isolated like the rest of your data —
+one workspace's branding never leaks into another tenant. Custom **domains**
+(serving the dashboard from your own hostname) are an infrastructure concern;
+point a CNAME at your Helio deployment and terminate TLS at your proxy.

@@ -17,6 +17,16 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "@helio/db#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["src/generated/**"]
+    },
+    "@helio/db#typecheck": {
+      "dependsOn": ["^build", "build"]
+    },
+    "@helio/db#test": {
+      "dependsOn": ["^build", "build"]
     }
   }
 }

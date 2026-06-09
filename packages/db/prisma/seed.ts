@@ -531,6 +531,48 @@ async function main() {
     });
   }
 
+  // ── Tasks: a spread of CRM to-dos across the due-date buckets ────────
+  const DAY_MS = 86_400_000;
+  const demoTasks: Array<{
+    n: number;
+    title: string;
+    type: 'TODO' | 'CALL' | 'EMAIL' | 'MEETING';
+    priority: 'LOW' | 'MEDIUM' | 'HIGH';
+    dueDays: number | null;
+    email?: string;
+    deal?: number;
+    done?: boolean;
+    notes?: string;
+  }> = [
+    { n: 1, title: 'Call Ada about the annual renewal', type: 'CALL', priority: 'HIGH', dueDays: -2, email: 'ada@example.com', deal: 4 }, // prettier-ignore
+    { n: 2, title: 'Send Acme the 25-seat proposal', type: 'EMAIL', priority: 'MEDIUM', dueDays: 0, email: 'grace@example.com', deal: 3 }, // prettier-ignore
+    { n: 3, title: 'Kickoff with Hamilton Aerospace', type: 'MEETING', priority: 'MEDIUM', dueDays: 3, email: 'margaret@example.com', deal: 5 }, // prettier-ignore
+    { n: 4, title: 'Follow up on the Hopper rollout', type: 'TODO', priority: 'LOW', dueDays: 6, email: 'radia@example.com', deal: 1 }, // prettier-ignore
+    { n: 5, title: 'Draft the Q3 nurture sequence', type: 'TODO', priority: 'LOW', dueDays: null, notes: 'Three emails: welcome, value, ask.' }, // prettier-ignore
+    { n: 6, title: 'Qualify the Johnson onboarding lead', type: 'CALL', priority: 'MEDIUM', dueDays: -1, email: 'katherine@example.com', deal: 2, done: true }, // prettier-ignore
+  ];
+  for (const task of demoTasks) {
+    const id = `task_demo_${task.n}`;
+    await prisma.task.upsert({
+      where: { id },
+      update: {},
+      create: {
+        id,
+        ...ws,
+        title: task.title,
+        type: task.type,
+        priority: task.priority,
+        status: task.done ? 'DONE' : 'OPEN',
+        dueAt:
+          task.dueDays === null ? null : new Date(predictedAt.getTime() + task.dueDays * DAY_MS),
+        completedAt: task.done ? new Date(predictedAt.getTime() - DAY_MS) : null,
+        notes: task.notes ?? null,
+        contactId: task.email ? (byEmail.get(task.email)?.id ?? null) : null,
+        dealId: task.deal ? `deal_demo_${task.deal}` : null,
+      },
+    });
+  }
+
   // Deterministic demo write key: local-only, lets the quickstart and the
   // SDK snippet work immediately after `task up`. Never reuse in prod.
   const writeKey = await prisma.writeKey.upsert({
@@ -559,7 +601,7 @@ async function main() {
     `Seeded demo data: ${org.slug}/${workspace.slug} (${org.id}, ${workspace.id})\n` +
       `  ${contacts.length} contacts, ${segments.length} segments, 2 templates, ` +
       `1 campaign, 1 journey, ${scoringRules.length} scoring rules\n` +
-      `  CRM pipeline "${pipeline.name}" with ${stageDefs.length} stages and ${deals.length} deals\n` +
+      `  CRM pipeline "${pipeline.name}" with ${stageDefs.length} stages, ${deals.length} deals, and ${demoTasks.length} tasks\n` +
       `  write key ${writeKey.key}`,
   );
   await prisma.$disconnect();

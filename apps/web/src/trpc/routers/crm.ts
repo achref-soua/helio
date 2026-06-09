@@ -1,6 +1,8 @@
-import { newId } from '@helio/core';
+import { newId, taskPrioritySchema, taskStatusSchema, taskTypeSchema } from '@helio/core';
 import { type inferProcedureBuilderResolverOptions, TRPCError } from '@trpc/server';
 import { z } from 'zod';
+
+import { emitWebhookEvent } from '@/lib/webhooks';
 
 import { orgProcedure, requireRole, router } from '../init';
 
@@ -140,7 +142,20 @@ export const crmRouter = router({
           closedAt: stage.kind === 'OPEN' ? null : new Date(),
         },
       });
-      await writeAudit(ctx, input.workspaceId, 'deal.created', deal.id);
+      await writeAudit(ctx, input.workspaceId, 'deal.created', 'deal', deal.id);
+      await emitWebhookEvent(
+        ctx,
+        deal.status === 'WON' ? 'deal.won' : deal.status === 'LOST' ? 'deal.lost' : 'deal.created',
+        {
+          id: deal.id,
+          title: deal.title,
+          valueCents: deal.valueCents,
+          currency: deal.currency,
+          status: deal.status,
+          workspaceId: deal.workspaceId,
+          contactId: deal.contactId,
+        },
+      );
       return deal;
     }),
 
@@ -174,7 +189,14 @@ export const crmRouter = router({
           closedAt: stage.kind === 'OPEN' ? null : new Date(),
         },
       });
-      await writeAudit(ctx, deal.workspaceId, 'deal.moved', input.id);
+      await writeAudit(ctx, deal.workspaceId, 'deal.moved', 'deal', input.id);
+      if (stage.kind === 'WON' || stage.kind === 'LOST') {
+        await emitWebhookEvent(ctx, stage.kind === 'WON' ? 'deal.won' : 'deal.lost', {
+          id: input.id,
+          status: stage.kind,
+          workspaceId: deal.workspaceId,
+        });
+      }
       return { id: input.id };
     }),
 
@@ -200,7 +222,7 @@ export const crmRouter = router({
           ...(rest.contactId !== undefined ? { contactId: rest.contactId } : {}),
         },
       });
-      await writeAudit(ctx, deal.workspaceId, 'deal.updated', id);
+      await writeAudit(ctx, deal.workspaceId, 'deal.updated', 'deal', id);
       return { id };
     }),
 
@@ -209,12 +231,145 @@ export const crmRouter = router({
     .mutation(async ({ ctx, input }) => {
       requireRole(ctx.memberRole, 'editor');
       const deal = await ctx.tenantDb.deal.delete({ where: { id: input.id } });
-      await writeAudit(ctx, deal.workspaceId, 'deal.deleted', input.id);
+      await writeAudit(ctx, deal.workspaceId, 'deal.deleted', 'deal', input.id);
+      return { id: input.id };
+    }),
+
+  // ── Tasks: workspace-scoped to-dos, optionally tied to a contact/deal ──
+
+  tasks: orgProcedure
+    .input(z.object({ workspaceId: z.string().min(1), status: taskStatusSchema.optional() }))
+    .query(({ ctx, input }) =>
+      ctx.tenantDb.task.findMany({
+        where: {
+          workspaceId: input.workspaceId,
+          ...(input.status ? { status: input.status } : {}),
+        },
+        // A stable server order; the client regroups by due date in its own
+        // time zone (see groupTasksByBucket).
+        orderBy: [{ status: 'asc' }, { dueAt: 'asc' }, { createdAt: 'asc' }],
+        select: {
+          id: true,
+          title: true,
+          notes: true,
+          type: true,
+          priority: true,
+          status: true,
+          dueAt: true,
+          completedAt: true,
+          contactId: true,
+          contact: { select: { email: true } },
+          dealId: true,
+          deal: { select: { title: true } },
+          ownerId: true,
+          createdAt: true,
+        },
+      }),
+    ),
+
+  createTask: orgProcedure
+    .input(
+      z.object({
+        workspaceId: z.string().min(1),
+        title: z.string().trim().min(1).max(200),
+        type: taskTypeSchema.default('TODO'),
+        priority: taskPrioritySchema.default('MEDIUM'),
+        dueAt: z.date().nullable().optional(),
+        notes: z.string().trim().max(2000).nullable().optional(),
+        contactId: z.string().min(1).optional(),
+        dealId: z.string().min(1).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requireRole(ctx.memberRole, 'editor');
+      const task = await ctx.tenantDb.task.create({
+        data: {
+          id: newId('task'),
+          organizationId: ctx.organizationId,
+          workspaceId: input.workspaceId,
+          title: input.title,
+          type: input.type,
+          priority: input.priority,
+          dueAt: input.dueAt ?? null,
+          notes: input.notes ?? null,
+          contactId: input.contactId,
+          dealId: input.dealId,
+          // New tasks are assigned to their creator by default.
+          ownerId: ctx.session.user.id,
+        },
+      });
+      await writeAudit(ctx, input.workspaceId, 'task.created', 'task', task.id);
+      return { id: task.id };
+    }),
+
+  updateTask: orgProcedure
+    .input(
+      z.object({
+        id: z.string().min(1),
+        title: z.string().trim().min(1).max(200).optional(),
+        type: taskTypeSchema.optional(),
+        priority: taskPrioritySchema.optional(),
+        dueAt: z.date().nullable().optional(),
+        notes: z.string().trim().max(2000).nullable().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requireRole(ctx.memberRole, 'editor');
+      const { id, ...rest } = input;
+      const task = await ctx.tenantDb.task.update({
+        where: { id },
+        data: {
+          title: rest.title,
+          type: rest.type,
+          priority: rest.priority,
+          // dueAt and notes are nullable, so only touch them when provided.
+          ...(rest.dueAt !== undefined ? { dueAt: rest.dueAt } : {}),
+          ...(rest.notes !== undefined ? { notes: rest.notes } : {}),
+        },
+      });
+      await writeAudit(ctx, task.workspaceId, 'task.updated', 'task', id);
+      return { id };
+    }),
+
+  setTaskStatus: orgProcedure
+    .input(z.object({ id: z.string().min(1), status: taskStatusSchema }))
+    .mutation(async ({ ctx, input }) => {
+      requireRole(ctx.memberRole, 'editor');
+      const done = input.status === 'DONE';
+      const task = await ctx.tenantDb.task.update({
+        where: { id: input.id },
+        // Completing stamps completedAt; reopening clears it.
+        data: { status: input.status, completedAt: done ? new Date() : null },
+      });
+      const action = done ? 'task.completed' : 'task.reopened';
+      await writeAudit(ctx, task.workspaceId, action, 'task', input.id);
+      if (done) {
+        await emitWebhookEvent(ctx, 'task.completed', {
+          id: input.id,
+          title: task.title,
+          workspaceId: task.workspaceId,
+        });
+      }
+      return { id: input.id, status: input.status };
+    }),
+
+  deleteTask: orgProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      requireRole(ctx.memberRole, 'editor');
+      const task = await ctx.tenantDb.task.delete({ where: { id: input.id } });
+      await writeAudit(ctx, task.workspaceId, 'task.deleted', 'task', input.id);
       return { id: input.id };
     }),
 });
 
-async function writeAudit(ctx: OrgContext, workspaceId: string, action: string, targetId: string) {
+async function writeAudit(
+  ctx: OrgContext,
+  workspaceId: string,
+  action: string,
+  targetType: string,
+  targetId: string,
+) {
   await ctx.tenantDb.auditLog.create({
     data: {
       id: newId('audit'),
@@ -222,7 +377,7 @@ async function writeAudit(ctx: OrgContext, workspaceId: string, action: string, 
       workspaceId,
       actorId: ctx.session.user.id,
       action,
-      targetType: 'deal',
+      targetType,
       targetId,
     },
   });

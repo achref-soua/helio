@@ -1,0 +1,37 @@
+---
+title: Meeting scheduler
+description: Share a booking link; invitees pick an open slot and it lands as a CRM meeting.
+---
+
+The scheduler turns your availability into a public booking page. Share the
+link, and invitees pick an open time — the meeting is created, the invitee
+becomes a contact, and a follow-up task lands in your CRM.
+
+## The booking page
+
+Configure it under **Scheduling**: a meeting name, duration, a buffer between
+meetings, a timezone, and the weekdays and hours you're available. Save it to
+get a public link at `/m/<id>` — share it anywhere.
+
+Availability is expressed in the page's timezone. Open slots are computed for
+the next two weeks: each availability window is laid out into duration-sized
+slots (stepped by duration + buffer), with past and already-booked times
+removed.
+
+## Booking
+
+The public page lists open slots in the page's timezone. When an invitee picks
+one and enters their email:
+
+- the slot is **re-validated on the server** — an invitee can't book the past,
+  an off-hours time, or a slot that was just taken;
+- a **meeting** is created (the unique `(page, start)` makes a double-book a
+  caught conflict, not a duplicate);
+- the invitee is **upserted as a contact** in the workspace (existing contacts
+  are never downgraded or resurrected from unsubscribed);
+- a **MEETING task** is filed for the page owner, linked to the contact, so the
+  meeting shows up next to your [deals and tasks](/docs/guides/crm).
+
+Booking pages are [white-labeled](/docs/guides/white-labeling) with your org's
+branding, like hosted forms. Cancel a meeting from the **Upcoming meetings**
+list on the Scheduling page.

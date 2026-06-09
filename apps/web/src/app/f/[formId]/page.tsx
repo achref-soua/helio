@@ -10,6 +10,7 @@ import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
 import { getTranslations } from 'next-intl/server';
 
+import { BrandStyle } from '@/components/brand-style';
 import { authDb } from '@/lib/auth';
 
 import { submitForm } from './actions';
@@ -31,48 +32,72 @@ export default async function HostedFormPage({
   const t = await getTranslations('hostedForm');
   const form = await authDb.form.findUnique({
     where: { id: formId },
-    select: { id: true, title: true },
+    select: {
+      id: true,
+      title: true,
+      // White-label the public page with the owning org's branding.
+      workspace: {
+        select: {
+          organization: {
+            select: { name: true, brandName: true, brandColor: true, logo: true },
+          },
+        },
+      },
+    },
   });
+  const brand = form?.workspace.organization;
 
   return (
     <main className="bg-muted/30 grid min-h-svh place-items-center p-6">
-      <Card className="w-full max-w-md">
-        {!form ? (
-          <CardHeader>
-            <CardTitle>{t('notFoundTitle')}</CardTitle>
-            <CardDescription>{t('notFoundBody')}</CardDescription>
-          </CardHeader>
-        ) : ok ? (
-          <CardHeader>
-            <CardTitle>{t('thanksTitle')}</CardTitle>
-            <CardDescription>{t('thanksBody')}</CardDescription>
-          </CardHeader>
-        ) : (
-          <>
-            <CardHeader>
-              {/* Real heading: public pages get crawled and screen-read. */}
-              <CardTitle>
-                <h1 className="text-lg leading-none font-semibold">{form.title}</h1>
-              </CardTitle>
-              <CardDescription>{t('subtitle')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form action={submitForm} className="grid gap-4">
-                <input type="hidden" name="formId" value={form.id} />
-                <div className="grid gap-2">
-                  <Label htmlFor="form-email">{t('email')}</Label>
-                  <Input id="form-email" name="email" type="email" required maxLength={320} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="form-first-name">{t('firstName')}</Label>
-                  <Input id="form-first-name" name="firstName" maxLength={80} />
-                </div>
-                <Button type="submit">{t('submit')}</Button>
-              </form>
-            </CardContent>
-          </>
+      <BrandStyle color={brand?.brandColor} />
+      <div className="grid w-full max-w-md gap-4">
+        {brand && (brand.brandName || brand.logo) && (
+          <div className="flex items-center justify-center gap-2 font-semibold">
+            {brand.logo && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={brand.logo} alt="" className="size-6 rounded object-contain" />
+            )}
+            <span>{brand.brandName ?? brand.name}</span>
+          </div>
         )}
-      </Card>
+        <Card className="w-full">
+          {!form ? (
+            <CardHeader>
+              <CardTitle>{t('notFoundTitle')}</CardTitle>
+              <CardDescription>{t('notFoundBody')}</CardDescription>
+            </CardHeader>
+          ) : ok ? (
+            <CardHeader>
+              <CardTitle>{t('thanksTitle')}</CardTitle>
+              <CardDescription>{t('thanksBody')}</CardDescription>
+            </CardHeader>
+          ) : (
+            <>
+              <CardHeader>
+                {/* Real heading: public pages get crawled and screen-read. */}
+                <CardTitle>
+                  <h1 className="text-lg leading-none font-semibold">{form.title}</h1>
+                </CardTitle>
+                <CardDescription>{t('subtitle')}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form action={submitForm} className="grid gap-4">
+                  <input type="hidden" name="formId" value={form.id} />
+                  <div className="grid gap-2">
+                    <Label htmlFor="form-email">{t('email')}</Label>
+                    <Input id="form-email" name="email" type="email" required maxLength={320} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="form-first-name">{t('firstName')}</Label>
+                    <Input id="form-first-name" name="firstName" maxLength={80} />
+                  </div>
+                  <Button type="submit">{t('submit')}</Button>
+                </form>
+              </CardContent>
+            </>
+          )}
+        </Card>
+      </div>
     </main>
   );
 }

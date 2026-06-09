@@ -168,6 +168,140 @@ describe('row-level security tenant isolation', () => {
     expect(await tenantA.deal.count()).toBe(1);
   });
 
+  it('CRM tasks are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const taskId = newId('task');
+    await tenantA.task.create({
+      data: {
+        id: taskId,
+        organizationId: orgA.id,
+        workspaceId: workspaceA,
+        title: 'Call the lead',
+      },
+    });
+
+    // Org B sees none of it, even by direct id.
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.task.count()).toBe(0);
+    expect(await tenantB.task.findUnique({ where: { id: taskId } })).toBeNull();
+
+    // Org B cannot smuggle a task into Org A.
+    await expect(
+      tenantB.task.create({
+        data: {
+          id: newId('task'),
+          organizationId: orgA.id,
+          workspaceId: workspaceA,
+          title: 'Smuggled',
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.task.count()).toBe(1);
+  });
+
+  it('webhook endpoints (and their secrets) are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const endpointId = newId('whe');
+    await tenantA.webhookEndpoint.create({
+      data: {
+        id: endpointId,
+        organizationId: orgA.id,
+        url: 'https://a.example/hook',
+        secret: 'whsec_a',
+        events: ['deal.won'],
+      },
+    });
+
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.webhookEndpoint.count()).toBe(0);
+    expect(await tenantB.webhookEndpoint.findUnique({ where: { id: endpointId } })).toBeNull();
+    await expect(
+      tenantB.webhookEndpoint.create({
+        data: {
+          id: newId('whe'),
+          organizationId: orgA.id,
+          url: 'https://b.example/hook',
+          secret: 'whsec_b',
+          events: ['deal.won'],
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.webhookEndpoint.count()).toBe(1);
+  });
+
+  it('scheduler booking pages and meetings are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const pageId = newId('bpg');
+    await tenantA.bookingPage.create({
+      data: { id: pageId, organizationId: orgA.id, workspaceId: workspaceA, title: 'Intro call' },
+    });
+    await tenantA.meeting.create({
+      data: {
+        id: newId('mtg'),
+        organizationId: orgA.id,
+        workspaceId: workspaceA,
+        bookingPageId: pageId,
+        startAt: new Date('2026-06-09T15:00:00Z'),
+        durationMinutes: 30,
+        inviteeEmail: 'invitee@example.com',
+      },
+    });
+
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.bookingPage.count()).toBe(0);
+    expect(await tenantB.meeting.count()).toBe(0);
+    expect(await tenantB.bookingPage.findUnique({ where: { id: pageId } })).toBeNull();
+    await expect(
+      tenantB.meeting.create({
+        data: {
+          id: newId('mtg'),
+          organizationId: orgA.id,
+          workspaceId: workspaceA,
+          bookingPageId: pageId,
+          startAt: new Date('2026-06-10T15:00:00Z'),
+          durationMinutes: 30,
+          inviteeEmail: 'smuggled@example.com',
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.meeting.count()).toBe(1);
+  });
+
+  it('integrations (and their secrets) are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const integrationId = newId('intg');
+    await tenantA.integration.create({
+      data: {
+        id: integrationId,
+        organizationId: orgA.id,
+        workspaceId: workspaceA,
+        provider: 'SHOPIFY',
+        externalId: 'a.myshopify.com',
+        secret: 'shh',
+      },
+    });
+
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.integration.count()).toBe(0);
+    expect(await tenantB.integration.findUnique({ where: { id: integrationId } })).toBeNull();
+    await expect(
+      tenantB.integration.create({
+        data: {
+          id: newId('intg'),
+          organizationId: orgA.id,
+          workspaceId: workspaceA,
+          provider: 'SALESFORCE',
+          secret: 'token',
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.integration.count()).toBe(1);
+  });
+
   it('subscriptions are tenant-isolated', async () => {
     await forTenant(app, orgA.id).subscription.create({
       data: { id: newId('sub'), organizationId: orgA.id, plan: 'PRO' },

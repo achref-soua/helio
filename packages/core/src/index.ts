@@ -18,6 +18,7 @@ export {
   verifyStripeSignature,
   wouldExceedContactLimit,
 } from './billing';
+export { isHexColor, readableTextColor } from './branding';
 export {
   contactEmailSchema,
   detectImportSource,
@@ -99,6 +100,23 @@ export {
   unwrapOr,
 } from './result';
 export {
+  pushSalesforceLead,
+  SALESFORCE_API_VERSION,
+  type SalesforceLead,
+  salesforceLeadFromContact,
+  type SalesforceResult,
+} from './salesforce';
+export {
+  type AvailabilityRule,
+  availabilityRuleSchema,
+  availabilitySchema,
+  availableSlots,
+  DEFAULT_AVAILABILITY,
+  isValidTimeZone,
+  type SlotQuery,
+  zonedWallTimeToUtc,
+} from './scheduling';
+export {
   activeFromPatch,
   activeFromScimUser,
   displayNameFromScimUser,
@@ -136,6 +154,32 @@ export {
   type StringOperator,
 } from './segments';
 export {
+  SHOPIFY_TOPICS,
+  type ShopifyContact,
+  shopifyContactForTopic,
+  shopifyContactFromCustomer,
+  shopifyContactFromOrder,
+  type ShopifyTopic,
+  verifyShopifyHmac,
+} from './shopify';
+export {
+  compareTasks,
+  groupTasksByBucket,
+  isTaskOverdue,
+  TASK_BUCKETS,
+  TASK_PRIORITIES,
+  TASK_STATUSES,
+  TASK_TYPES,
+  type TaskBucket,
+  taskBucket,
+  type TaskPriority,
+  taskPrioritySchema,
+  type TaskStatus,
+  taskStatusSchema,
+  type TaskType,
+  taskTypeSchema,
+} from './tasks';
+export {
   clickRedirectUrl,
   openPixelUrl,
   signClickTarget,
@@ -149,3 +193,13 @@ export {
   unsubscribeUrl,
   verifyUnsubscribeToken,
 } from './unsubscribe';
+export {
+  endpointsForEvent,
+  generateWebhookSecret,
+  signWebhookPayload,
+  verifyWebhookSignature,
+  WEBHOOK_DELIVERY_WORKFLOW,
+  WEBHOOK_EVENTS,
+  type WebhookEvent,
+  webhookEventSchema,
+} from './webhooks';

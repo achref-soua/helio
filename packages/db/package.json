@@ -11,8 +11,8 @@
   "scripts": {
     "build": "prisma generate",
     "lint": "eslint .",
-    "typecheck": "prisma generate && tsc --noEmit",
-    "test": "prisma generate && vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",

@@ -1,0 +1,59 @@
+---
+title: Integrations
+description: Sync external platforms into your CDP. Shopify customers and orders today.
+---
+
+Connect external platforms under **Settings → Integrations** (admins only).
+Their events stream into your CDP as contacts and traits.
+
+## Shopify
+
+Connect a store by pasting its **shop domain** (`acme.myshopify.com`) and the
+**webhook signing secret** — the API secret of the Shopify app you use to send
+webhooks. Then point your Shopify webhooks at Helio's gateway:
+
+```
+POST https://<your-helio-gateway>/webhooks/shopify
+```
+
+Subscribe these topics:
+
+| Topic              | Effect                                                           |
+| ------------------ | ---------------------------------------------------------------- |
+| `customers/create` | Upserts the customer as a contact                                |
+| `customers/update` | Refreshes the contact and its order stats                        |
+| `orders/create`    | Upserts the buyer and records the order value as a contact trait |
+
+Every delivery is verified against your secret (`X-Shopify-Hmac-Sha256`, base64
+HMAC-SHA256 of the raw body) before anything is written — an unsigned or
+mis-signed request is rejected. The shop domain (`X-Shopify-Shop-Domain`)
+resolves the connection, so a shop maps to exactly one org and workspace.
+
+Contacts gain `shopify_*` traits (customer id, orders count, total spent, last
+order value and currency) you can [segment](/docs/guides/segments) on — for
+example "Shopify customers who spent over \$500". Existing contacts are merged,
+never downgraded.
+
+<Callout>
+  The connection is tenant-isolated like everything else: the signing secret lives in the org-scoped
+  table and is never returned to the client after it's saved.
+</Callout>
+
+## Salesforce
+
+Connect Salesforce by pasting your **instance URL** (`https://acme.my.salesforce.com`)
+and an **access token**. Once connected, every new Helio contact is pushed to
+Salesforce as a **Lead** — first/last name and email map across, and the
+contact's `company` attribute becomes the Lead's Company (falling back to the
+email and `Unknown` when those are missing, since Salesforce requires them).
+
+The push is **best-effort**: it runs through the Salesforce REST API
+(`/services/data/v60.0/sobjects/Lead`) after the contact is saved, and a
+Salesforce error is recorded on the request trace but never fails the contact
+write. The access token is stored in the org-scoped connection and never
+returned to the client.
+
+<Callout>
+  Token-based connect is the v1 path; an OAuth install flow that refreshes tokens automatically is
+  on the [roadmap](https://github.com/achref-soua/helio#roadmap).
+</Callout>

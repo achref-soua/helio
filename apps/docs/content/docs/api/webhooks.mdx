@@ -1,10 +1,64 @@
 ---
 title: Webhooks
-description: Send signed webhooks out of a journey, and receive provider webhooks into Helio.
+description: Subscribe to events, send signed webhooks out of a journey, and receive provider webhooks.
 ---
 
-Helio both **sends** webhooks (from journeys) and **receives** them (from
-delivery and billing providers).
+Helio both **sends** webhooks (event subscriptions and journey steps) and
+**receives** them (from delivery and billing providers).
+
+## Outbound — event subscriptions
+
+Register an endpoint under **Settings → Webhooks** (admins only) and subscribe
+it to the events you care about. Whenever a subscribed event happens in your
+org, Helio POSTs a signed JSON payload to your URL. Delivery is **durable**: it
+runs on the workflow engine and retries with exponential backoff for hours, so a
+briefly-down endpoint still receives the event.
+
+Subscribable events:
+
+| Event             | Fires when…                  |
+| ----------------- | ---------------------------- |
+| `contact.created` | a contact is created         |
+| `deal.created`    | a deal is opened             |
+| `deal.won`        | a deal moves to a Won stage  |
+| `deal.lost`       | a deal moves to a Lost stage |
+| `task.completed`  | a CRM task is marked done    |
+
+Each delivery body looks like:
+
+```json
+{
+  "id": "evt_01k…",
+  "type": "deal.won",
+  "occurredAt": "2026-06-09T17:00:00.000Z",
+  "data": { "id": "deal_01k…", "status": "WON", "workspaceId": "ws_01k…" }
+}
+```
+
+Every request carries an `x-helio-signature: t=<unix>,v1=<hmac>` header, where
+the HMAC-SHA256 is computed over `` `${t}.${rawBody}` `` with the endpoint's own
+signing secret (shown once when you create the endpoint). The timestamp is
+inside the MAC, so a captured delivery can't be replayed under a fresh time.
+Verify it before trusting the payload:
+
+```ts
+import { createHmac, timingSafeEqual } from 'node:crypto';
+
+// header: "t=<unix>,v1=<hex>"
+function verify(rawBody: string, header: string, secret: string, toleranceSec = 300): boolean {
+  const parts = new Map(header.split(',').map((kv) => kv.split('=') as [string, string]));
+  const t = Number(parts.get('t'));
+  const v1 = parts.get('v1') ?? '';
+  if (!Number.isFinite(t) || Math.abs(Date.now() / 1000 - t) > toleranceSec) return false;
+  const expected = createHmac('sha256', secret).update(`${t}.${rawBody}`).digest('hex');
+  const a = Buffer.from(expected);
+  const b = Buffer.from(v1);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+```
+
+Use the **Send test** action on an endpoint to fire a `ping` delivery and
+confirm it's reachable and your signature check passes.
 
 ## Outbound — the journey webhook node
 
@@ -49,9 +103,7 @@ deriving the plan from the price. Until configured, the route returns `404`.
 Self-hosted Helio is unlimited and unmetered, so this is optional — see
 [Billing configuration](/docs/configuration#billing-hosted-only-optional).
 
-## Roadmap
-
-A general-purpose outbound webhook subscription system (subscribe to contact,
-campaign, and journey events with delivery retries) is on the
-[roadmap](https://github.com/achref-soua/helio#roadmap). Today's outbound path
-is the journey `webhook` node.
+The journey node uses a single global `WEBHOOK_SIGNING_SECRET` and a plain
+`x-helio-signature: <hex>` header (no timestamp); event subscriptions above use
+a per-endpoint secret and the timestamped scheme. Choose the node for
+step-by-step journey hand-offs, and subscriptions for org-wide event streams.
