@@ -24,6 +24,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { ReportDialog } from '@/components/report-dialog';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { UserMenu } from '@/components/user-menu';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
@@ -122,6 +123,7 @@ export function AppShell({ children, brand }: { children: React.ReactNode; brand
           </Sheet>
           <div className="ml-auto flex items-center gap-1">
             <WorkspaceSwitcher />
+            <ReportDialog />
             <ThemeToggle />
             <UserMenu />
           </div>

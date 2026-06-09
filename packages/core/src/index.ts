@@ -163,6 +163,14 @@ export {
   verifyShopifyHmac,
 } from './shopify';
 export {
+  SUPPORT_KINDS,
+  SUPPORT_STATUSES,
+  type SupportKind,
+  supportKindSchema,
+  type SupportStatus,
+  supportStatusSchema,
+} from './support';
+export {
   compareTasks,
   groupTasksByBucket,
   isTaskOverdue,

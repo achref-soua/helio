@@ -54,6 +54,7 @@ model Organization {
   bookingPages      BookingPage[]
   meetings          Meeting[]
   integrations      Integration[]
+  supportTickets    SupportTicket[]
 
   @@map("organization")
 }
@@ -991,4 +992,41 @@ model Integration {
   @@unique([provider, externalId])
   @@index([organizationId])
   @@map("integration")
+}
+
+enum SupportKind {
+  BUG
+  FEEDBACK
+  QUESTION
+
+  @@map("support_kind")
+}
+
+enum SupportStatus {
+  OPEN
+  RESOLVED
+
+  @@map("support_status")
+}
+
+/// A support / bug report filed from inside the app. Org-scoped and isolated
+/// by the standard RLS policy; admins triage and resolve them.
+model SupportTicket {
+  id             String        @id
+  organizationId String        @map("organization_id")
+  /// The reporting member's auth user id.
+  reporterId     String?       @map("reporter_id")
+  kind           SupportKind   @default(BUG)
+  subject        String
+  body           String
+  /// The page the report was filed from, captured for context.
+  url            String?
+  status         SupportStatus @default(OPEN)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status])
+  @@map("support_ticket")
 }
