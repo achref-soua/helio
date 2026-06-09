@@ -1,0 +1,165 @@
+---
+title: Production & cloud
+description: Deploy Helio to a managed Kubernetes cluster with the Helm chart and managed datastores, and stand up a public demo.
+---
+
+[Self-hosting](/docs/self-hosting) covers local and single-box deployments. This
+page is the production path: a managed Kubernetes cluster, the
+[Helm chart](https://github.com/achref-soua/helio/tree/main/infra/helm/helio),
+and managed datastores.
+
+## Choosing a topology
+
+| Topology          | Good for                 | How                                         |
+| ----------------- | ------------------------ | ------------------------------------------- |
+| Docker Compose    | A single VM / evaluation | `docker compose --profile full up -d`       |
+| Kubernetes (Helm) | Production, scaling, HA  | the `helio` Helm chart + managed datastores |
+
+The rest of this page walks through the Kubernetes path on a managed cloud.
+
+## Managed-cloud walkthrough
+
+The shape is the same on any managed Kubernetes (GKE, EKS, AKS, DigitalOcean,
+Hetzner, …): a cluster, managed Postgres and Redis, and the chart.
+
+### 1. Provision the cluster and datastores
+
+- A managed **Kubernetes** cluster (3 small nodes is plenty to start).
+- A managed **PostgreSQL 16** with the **pgvector** extension available
+  (Helio stores embeddings there). Create a database and note the connection
+  string.
+- A managed **Redis** (or in-cluster — see below).
+- For the full event/analytics loop, reachable **ClickHouse**, a
+  **Kafka-compatible** broker (Redpanda/MSK), **Temporal**, and **S3** — deploy
+  these from their official charts/operators or use managed equivalents.
+
+<Callout type="info">
+  Helio creates its row-level-security role (`helio_app`) during migration, so your managed Postgres
+  only needs the standard admin user up front — the migration job provisions the rest.
+</Callout>
+
+### 2. Create the namespace and secrets
+
+Keep secrets out of values files. Create a Kubernetes Secret out-of-band and
+reference it from the chart:
+
+```bash
+kubectl create namespace helio
+
+kubectl --namespace helio create secret generic helio-secrets \
+  --from-literal=BETTER_AUTH_SECRET="$(openssl rand -hex 32)" \
+  --from-literal=TRACKING_SECRET="$(openssl rand -hex 24)" \
+  --from-literal=UNSUBSCRIBE_SECRET="$(openssl rand -hex 24)" \
+  --from-literal=DATABASE_URL="postgresql://helio_app:...@db-host:5432/helio" \
+  --from-literal=DATABASE_ADMIN_URL="postgresql://admin:...@db-host:5432/helio" \
+  --from-literal=REDIS_URL="rediss://...:6379"
+```
+
+### 3. Write production values
+
+```yaml title="values.prod.yaml"
+image:
+  tag: '0.8.0'
+
+secrets:
+  existingSecret: helio-secrets
+
+# Use managed datastores, not the bundled eval ones.
+postgresql:
+  enabled: false
+redis:
+  enabled: false
+
+config:
+  APP_URL: https://app.acme.com
+  PUBLIC_TRACKING_URL: https://track.acme.com
+  CLICKHOUSE_URL: http://clickhouse.data:8123
+  KAFKA_BROKERS: redpanda.data:9092
+  TEMPORAL_ADDRESS: temporal.data:7233
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: app.acme.com
+      paths: [{ path: /, pathType: Prefix, service: web }]
+    - host: api.acme.com
+      paths: [{ path: /, pathType: Prefix, service: api }]
+    - host: track.acme.com
+      paths: [{ path: /, pathType: Prefix, service: tracking }]
+  tls:
+    - secretName: helio-tls
+      hosts: [app.acme.com, api.acme.com, track.acme.com]
+
+autoscaling:
+  enabled: true
+  services: [web, api, ingest, tracking]
+
+# Run schema migrations as a pre-install/upgrade hook. Point at an image that
+# bundles @helio/db and the Prisma CLI.
+migrations:
+  enabled: true
+  image: ghcr.io/achref-soua/helio-web:0.8.0
+```
+
+### 4. Install
+
+```bash
+helm install helio ./infra/helm/helio \
+  --namespace helio \
+  --values values.prod.yaml
+```
+
+Helm runs the migration job first (creating the schema and the `helio_app`
+role), then rolls out the services. Watch it:
+
+```bash
+kubectl --namespace helio get pods -w
+```
+
+### 5. DNS and TLS
+
+Point your `app`, `api`, and `track` DNS records at the ingress controller's
+external address. With [cert-manager](https://cert-manager.io/) and the
+annotation above, certificates are issued automatically for the `tls` hosts.
+
+## Observability
+
+Set `config.OTEL_EXPORTER_OTLP_ENDPOINT` to your collector to turn on
+distributed tracing; every service emits OpenTelemetry traces and structured
+logs, and exposes Prometheus metrics. See the
+[architecture](/docs/architecture) for the trace boundaries.
+
+## Production checklist
+
+- **Secrets** managed out-of-band (`secrets.existingSecret`), not in values.
+- **Datastores** managed (`postgresql.enabled=false`, `redis.enabled=false`),
+  with backups and PITR on Postgres.
+- **TLS** terminated at the ingress; HTTP redirects to HTTPS.
+- **Autoscaling** enabled for the request-serving services.
+- **Tenant isolation** is enforced by Postgres RLS regardless of deployment —
+  see [Tenancy](/docs/concepts/tenancy).
+- **Deliverability** — configure SPF/DKIM/DMARC for your sending domain and use
+  a reputable relay (SES/Postmark/Resend) rather than raw SMTP.
+
+## Running a public demo
+
+To host a try-it-yourself instance, deploy the chart with the bundled eval
+datastores and the [demo seed](/docs/self-hosting) enabled. A ready-made
+overlay lives at
+[`infra/helm/helio/values-demo.yaml`](https://github.com/achref-soua/helio/blob/main/infra/helm/helio/values-demo.yaml):
+
+```bash
+helm install helio-demo ./infra/helm/helio \
+  --namespace helio-demo --create-namespace \
+  --values ./infra/helm/helio/values-demo.yaml \
+  --set secrets.data.BETTER_AUTH_SECRET="$(openssl rand -hex 32)"
+```
+
+<Callout type="warn">
+  A public demo is internet-exposed and shared. Run it in an isolated namespace, reset it on a
+  schedule (re-run the idempotent seed, or redeploy), keep the AI provider key out of it unless you
+  intend to pay for usage, and never point a demo at production datastores.
+</Callout>

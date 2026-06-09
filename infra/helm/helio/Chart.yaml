@@ -1,0 +1,21 @@
+apiVersion: v2
+name: helio
+description: The open-source, self-hostable, AI-native marketing-automation and customer-engagement platform.
+type: application
+# Chart version — bumped independently of the application it deploys.
+version: 0.1.0
+# Default application version (image tag) this chart deploys.
+appVersion: '0.8.0'
+home: https://github.com/achref-soua/helio
+sources:
+  - https://github.com/achref-soua/helio
+keywords:
+  - marketing-automation
+  - customer-engagement
+  - cdp
+  - email
+  - crm
+  - self-hosted
+maintainers:
+  - name: Achref Soua
+    email: achref.soua@outlook.com
