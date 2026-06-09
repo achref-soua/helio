@@ -7,6 +7,7 @@ import {
   Bell,
   GitBranch,
   Mail,
+  MessageCircle,
   MessageSquare,
   Percent,
   Play,
@@ -26,6 +27,7 @@ import type {
   SendEmailData,
   SendPushData,
   SendSmsData,
+  SendWhatsappData,
   TriggerData,
   UpdateTraitData,
   WaitData,
@@ -331,6 +333,26 @@ export function SendSmsNode({ id, data, selected }: NodeProps) {
   );
 }
 
+export function SendWhatsappNode({ id, data, selected }: NodeProps) {
+  const t = useTranslations('journeys.nodes');
+  const { updateNodeData } = useReactFlow();
+  const whatsapp = data as SendWhatsappData;
+  return (
+    <div className={shell(selected)} data-testid="node-send-whatsapp">
+      <Header icon={MessageCircle} label={t('sendWhatsapp')} />
+      <Input
+        aria-label={t('whatsappBody')}
+        placeholder={t('whatsappBodyPlaceholder')}
+        value={whatsapp.body}
+        onChange={(event) => updateNodeData(id, { body: event.target.value })}
+        className="nodrag h-8"
+      />
+      <Handle type="target" position={Position.Top} />
+      <Handle type="source" position={Position.Bottom} />
+    </div>
+  );
+}
+
 export const nodeTypes = {
   trigger: TriggerNode,
   send_email: SendEmailNode,
@@ -341,5 +363,6 @@ export const nodeTypes = {
   webhook: WebhookNode,
   send_push: SendPushNode,
   send_sms: SendSmsNode,
+  send_whatsapp: SendWhatsappNode,
   end: EndNode,
 };

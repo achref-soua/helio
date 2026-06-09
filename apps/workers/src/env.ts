@@ -48,6 +48,9 @@ export const env = createEnv({
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_AUTH_TOKEN: z.string().optional(),
   TWILIO_FROM: z.string().optional(),
+  /** WhatsApp Cloud API; send_whatsapp nodes no-op when unset. */
+  WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
+  WHATSAPP_ACCESS_TOKEN: z.string().optional(),
   /** Consume tracked events and enroll contacts into ACTIVE journeys. */
   JOURNEY_TRIGGERS_ENABLED: z
     .enum(['true', 'false'])

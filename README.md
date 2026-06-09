@@ -42,7 +42,7 @@ Marketing automation today forces a bad choice:
 - ✅ **Journeys** — React Flow canvas → validated DAG → one Temporal workflow per enrolled contact: event triggers from the live stream, durable waits (survives `kill -9` with the timer expired), live-data branches
 - ✅ **Analytics** — overview dashboard with engagement timeline and per-campaign opens/clicks from ClickHouse, degrading gracefully when the analytics stack is offline
 - ✅ **Hosted forms** — public signup pages that upsert contacts, idempotently and suppression-safely
-- ✅ **Multi-channel** — web push and SMS (Twilio) as journey send nodes alongside email, personalized with the same `{{token}}` tokens; WhatsApp, in-app messages, and on-site popups are next
+- ✅ **Multi-channel** — web push, SMS (Twilio), and WhatsApp (Cloud API) as journey send nodes alongside email, personalized with the same `{{token}}` tokens; in-app messages and on-site popups are next
 - 🗺️ **Growth tooling** — landing-page builder, lead scoring, A/B testing, attribution, deliverability wizard
 - ✅ **AI copilot** — describe a segment, journey, or on-brand email in a sentence and get a working draft; predictive lead scoring & churn; send-time optimization; autonomous A/B winner selection — all grounded in your own org's data
 - ✅ **Agent-ready** — an MCP server exposes Helio's capabilities as tools, so external AI agents can drive campaigns programmatically

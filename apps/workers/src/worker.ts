@@ -14,6 +14,7 @@ import { WebPushProvider } from './push-provider';
 import { TwilioSmsProvider } from './sms-provider';
 import { JourneyTriggerConsumer } from './trigger-consumer';
 import { createWebhookActivities } from './webhook-activities';
+import { CloudWhatsAppProvider } from './whatsapp-provider';
 
 const connection = await NativeConnection.connect({ address: env.TEMPORAL_ADDRESS });
 
@@ -65,6 +66,12 @@ const worker = await Worker.create({
             accountSid: env.TWILIO_ACCOUNT_SID,
             authToken: env.TWILIO_AUTH_TOKEN,
             from: env.TWILIO_FROM,
+          })
+        : undefined,
+      env.WHATSAPP_PHONE_NUMBER_ID && env.WHATSAPP_ACCESS_TOKEN
+        ? new CloudWhatsAppProvider({
+            phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID,
+            accessToken: env.WHATSAPP_ACCESS_TOKEN,
           })
         : undefined,
     ),

@@ -22,6 +22,7 @@ import type { ActivityConfig } from './activities';
 import type { EmailProvider } from './email-provider';
 import type { PushProvider } from './push-provider';
 import type { SmsProvider } from './sms-provider';
+import type { WhatsAppProvider } from './whatsapp-provider';
 
 export interface LoadedJourney {
   organizationId: string;
@@ -40,6 +41,7 @@ export function createJourneyActivities(
   config: ActivityConfig,
   pushProvider?: PushProvider,
   smsProvider?: SmsProvider,
+  whatsappProvider?: WhatsAppProvider,
 ) {
   return {
     async loadJourney(journeyId: string): Promise<LoadedJourney> {
@@ -252,6 +254,25 @@ export function createJourneyActivities(
         attributes: (contact.attributes ?? {}) as Record<string, unknown>,
       });
       const result = await smsProvider.send(contact.phone, rendered);
+      return { sent: result === 'sent' ? 1 : 0 };
+    },
+
+    /**
+     * Message a contact on WhatsApp. Same suppression and personalization
+     * rules as SMS; no-ops when the channel is unconfigured.
+     */
+    async sendJourneyWhatsApp(contactId: string, body: string): Promise<{ sent: number }> {
+      const contact = await prisma.contact.findUnique({ where: { id: contactId } });
+      if (!contact || contact.status !== 'ACTIVE' || !contact.phone || !whatsappProvider) {
+        return { sent: 0 };
+      }
+      const rendered = renderTokens(body, {
+        email: contact.email,
+        firstName: contact.firstName,
+        lastName: contact.lastName,
+        attributes: (contact.attributes ?? {}) as Record<string, unknown>,
+      });
+      const result = await whatsappProvider.send(contact.phone, rendered);
       return { sent: result === 'sent' ? 1 : 0 };
     },
 

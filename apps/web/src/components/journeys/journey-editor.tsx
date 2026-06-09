@@ -21,6 +21,7 @@ import {
   Bell,
   GitBranch,
   Mail,
+  MessageCircle,
   MessageSquare,
   Percent,
   Square,
@@ -97,6 +98,7 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
       | 'webhook'
       | 'send_push'
       | 'send_sms'
+      | 'send_whatsapp'
       | 'end',
   ) {
     const id = nextCanvasId(type);
@@ -120,7 +122,7 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
                   ? { url: 'https://' }
                   : type === 'send_push'
                     ? { title: '', body: '', url: '' }
-                    : type === 'send_sms'
+                    : type === 'send_sms' || type === 'send_whatsapp'
                       ? { body: '' }
                       : {};
     setNodes((current) => [...current, { id, type, position, data }]);
@@ -208,6 +210,9 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
         </Button>
         <Button variant="outline" size="sm" onClick={() => addNode('send_sms')}>
           <MessageSquare aria-hidden /> {t('addSendSms')}
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => addNode('send_whatsapp')}>
+          <MessageCircle aria-hidden /> {t('addSendWhatsapp')}
         </Button>
         <Button variant="outline" size="sm" onClick={() => addNode('end')}>
           <Square aria-hidden /> {t('addEnd')}
