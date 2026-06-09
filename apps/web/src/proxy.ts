@@ -19,9 +19,9 @@ export default function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // Everything except auth pages, auth/trpc APIs, health, static assets,
-    // and the public surfaces: u/* (unsubscribe), f/* (hosted forms), and
-    // scim/* (bearer-authenticated provisioning) — these callers are not
-    // session-cookie holders by definition.
-    '/((?!login|signup|accept-invitation|api/auth|api/trpc|api/healthz|u/|f/|scim/|_next|favicon.ico).*)',
+    // and the public surfaces: u/* (unsubscribe), f/* (hosted forms),
+    // m/* (booking pages), and scim/* (bearer-authenticated provisioning) —
+    // these callers are not session-cookie holders by definition.
+    '/((?!login|signup|accept-invitation|api/auth|api/trpc|api/healthz|u/|f/|m/|scim/|_next|favicon.ico).*)',
   ],
 };

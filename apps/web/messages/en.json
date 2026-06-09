@@ -15,7 +15,8 @@
     "forms": "Forms",
     "deals": "Deals",
     "copilot": "Copilot",
-    "tasks": "Tasks"
+    "tasks": "Tasks",
+    "scheduling": "Scheduling"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -731,5 +732,56 @@
     "saving": "Saving…",
     "saved": "Branding updated",
     "genericError": "Something went wrong. Please try again."
+  },
+  "scheduling": {
+    "title": "Scheduling",
+    "subtitle": "Share a booking link; invitees pick an open slot and it lands as a meeting.",
+    "pageTitle": "Booking page",
+    "name": "Meeting name",
+    "duration": "Duration (min)",
+    "buffer": "Buffer (min)",
+    "timezone": "Timezone",
+    "days": "Available days",
+    "startTime": "From",
+    "endTime": "To",
+    "enabled": "Accept bookings",
+    "save": "Save booking page",
+    "saving": "Saving…",
+    "saved": "Booking page saved",
+    "badHours": "End time must be after the start time.",
+    "pickDay": "Pick at least one available day.",
+    "genericError": "Something went wrong. Please try again.",
+    "upcoming": "Upcoming meetings",
+    "noMeetings": "No upcoming meetings.",
+    "cancelLabel": "Cancel the meeting with {email}",
+    "canceled": "Meeting canceled",
+    "linkCopied": "Booking link copied",
+    "weekday": {
+      "0": "Sun",
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat"
+    }
+  },
+  "booking": {
+    "notFoundTitle": "Booking unavailable",
+    "notFoundBody": "This booking page does not exist or is not accepting bookings right now.",
+    "bookedTitle": "You're booked",
+    "bookedBody": "Your meeting is confirmed. A calendar invite is on its way.",
+    "subtitle": "Pick a time for your {minutes}-minute meeting.",
+    "noSlots": "No open times in the next two weeks. Please check back soon.",
+    "slot": "Pick a time",
+    "timezone": "Times shown in {tz}.",
+    "email": "Your email",
+    "name": "Your name",
+    "book": "Book meeting",
+    "error": {
+      "unavailable": "That time is no longer available.",
+      "email": "Please enter a valid email.",
+      "taken": "That slot was just taken — please pick another."
+    }
   }
 }

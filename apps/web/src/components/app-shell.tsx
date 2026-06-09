@@ -4,6 +4,7 @@ import { Button } from '@helio/ui/components/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@helio/ui/components/sheet';
 import { cn } from '@helio/ui/lib/utils';
 import {
+  CalendarClock,
   FileText,
   Handshake,
   LayoutDashboard,
@@ -37,6 +38,7 @@ const NAV_ITEMS = [
   { key: 'journeys', href: '/journeys', icon: Workflow },
   { key: 'deals', href: '/deals', icon: Handshake },
   { key: 'tasks', href: '/tasks', icon: ListTodo },
+  { key: 'scheduling', href: '/scheduling', icon: CalendarClock },
   { key: 'copilot', href: '/copilot', icon: Sparkles },
   { key: 'settings', href: '/settings', icon: Settings },
 ] as const;
