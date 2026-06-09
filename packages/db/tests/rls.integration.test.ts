@@ -354,6 +354,25 @@ describe('row-level security tenant isolation', () => {
     expect(await tenantA.sendingDomain.count()).toBe(1);
   });
 
+  it('landing pages are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const pageId = newId('lp');
+    await tenantA.landingPage.create({
+      data: { id: pageId, organizationId: orgA.id, workspaceId: workspaceA, title: 'Launch' },
+    });
+
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.landingPage.count()).toBe(0);
+    expect(await tenantB.landingPage.findUnique({ where: { id: pageId } })).toBeNull();
+    await expect(
+      tenantB.landingPage.create({
+        data: { id: newId('lp'), organizationId: orgA.id, workspaceId: workspaceA, title: 'X' },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.landingPage.count()).toBe(1);
+  });
+
   it('subscriptions are tenant-isolated', async () => {
     await forTenant(app, orgA.id).subscription.create({
       data: { id: newId('sub'), organizationId: orgA.id, plan: 'PRO' },

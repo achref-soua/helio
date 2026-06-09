@@ -44,7 +44,8 @@ Marketing automation today forces a bad choice:
 - ✅ **Hosted forms** — public signup pages that upsert contacts, idempotently and suppression-safely
 - ✅ **Multi-channel** — web push, SMS (Twilio), and WhatsApp (Cloud API) as journey send nodes alongside email, personalized with the same `{{token}}` tokens; in-app messages and on-site popups are next
 - ✅ **Deliverability** — a wizard that generates a DKIM key pair per sending domain, shows the SPF/DKIM/DMARC records to publish, and verifies them by live DNS lookup; the DKIM private key is tenant-isolated
-- 🗺️ **Growth tooling** — landing-page builder, attribution (lead scoring and A/B testing are shipped)
+- ✅ **Landing pages** — a block-based builder (heading, text, image, button, email-capture form; keyboard-reorderable) that publishes a white-labeled hosted page at `/p/<id>` and captures signups into the CDP
+- 🗺️ **Growth tooling** — multi-touch attribution (lead scoring and A/B testing are shipped)
 - ✅ **AI copilot** — describe a segment, journey, or on-brand email in a sentence and get a working draft; predictive lead scoring & churn; send-time optimization; autonomous A/B winner selection — all grounded in your own org's data
 - ✅ **Agent-ready** — an MCP server exposes Helio's capabilities as tools, so external AI agents can drive campaigns programmatically
 - ✅ **CRM-lite** — pipelines with configurable stages and a deal board, a task list (calls, emails, meetings, to-dos) grouped by due date, and a meeting scheduler with public booking pages (timezone-correct slots, server-validated, double-book-proof) that file meetings into the CRM; all tenant-isolated
