@@ -41,6 +41,7 @@ Marketing automation today forces a bad choice:
 - ✅ **Campaigns** — template + segment/list audiences delivered durably on Temporal: per-recipient send rows make retries double-send-proof; suppression honored at enumeration and per send
 - ✅ **Journeys** — React Flow canvas → validated DAG → one Temporal workflow per enrolled contact: event triggers from the live stream, durable waits (survives `kill -9` with the timer expired), live-data branches
 - ✅ **Analytics** — overview dashboard with engagement timeline and per-campaign opens/clicks from ClickHouse, degrading gracefully when the analytics stack is offline
+- ✅ **Insights** — an event-stream funnel (ordered steps, conversion + drop-off via ClickHouse `windowFunnel`) and weekly cohort-retention grid, with the shaping logic unit-tested in `@helio/core`
 - ✅ **Hosted forms** — public signup pages that upsert contacts, idempotently and suppression-safely
 - ✅ **Multi-channel** — web push, SMS (Twilio), WhatsApp (Cloud API), and in-app messages as journey send nodes alongside email, personalized with the same `{{token}}` tokens
 - ✅ **Deliverability** — a wizard that generates a DKIM key pair per sending domain, shows the SPF/DKIM/DMARC records to publish, and verifies them by live DNS lookup; the DKIM private key is tenant-isolated

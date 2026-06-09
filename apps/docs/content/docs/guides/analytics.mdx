@@ -29,10 +29,31 @@ The dashboard surfaces the health of your messaging at a glance:
 | A/B variant performance | Variant stamped on each send and event                        |
 | Conversions             | Events you designate as conversions                           |
 
+## Insights: funnels & retention
+
+The **Insights** page runs two behavioral reports over the event stream. Both
+read from ClickHouse, so they need the `full` Compose profile; without it they
+show a "connect the analytics store" note rather than erroring.
+
+### Conversion funnels
+
+Enter an ordered list of event names — for example `Viewed Pricing, Signed Up,
+Activated` — and a conversion window. Helio computes, per person, how far they
+got through the sequence (using ClickHouse `windowFunnel`) and shows how many
+reached each step, the conversion rate from the first step, and the drop-off
+between steps. A person is identified by `user_id`, falling back to their
+anonymous id, so the funnel follows them across an identify.
+
+### Cohort retention
+
+Helio groups people by the week they were first seen and shows the share still
+active in each later week. Pick how many weeks to analyze (4–26). Period 0 is the
+cohort size; each later cell is that cohort's retention, shaded by strength.
+
 ## Roadmap
 
-Funnels, retention and cohort analysis, multi-touch revenue attribution, A/B
-statistical-significance views, deliverability analytics, and a SQL explorer
-over ClickHouse are on the [roadmap](https://github.com/achref-soua/helio#roadmap).
-The event pipeline that feeds them is already in place, so these are
-presentation layers over data Helio is collecting today.
+Multi-touch revenue attribution, A/B statistical-significance views,
+deliverability analytics, and a SQL explorer over ClickHouse are on the
+[roadmap](https://github.com/achref-soua/helio#roadmap). The event pipeline that
+feeds them is already in place, so these are presentation layers over data Helio
+is collecting today.
