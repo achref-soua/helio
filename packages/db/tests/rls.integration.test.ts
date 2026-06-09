@@ -178,4 +178,81 @@ describe('row-level security tenant isolation', () => {
     });
     expect(mine?.plan).toBe('PRO');
   });
+
+  it('the SSO provider table is walled off from the RLS app role entirely', async () => {
+    // SSO providers hold the OIDC client secret. Like the rest of the auth
+    // domain the table is reached only through the admin client; the app
+    // role's grant is revoked outright (not merely RLS-filtered), so it can
+    // never read the secret even with a tenant context set.
+    const userId = newId('user');
+    await admin.user.create({
+      data: { id: userId, name: 'IdP Admin', email: `idp-${userId}@example.com` },
+    });
+    await admin.ssoProvider.create({
+      data: {
+        id: newId('sso'),
+        issuer: 'https://idp.example.com',
+        domain: 'example.com',
+        providerId: `okta-${userId}`,
+        oidcConfig: JSON.stringify({ clientId: 'id', clientSecret: 'shh' }),
+        userId,
+        organizationId: orgA.id,
+      },
+    });
+
+    // Revoked grant => hard permission error, with or without tenant context.
+    await expect(app.ssoProvider.findMany()).rejects.toThrowError(/permission denied/i);
+    await expect(forTenant(app, orgA.id).ssoProvider.findMany()).rejects.toThrowError(
+      /permission denied/i,
+    );
+
+    // The admin client (auth kernel) still sees it.
+    expect(await admin.ssoProvider.count({ where: { organizationId: orgA.id } })).toBe(1);
+  });
+
+  it('gateway API keys are tenant-isolated, even by their unique hash', async () => {
+    // The gateway resolves a key under the org the key embeds; RLS ensures a
+    // hash minted for one org can never be looked up under another.
+    await forTenant(app, orgA.id).gatewayApiKey.create({
+      data: {
+        id: newId('gwk'),
+        organizationId: orgA.id,
+        name: 'CI',
+        keyHash: 'a'.repeat(64),
+        prefix: 'hk_a…',
+      },
+    });
+    // Org B, even targeting the exact unique hash, sees nothing.
+    expect(
+      await forTenant(app, orgB.id).gatewayApiKey.findUnique({
+        where: { keyHash: 'a'.repeat(64) },
+      }),
+    ).toBeNull();
+    expect(await forTenant(app, orgA.id).gatewayApiKey.count()).toBe(1);
+    // And cannot mint a key into org A.
+    await expect(
+      forTenant(app, orgB.id).gatewayApiKey.create({
+        data: {
+          id: newId('gwk'),
+          organizationId: orgA.id,
+          name: 'smuggled',
+          keyHash: 'b'.repeat(64),
+          prefix: 'hk_b…',
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+  });
+
+  it('the SCIM token table is walled off from the RLS app role entirely', async () => {
+    // SCIM tokens gate identity provisioning; the table is auth-domain and
+    // its grant is revoked from the app role outright.
+    await admin.scimToken.create({
+      data: { id: newId('scim'), organizationId: orgA.id, tokenHash: 'deadbeef'.repeat(8) },
+    });
+    await expect(app.scimToken.findMany()).rejects.toThrowError(/permission denied/i);
+    await expect(forTenant(app, orgA.id).scimToken.findMany()).rejects.toThrowError(
+      /permission denied/i,
+    );
+    expect(await admin.scimToken.count({ where: { organizationId: orgA.id } })).toBe(1);
+  });
 });

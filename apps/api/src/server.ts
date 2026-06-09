@@ -12,7 +12,6 @@ await startTracing('helio-api');
 const app = createApp({
   prisma: createPrismaClient(env.DATABASE_URL),
   redis: new Redis(env.REDIS_URL),
-  bootstrapToken: env.API_BOOTSTRAP_TOKEN,
   rateLimit: { max: env.RATE_LIMIT_MAX, windowSeconds: env.RATE_LIMIT_WINDOW_S },
   stripe: env.STRIPE_WEBHOOK_SECRET
     ? {

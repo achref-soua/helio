@@ -1,6 +1,8 @@
 pnpm-lock.yaml
 node_modules/
 next-env.d.ts
+# Generated from the gateway's OpenAPI document; openapi-typescript owns its format.
+packages/sdk-js/src/openapi.d.ts
 dist/
 build/
 .next/

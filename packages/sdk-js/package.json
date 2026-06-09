@@ -2,16 +2,18 @@
   "name": "@helio/sdk-js",
   "version": "0.0.0",
   "private": true,
-  "description": "Helio browser tracking SDK: track/identify/page with batching, sendBeacon flush, and anonymous identity.",
+  "description": "Helio JS/TS SDK: browser event tracking (track/identify/page) and a typed REST client for the public API gateway.",
   "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./rest": "./src/rest.ts"
   },
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --coverage"
+    "test": "vitest run --coverage",
+    "generate": "openapi-typescript ../../apps/api/openapi.json -o src/openapi.d.ts"
   },
   "devDependencies": {
     "@helio/config": "workspace:*",
@@ -19,6 +21,7 @@
     "@vitest/coverage-v8": "^4.1.8",
     "eslint": "^10.4.1",
     "jsdom": "^28.0.0",
+    "openapi-typescript": "^7.13.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8"
   }

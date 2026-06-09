@@ -1,0 +1,77 @@
+---
+title: MCP server
+description: Drive Helio from external AI agents through a Model Context Protocol server, scoped to one workspace.
+---
+
+Helio ships a **Model Context Protocol (MCP)** server, so external AI agents —
+including your own assistant — can read and draft inside a Helio workspace as
+tools. Agentic orchestration is table-stakes for 2026 martech; shipping it
+open-source is a headline feature.
+
+It is built on the official MCP Python SDK (**FastMCP**) and speaks **stdio**, so
+it drops into any MCP-compatible client.
+
+## Scope & safety
+
+The server is bound to a **single workspace** through environment variables —
+the agent can never widen its own scope, and retrieval runs over the
+[RLS-bound](/docs/concepts/tenancy) application role:
+
+```bash
+INTEL_MCP_ORGANIZATION_ID=org_…
+INTEL_MCP_WORKSPACE_ID=ws_…
+```
+
+The drafting tools **return drafts**; they don't launch campaigns or mutate
+data. A human still reviews and commits anything in the dashboard.
+
+## Tools
+
+| Tool                            | Purpose                                                   |
+| ------------------------------- | --------------------------------------------------------- |
+| `workspace_summary()`           | High-level counts and health for the workspace.           |
+| `search_contacts(query, limit)` | Find contacts by email or attribute.                      |
+| `list_segments()`               | List the workspace's segments.                            |
+| `list_journeys()`               | List the workspace's journeys.                            |
+| `list_campaigns()`              | List the workspace's campaigns.                           |
+| `list_email_templates()`        | List email templates.                                     |
+| `draft_segment(prompt)`         | Draft a [segment](/docs/guides/segments) rule from text.  |
+| `draft_journey(prompt)`         | Draft a [journey](/docs/guides/journeys) graph from text. |
+| `draft_email(prompt)`           | Draft an on-brand [email](/docs/guides/email) from text.  |
+
+## Running it
+
+```bash
+cd apps/intelligence
+uv run python -m helio_intelligence.mcp_server
+```
+
+## Connecting a client
+
+Most MCP clients take a stdio command, arguments, and environment. A typical
+entry looks like:
+
+```json
+{
+  "mcpServers": {
+    "helio": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "helio_intelligence.mcp_server"],
+      "env": {
+        "INTEL_MCP_ORGANIZATION_ID": "org_…",
+        "INTEL_MCP_WORKSPACE_ID": "ws_…",
+        "INTEL_DATABASE_URL": "postgresql://helio_app:…@localhost:5432/helio",
+        "INTEL_LLM_PROVIDER": "groq",
+        "INTEL_LLM_API_KEY": "…"
+      }
+    }
+  }
+}
+```
+
+The `draft_*` tools call the configured LLM provider, so they need the same
+[intelligence configuration](/docs/configuration#intelligence--ai) as the rest
+of the AI plane. The read tools work without an LLM. See
+[ADR-0012](https://github.com/achref-soua/helio/tree/main/docs/adr) and the
+[AI copilot guide](/docs/guides/ai-copilot) for how the same capabilities power
+the in-app copilot.

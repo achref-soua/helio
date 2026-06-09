@@ -11,7 +11,7 @@
 
 </div>
 
-> 🚧 **Status: AI-native, platform-building (v0.6).** The end-to-end loop works today: import contacts → build a segment → design an email → launch a campaign or an event-triggered journey → watch opens and clicks land in the dashboard. Journeys run on Temporal and survive `kill -9` mid-wait without double-sending. An org-scoped AI copilot turns a sentence into a segment, journey, or on-brand email; predictive scoring, send-time optimization, and autonomous A/B winner selection are live; an MCP server exposes it all to external agents. Migrate in from HubSpot/Mailchimp/Klaviyo, pipe events in Segment-style, and track deals on a CRM-lite board. The [roadmap](#roadmap) tracks what's next.
+> 🚧 **Status: AI-native, platform-building (v0.8).** The end-to-end loop works today: import contacts → build a segment → design an email → launch a campaign or an event-triggered journey → watch opens and clicks land in the dashboard. Journeys run on Temporal and survive `kill -9` mid-wait without double-sending. An org-scoped AI copilot turns a sentence into a segment, journey, or on-brand email; predictive scoring, send-time optimization, and autonomous A/B winner selection are live; an MCP server exposes it all to external agents. Migrate in from HubSpot/Mailchimp/Klaviyo, pipe events in Segment-style, and track deals on a CRM-lite board. Enterprise SSO & SCIM, typed REST SDKs for JS and Python, and a full documentation site round out the platform. The [roadmap](#roadmap) tracks what's next.
 
 <p align="center">
   <img src="docs/assets/journey-canvas.png" alt="Helio's journey canvas: a welcome series with a durable wait, a plan branch, and an A/B path" width="900" />
@@ -33,7 +33,7 @@ Marketing automation today forces a bad choice:
 
 > Legend: ✅ shipped · 🚧 in progress · 🗺️ roadmap
 
-- ✅ **Multi-tenant platform core** — organizations & workspaces with Postgres row-level security (cross-tenant access is impossible at the database, not just filtered), role-based access (owner/admin/editor/viewer), email-verified auth with 2FA support, invitations, audit log, REST gateway with OpenAPI 3.1 + problem+json + idempotency + rate limiting
+- ✅ **Multi-tenant platform core** — organizations & workspaces with Postgres row-level security (cross-tenant access is impossible at the database, not just filtered), role-based access (owner/admin/editor/viewer), email-verified auth with 2FA support, invitations, audit log, REST gateway with per-organization API keys, OpenAPI 3.1 + problem+json + idempotency + rate limiting
 - ✅ **Contacts & lists** — profiles with free-form attributes, tolerant CSV import with validation summary, static lists, cursor-paginated search
 - ✅ **Event pipeline** — zero-dependency browser SDK (`@helio/sdk-js`) → write-key-authenticated ingestion → Redpanda → ClickHouse; at-least-once with engine-level dedup. Segment/RudderStack-compatible HTTP Tracking API (`/v1/batch` + `/v1/track|identify|page`, write key via Basic auth), so existing instrumentation points straight at Helio
 - ✅ **Segmentation** — visual nested AND/OR builder over fields, JSON attributes, status, and recency; always-live membership (segments are predicates, not sync jobs); NULL semantics verified against real Postgres
@@ -49,7 +49,9 @@ Marketing automation today forces a bad choice:
 - ✅ **CRM-lite** — pipelines with configurable stages and a deal board; deals close and reopen as they move, all tenant-isolated
 - ✅ **Migration & ingestion** — one-click importers that detect HubSpot/Mailchimp/Klaviyo exports (mapping who's unsubscribed), and a Segment/RudderStack-compatible HTTP Tracking API so existing instrumentation points straight at Helio
 - ✅ **Billing** — opt-in Stripe billing with plan-gated usage limits and a signature-verified webhook; self-hosted stays unlimited and unmetered
-- 🗺️ **Platform integrations** — SSO/SCIM, generated SDKs, outbound webhooks, docs site
+- ✅ **Enterprise SSO & SCIM** — per-organization OIDC single sign-on (domain-routed, server-authoritative org binding) and SCIM 2.0 user provisioning; IdP client secrets and SCIM tokens are walled off from the tenant database role
+- ✅ **SDKs & docs** — typed REST SDKs for JavaScript/TypeScript and Python, generated from the OpenAPI spec, plus a full documentation site (Fumadocs)
+- 🗺️ **Platform integrations** — outbound webhook subscriptions, ad-audience sync
 
 ### The product in action
 
@@ -122,7 +124,7 @@ task db:migrate && task db:seed
 pnpm --filter @helio/web dev
 ```
 
-Open `http://localhost:3000`, sign up, and verify your email at Mailpit (`http://localhost:8025`) — onboarding creates your organization, and the seed provisions a demo workspace with contacts, a list, and a write key. Dev email never leaves your machine.
+Open `http://localhost:3000`, sign up, and verify your email at Mailpit (`http://localhost:8025`) — onboarding creates your organization, and the seed provisions a ready-to-explore demo workspace: contacts (with lead scores and AI predictions), lists, segments, email templates, a campaign, an active welcome journey, lead-scoring rules, a CRM pipeline with deals, and a demo write key. Dev email never leaves your machine.
 
 **Want the full loop (campaigns, journeys, event analytics)?**
 
@@ -173,21 +175,23 @@ Hot-path budgets (ingestion ≥ 5k events/s, API reads p95 < 150 ms) have a comm
 
 ## Roadmap
 
-| Milestone | Focus                                                                                                 |
-| --------- | ----------------------------------------------------------------------------------------------------- |
-| **v0.1**  | Foundation: monorepo, CI/CD, multi-tenant auth & RBAC, design system, observability baseline          |
-| **v0.2**  | Usable MVP: contacts & lists, event ingestion, segmentation, email sending & tracking, first journeys |
-| **v0.3**  | Growth: full journey canvas, SMS & push, landing pages, lead scoring, A/B testing, attribution        |
-| **v0.4**  | AI: copilot, NL→segment, NL→journey, brand-voice generation, MCP server                               |
-| **v0.5**  | AI, cont'd: predictive scoring & churn, send-time optimization, autonomous A/B winner selection       |
-| **v0.6**  | Platform: HubSpot/Mailchimp/Klaviyo importers, Segment-compatible ingestion, CRM-lite deal board      |
-| **v0.7**  | Platform: opt-in Stripe billing with plan-gated usage limits and a signature-verified webhook         |
-| **v1.0**  | Platform, cont'd: SSO/SCIM, generated SDKs, docs site, public demo                                    |
+| Milestone | Focus                                                                                                    |
+| --------- | -------------------------------------------------------------------------------------------------------- |
+| **v0.1**  | Foundation: monorepo, CI/CD, multi-tenant auth & RBAC, design system, observability baseline             |
+| **v0.2**  | Usable MVP: contacts & lists, event ingestion, segmentation, email sending & tracking, first journeys    |
+| **v0.3**  | Growth: full journey canvas, SMS & push, landing pages, lead scoring, A/B testing, attribution           |
+| **v0.4**  | AI: copilot, NL→segment, NL→journey, brand-voice generation, MCP server                                  |
+| **v0.5**  | AI, cont'd: predictive scoring & churn, send-time optimization, autonomous A/B winner selection          |
+| **v0.6**  | Platform: HubSpot/Mailchimp/Klaviyo importers, Segment-compatible ingestion, CRM-lite deal board         |
+| **v0.7**  | Platform: opt-in Stripe billing with plan-gated usage limits and a signature-verified webhook            |
+| **v0.8**  | Platform: enterprise SSO & SCIM, generated REST SDKs (JS + Python), documentation site, richer demo seed |
+| **v1.0**  | Polish: Helm chart, managed-cloud guide, load-test results, public demo instance, tagged v1.0.0          |
 
 ## Documentation
 
+- 📖 **[Documentation site](apps/docs)** (Fumadocs) — concepts, self-hosting, configuration, every feature guide, the REST API, SDKs, the MCP server, and migration guides. Run it locally with `task docs` (→ `localhost:3002`).
 - [Architecture (C4) & trust boundaries](docs/architecture.md) · [Decision log (ADRs)](docs/adr) · [Threat model](docs/threat-model.md)
-- [Local-dev runbook](docs/runbooks/local-dev.md) · [API spec (OpenAPI 3.1)](apps/api/openapi.json)
+- [Local-dev runbook](docs/runbooks/local-dev.md) · [SSO & SCIM setup](docs/sso.md) · [REST API guide](docs/api.md) · [API spec (OpenAPI 3.1)](apps/api/openapi.json)
 
 ## Contributing & policies
 

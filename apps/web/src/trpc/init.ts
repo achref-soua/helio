@@ -8,7 +8,9 @@ import { appDb } from '@/lib/db';
 
 export async function createTRPCContext(options: { headers: Headers }) {
   const session = await auth.api.getSession({ headers: options.headers });
-  return { session, appDb };
+  // Headers are carried so procedures can call back into the auth kernel
+  // (e.g. the SSO router's registerSSOProvider) with the caller's session.
+  return { session, appDb, headers: options.headers };
 }
 
 type Context = Awaited<ReturnType<typeof createTRPCContext>>;

@@ -1,0 +1,37 @@
+---
+title: From HubSpot
+description: Export a HubSpot contacts list and import it into Helio with opt-out state preserved.
+---
+
+Helio detects HubSpot exports automatically and maps HubSpot's opt-out state to
+Helio's suppression list.
+
+## Export from HubSpot
+
+1. In HubSpot, go to **Contacts**.
+2. Select the contacts (or a list) you want to move, then **Export**.
+3. Choose **CSV** and include at least the **email**, **first name**, **last
+   name**, and any marketing **email opt-out** / subscription columns.
+4. Download the file when HubSpot emails it to you.
+
+## Import into Helio
+
+1. Open **Contacts → Import** in Helio and drop the CSV.
+2. Helio detects the HubSpot format and shows the detected vendor plus the count
+   of contacts that will be imported as **unsubscribed**.
+3. Review the validation summary and confirm.
+
+## What carries over
+
+- **Email, first name, last name** map to the built-in fields.
+- Contacts HubSpot marks as **opted out / unsubscribed** import as
+  `UNSUBSCRIBED` and are added to the
+  [suppression list](/docs/guides/contacts#suppression--privacy).
+- Other columns become [attributes](/docs/guides/contacts) you can segment on.
+
+<Callout type="info">
+  Re-importing the same file is safe — contacts upsert by email, so you won't create duplicates.
+</Callout>
+
+Once contacts are in, build a [segment](/docs/guides/segments) and launch a
+[journey](/docs/guides/journeys) to pick up where HubSpot left off.

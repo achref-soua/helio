@@ -4,8 +4,11 @@ import { getTranslations } from 'next-intl/server';
 
 import { auth } from '@/lib/auth';
 
+import { ApiKeysPanel } from './api-keys-panel';
 import { BillingPanel } from './billing-panel';
 import { MembersPanel } from './members-panel';
+import { ScimPanel } from './scim-panel';
+import { SsoPanel } from './sso-panel';
 
 export default async function SettingsPage() {
   const requestHeaders = await headers();
@@ -43,6 +46,13 @@ export default async function SettingsPage() {
         canManage={me?.role === 'owner' || me?.role === 'admin'}
       />
       <BillingPanel />
+      {(me?.role === 'owner' || me?.role === 'admin') && (
+        <>
+          <SsoPanel canManage />
+          <ScimPanel canManage />
+          <ApiKeysPanel canManage />
+        </>
+      )}
     </div>
   );
 }

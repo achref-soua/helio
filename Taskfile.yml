@@ -55,6 +55,7 @@ tasks:
       - pnpm typecheck
       - pnpm test
       - cmd: cd apps/intelligence && uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
+      - cmd: cd packages/sdk-py && uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
 
   verify:e2e:
     desc: 'End-to-end gate (requires: task up; WIPES the local database)'
@@ -91,6 +92,11 @@ tasks:
     desc: Regenerate docs/assets screenshots from a running app (BASE_URL overridable)
     cmds:
       - pnpm --filter @helio/web exec tsx scripts/screenshots.ts
+
+  docs:
+    desc: Run the documentation site (Fumadocs) at :3002
+    cmds:
+      - pnpm --filter @helio/docs dev
 
   logs:
     desc: Tail logs of the local stack (task logs -- <service>)

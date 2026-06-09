@@ -15,13 +15,14 @@ export interface StripeConfig {
 export interface GatewayDeps {
   prisma: PrismaClient;
   redis: RedisLike;
-  bootstrapToken: string;
   rateLimit: { max: number; windowSeconds: number };
   stripe?: StripeConfig;
 }
 
 export interface GatewayVariables {
   requestId: string;
+  /** The organization resolved from the API key; set by apiKeyAuth on /v1. */
+  organizationId: string;
 }
 
 export type GatewayEnv = { Variables: GatewayVariables };

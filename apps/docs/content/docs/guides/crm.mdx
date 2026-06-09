@@ -1,0 +1,27 @@
+---
+title: CRM-lite
+description: Pipelines with configurable stages and a deal board, all tenant-isolated.
+---
+
+Helio includes a lightweight CRM for tracking deals alongside your marketing —
+pipelines, stages, and a board, without the weight of a full sales suite.
+
+## Pipelines & stages
+
+A **pipeline** models a sales process as an ordered set of **stages** (for
+example _Lead → Qualified → Proposal → Won / Lost_). Each stage has a kind that
+tells Helio whether reaching it means the deal is open, won, or lost.
+
+## The deal board
+
+Deals are shown on a **kanban board**, one column per stage. Moving a deal
+between stages updates its status — a deal **closes** when it reaches a won/lost
+stage and **reopens** if it moves back to an open one. Like everything else in
+Helio, deals are tenant-isolated by [row-level security](/docs/concepts/tenancy).
+
+## API
+
+Pipelines and deals are available through the dashboard today. The CRM data
+model (pipelines, stages, deals with status) is part of the platform; deal
+tasks and a meeting scheduler are on the
+[roadmap](https://github.com/achref-soua/helio#roadmap).

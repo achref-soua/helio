@@ -1,0 +1,62 @@
+---
+title: Tenancy & security
+description: How Helio isolates tenants with Postgres row-level security, and the roles that enforce it.
+---
+
+Helio is multi-tenant: many organizations share one deployment. Isolation is
+enforced at the **database**, not just in application code — the strongest place
+to put it.
+
+## Row-level security
+
+Every tenant-owned table has a row-level security (RLS) policy keyed on
+`organization_id`. The runtime database role, `helio_app`, has RLS **forced**,
+so it can only ever see rows belonging to the organization set on the current
+connection. Even a SQL-injection bug or a logic error that forgets a `WHERE`
+clause cannot return another tenant's data — the database itself filters it.
+
+```
+Request → authenticated org id → forTenant(orgId) → SET app.org_id → RLS policy → only that org's rows
+```
+
+`forTenant()` is the **only** sanctioned path to tenant data. It opens a
+connection, sets the organization context, and every query underneath is scoped
+automatically.
+
+## Two roles, two trust levels
+
+| Role        | RLS    | Can read identity tables? | Used for                      |
+| ----------- | ------ | ------------------------- | ----------------------------- |
+| `helio`     | bypass | yes                       | migrations, seed (admin only) |
+| `helio_app` | forced | **no**                    | all runtime product traffic   |
+
+Identity and secret tables — sessions, credentials, SSO client secrets, SCIM
+tokens — are **revoked** from `helio_app` entirely. They live in the auth
+kernel inside `apps/web` on the admin connection. So even full control of a
+tenant request path never exposes another tenant's credentials or an
+organization's IdP secret.
+
+## The public edge
+
+The [REST gateway](/docs/api/rest) authenticates each request with a
+per-organization API key of the form `hk_<org>.<secret>`. The key embeds its
+organization, so the gateway sets the RLS context from the key itself — there is
+no `organizationId` parameter to forge, and only a SHA-256 hash of the key is
+stored. Two independent walls (the hash check _and_ RLS) protect every call.
+
+## Roles & permissions
+
+Within an organization, members have a role — `owner`, `admin`, `editor`, or
+`viewer` — checked on every mutating action. Users provisioned through
+[SSO](/docs/security/sso) or [SCIM](/docs/security/scim) land as least-privilege
+`viewer`s until an admin elevates them.
+
+## Auditing
+
+Security-relevant actions — invitations, role changes, API-key mints, SSO and
+SCIM provisioning — are written to an append-only audit log scoped to the
+organization.
+
+For the design rationale, see
+[ADR-0003 (RLS tenancy)](https://github.com/achref-soua/helio/blob/main/docs/adr/0003-postgres-rls-tenancy.md)
+and [ADR-0004 (auth kernel)](https://github.com/achref-soua/helio/blob/main/docs/adr/0004-better-auth-kernel.md).

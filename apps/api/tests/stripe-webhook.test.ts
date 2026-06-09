@@ -112,7 +112,6 @@ describe('POST /webhooks/stripe', () => {
     return createApp({
       prisma,
       redis: new RedisMock() as unknown as RedisLike,
-      bootstrapToken: 'bootstrap-token-000000000001',
       rateLimit: { max: 1000, windowSeconds: 3600 },
       stripe,
     });

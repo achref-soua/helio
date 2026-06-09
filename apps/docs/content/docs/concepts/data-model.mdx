@@ -1,0 +1,60 @@
+---
+title: Data model
+description: How Helio stores transactional state, events, and embeddings — and why it uses two databases.
+---
+
+Helio uses the right store for each job: **PostgreSQL** for transactional
+state, **ClickHouse** for the event firehose, **Redis** for ephemeral state,
+and **object storage** for assets.
+
+## PostgreSQL — the source of truth
+
+Everything you create and edit lives in PostgreSQL 16: organizations,
+workspaces, contacts and their attributes, lists, segments, templates,
+campaigns, journeys, deals, RBAC, and the audit log. Two properties matter:
+
+- **Row-level security** isolates every tenant at the database. Application
+  code can't accidentally leak across organizations because the database
+  refuses to return another tenant's rows. See [Tenancy](/docs/concepts/tenancy).
+- **pgvector** stores embeddings for brand-voice retrieval and semantic search,
+  alongside the relational data rather than in a separate vector database.
+
+Access is split by trust level:
+
+| Connection           | Role        | RLS    | Used by                          |
+| -------------------- | ----------- | ------ | -------------------------------- |
+| `DATABASE_URL`       | `helio_app` | forced | every product service at runtime |
+| `DATABASE_ADMIN_URL` | `helio`     | bypass | migrations and seed only         |
+
+## ClickHouse — the event store
+
+Tracked events — page views, custom events, opens, clicks, bounces — are
+written to ClickHouse, which is built for high-volume append and fast
+analytical aggregation. This is what powers funnels, retention, per-campaign
+engagement, and the behavioral conditions in segments. Events arrive through
+the [ingestion pipeline](/docs/api/sdks): SDK → write-key-authenticated intake
+→ Redpanda → ClickHouse, at-least-once with engine-level dedup.
+
+## Redis — ephemeral state
+
+Rate-limit counters, idempotency keys, session data, and short-lived caches.
+Nothing in Redis is a source of truth; it can be flushed without data loss.
+
+## Object storage (S3 / MinIO)
+
+Uploaded assets and generated exports (for example, a GDPR data-subject export)
+live in S3-compatible object storage — MinIO in the local stack.
+
+## Identifiers
+
+Helio uses prefixed, URL-safe identifiers so an id is self-describing in logs,
+APIs, and the dashboard:
+
+| Prefix      | Object    |
+| ----------- | --------- |
+| `ws_…`      | workspace |
+| `contact_…` | contact   |
+| `list_…`    | list      |
+
+The public API returns these ids directly and uses them for
+[cursor pagination](/docs/api/rest).

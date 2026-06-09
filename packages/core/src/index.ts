@@ -57,6 +57,12 @@ export {
   type TrackEvent,
   trackEventSchema,
 } from './events';
+export {
+  type GeneratedApiKey,
+  generateGatewayApiKey,
+  hashGatewayApiKey,
+  parseGatewayApiKey,
+} from './gateway-keys';
 export { type Id, idTimestamp, isId, newId } from './id';
 export {
   type FrequencyCap,
@@ -92,6 +98,25 @@ export {
   unwrap,
   unwrapOr,
 } from './result';
+export {
+  activeFromPatch,
+  activeFromScimUser,
+  displayNameFromScimUser,
+  emailFromScimUser,
+  generateScimToken,
+  hashScimToken,
+  parseUserNameFilter,
+  SCIM_CONTENT_TYPE,
+  SCIM_ERROR_SCHEMA,
+  SCIM_LIST_SCHEMA,
+  SCIM_PATCH_SCHEMA,
+  SCIM_USER_SCHEMA,
+  scimError,
+  scimListResponse,
+  type ScimUser,
+  type ScimUserInput,
+  toScimUser,
+} from './scim';
 export {
   buildEventConditionQuery,
   CONTACT_FIELDS,

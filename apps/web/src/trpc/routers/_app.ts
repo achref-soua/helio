@@ -1,5 +1,6 @@
 import { protectedProcedure, publicProcedure, router } from '../init';
 import { analyticsRouter } from './analytics';
+import { apiKeyRouter } from './api-key';
 import { billingRouter } from './billing';
 import { campaignRouter } from './campaign';
 import { contactRouter } from './contact';
@@ -11,6 +12,7 @@ import { formRouter } from './form';
 import { journeyRouter } from './journey';
 import { scoringRouter } from './scoring';
 import { segmentRouter } from './segment';
+import { ssoRouter } from './sso';
 import { workspaceRouter } from './workspace';
 
 export const appRouter = router({
@@ -32,6 +34,8 @@ export const appRouter = router({
   scoring: scoringRouter,
   crm: crmRouter,
   billing: billingRouter,
+  sso: ssoRouter,
+  apiKey: apiKeyRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -1,0 +1,52 @@
+---
+title: Segmentation
+description: Build live audiences from contact fields, attributes, recency, behavior, lead score, and AI predictions.
+---
+
+A segment is a **live predicate**. Unlike a synced list, a segment's membership
+is always current because it is evaluated on demand — there is no stale copy to
+refresh.
+
+## The visual builder
+
+The builder composes nested **AND / OR** groups of conditions. Each condition
+targets one of:
+
+| Condition kind | Examples                                                            |
+| -------------- | ------------------------------------------------------------------- |
+| Field          | `status is ACTIVE`, `email ends with @acme.com`                     |
+| Attribute      | `plan is trial`, `seats ≥ 5` (any JSON attribute)                   |
+| Recency        | `created in the last 7 days`                                        |
+| Behavior       | `performed "Added to Cart" at least 2 times` (events in ClickHouse) |
+| Lead score     | `score ≥ 50`                                                        |
+| Prediction     | `conversion probability ≥ 0.7`, `churn risk is high`                |
+
+Behavioral conditions are compiled to ClickHouse queries; field and attribute
+conditions to PostgreSQL. NULL semantics are verified against a real Postgres
+instance, so "attribute is not X" behaves the way you expect when the attribute
+is absent.
+
+## NULL semantics
+
+A common segmentation bug is mishandling missing data. In Helio, a contact with
+no `plan` attribute is **not** matched by `plan is not 'pro'` unless you opt in
+to including unknowns — the behavior is explicit and tested, not accidental.
+
+## Suppression & dynamics
+
+- A segment automatically excludes suppressed contacts when used as a send
+  audience.
+- Because membership is a predicate, a contact enters or leaves a segment the
+  instant their data changes — which is also what drives **segment-entry**
+  triggers on [journeys](/docs/guides/journeys).
+
+## Natural language → segment
+
+Describe the audience in a sentence and let the [AI copilot](/docs/guides/ai-copilot)
+draft the rule:
+
+> "Trial users on a team plan who opened an email last week but haven't
+> converted."
+
+The copilot returns a validated segment rule you can refine in the visual
+builder before saving — it never executes anything on its own.

@@ -1,0 +1,47 @@
+---
+title: Campaigns
+description: One-off sends to a segment or list, delivered durably on Temporal, with subject and content A/B testing.
+---
+
+A campaign is a one-off send — a newsletter, a launch announcement, a re-engagement
+blast — to a [segment](/docs/guides/segments) or [list](/docs/guides/contacts).
+
+## How a send works
+
+When you launch a campaign, Helio:
+
+1. Enumerates the audience, **excluding suppressed contacts** at enumeration
+   time.
+2. Creates one **send row per recipient**. This row is what makes delivery
+   idempotent: a retry after a crash re-reads the row and never sends twice.
+3. Runs the send on **Temporal**, so a worker restart mid-campaign resumes
+   cleanly rather than double-sending or dropping recipients.
+4. Re-checks suppression **per message** before each send, in case a contact
+   unsubscribed between enumeration and delivery.
+
+## A/B testing
+
+Test a **subject line** or **content** variant. Helio assigns each recipient a
+sticky variant (the same contact always gets the same variant), records the
+variant on the send row and in every engagement event, and reports per-variant
+opens and clicks so you can read significance.
+
+### Autonomous winner selection
+
+Turn on **auto-winner** and Helio runs a holdout test phase, evaluates the
+variants with a two-proportion z-test once the sample window closes, promotes
+the winning variant to the remaining audience, and badges the winner in the UI
+— no manual checking required. See the
+[AI copilot guide](/docs/guides/ai-copilot) for the broader set of automated
+optimizations.
+
+## Send-time optimization
+
+When enabled, Helio can defer each recipient's send to the hour they have
+historically been most likely to open or click, derived from their own
+engagement history.
+
+## Analytics
+
+Every campaign reports opens, clicks, and conversions into
+[analytics](/docs/guides/analytics), with per-variant breakdowns for A/B tests.

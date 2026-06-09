@@ -1,0 +1,60 @@
+---
+title: Journeys
+description: Durable, multi-step automations on a visual canvas — built on Temporal so they survive crashes mid-wait.
+---
+
+A journey is an ongoing automation: a contact enters, then flows through sends,
+waits, branches, and splits. You build it on a **React Flow canvas**; it
+executes as one **Temporal workflow per enrolled contact**.
+
+## Why durable execution matters
+
+Most marketing tools model a "wait 3 days" step as a row a cron job polls. If
+the worker dies, timers drift, fire twice, or never fire. Helio uses Temporal's
+durable timers instead: a worker can be killed with `kill -9` while thousands of
+contacts are mid-wait and, on restart, every journey resumes exactly where it
+left off — **no lost state, no double-sends**. This is the headline reliability
+property, verified in tests.
+
+## Triggers
+
+A contact can enter a journey from:
+
+| Trigger       | Fires when…                                                  |
+| ------------- | ------------------------------------------------------------ |
+| Event         | a matching event arrives from the live stream                |
+| Segment entry | a contact starts matching a [segment](/docs/guides/segments) |
+| Schedule      | a time-based rule                                            |
+| Webhook / API | an external system calls in                                  |
+
+## Node types
+
+The canvas validates your graph (no dangling edges, exactly one path per
+branch) and round-trips losslessly. Available nodes:
+
+| Node           | Does                                                 |
+| -------------- | ---------------------------------------------------- |
+| `send_email`   | Send a template; optional send-time optimization.    |
+| `send_push`    | Send a web push notification (VAPID).                |
+| `wait`         | Durable delay (minutes to weeks), survives restarts. |
+| `branch`       | Split on live contact data / segment membership.     |
+| `ab_split`     | Randomly split traffic N ways for experimentation.   |
+| `update_trait` | Write an attribute on the contact.                   |
+| `webhook`      | Call an external URL (optionally HMAC-signed).       |
+| `end`          | Terminate this contact's journey.                    |
+
+## Guardrails
+
+- **Quiet hours** hold messages until an allowed window.
+- **Frequency caps** prevent over-messaging a contact across journeys.
+- **Goals & conversion tracking** measure whether the journey achieved its aim.
+
+## Natural language → journey
+
+Describe the automation and the [AI copilot](/docs/guides/ai-copilot) drafts the
+whole graph:
+
+> "Build a 5-step trial-conversion sequence with a wait and an A/B subject test."
+
+The copilot returns a validated journey you review on the canvas before
+activating — it never launches anything by itself.
