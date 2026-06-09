@@ -17,7 +17,8 @@
     "copilot": "Copilot",
     "tasks": "Tasks",
     "scheduling": "Scheduling",
-    "landing": "Landing pages"
+    "landing": "Landing pages",
+    "widgets": "Widgets"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -938,5 +939,35 @@
     "notFound": "This page does not exist or is not published.",
     "thanks": "Thanks — you're signed up.",
     "emailPlaceholder": "you@example.com"
+  },
+  "widgets": {
+    "title": "On-site widgets",
+    "subtitle": "Show banners and popups on your own site with a one-line embed.",
+    "new": "New widget",
+    "empty": "No widgets yet. Create one and drop the embed on your site.",
+    "saved": "Widget saved",
+    "genericError": "Something went wrong. Please try again.",
+    "active": "Live",
+    "inactive": "Off",
+    "editLabel": "Edit {name}",
+    "removeLabel": "Delete {name}",
+    "embedTitle": "Embed",
+    "embedHint": "Add this once to your site, swapping in a workspace write key.",
+    "copySnippet": "Copy embed",
+    "snippetCopied": "Embed copied",
+    "newTitle": "New widget",
+    "editTitle": "Edit widget",
+    "dialogSubtitle": "Banners pin to the bottom; popups float in the corner.",
+    "name": "Name",
+    "type": "Type",
+    "messageTitle": "Heading",
+    "body": "Message",
+    "ctaLabel": "Button label",
+    "ctaUrl": "Button URL",
+    "save": "Save widget",
+    "types": {
+      "BANNER": "Banner",
+      "POPUP": "Popup"
+    }
   }
 }
