@@ -13,6 +13,7 @@ import { emailTemplateRouter } from './email-template';
 import { formRouter } from './form';
 import { integrationsRouter } from './integrations';
 import { journeyRouter } from './journey';
+import { landingRouter } from './landing';
 import { schedulingRouter } from './scheduling';
 import { scoringRouter } from './scoring';
 import { segmentRouter } from './segment';
@@ -37,6 +38,7 @@ export const appRouter = router({
   analytics: analyticsRouter,
   copilot: copilotRouter,
   form: formRouter,
+  landing: landingRouter,
   scoring: scoringRouter,
   scheduling: schedulingRouter,
   crm: crmRouter,

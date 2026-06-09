@@ -91,6 +91,15 @@ export {
   quietHoursSchema,
   sendTimeDelayMs,
 } from './journeys';
+export {
+  emptyLandingBlock,
+  LANDING_BLOCK_TYPES,
+  type LandingBlock,
+  landingBlockSchema,
+  type LandingBlockType,
+  type LandingDocument,
+  landingDocumentSchema,
+} from './landing';
 export { type PushNotification, type PushSubscriptionInput, pushSubscriptionSchema } from './push';
 export { hasRole, INVITABLE_ROLES, isRole, type Role, ROLES } from './rbac';
 export {

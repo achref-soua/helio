@@ -16,7 +16,8 @@
     "deals": "Deals",
     "copilot": "Copilot",
     "tasks": "Tasks",
-    "scheduling": "Scheduling"
+    "scheduling": "Scheduling",
+    "landing": "Landing pages"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -902,5 +903,40 @@
       "PENDING": "Pending",
       "VERIFIED": "Verified"
     }
+  },
+  "landing": {
+    "title": "Landing pages",
+    "subtitle": "Build hosted pages with a few blocks and capture signups.",
+    "new": "New page",
+    "untitled": "Untitled page",
+    "empty": "No landing pages yet. Create one to get started.",
+    "published": "Published",
+    "draft": "Draft",
+    "back": "Back",
+    "save": "Save",
+    "saved": "Saved",
+    "publish": "Publish",
+    "unpublish": "Unpublish",
+    "publishedToast": "Page published",
+    "unpublishedToast": "Page unpublished",
+    "invalidBlocks": "Check your blocks — image and button URLs must be complete.",
+    "genericError": "Something went wrong. Please try again.",
+    "pageTitle": "Page title",
+    "linkCopied": "Link copied",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "removeBlock": "Remove block",
+    "blocks": {
+      "heading": "Heading",
+      "text": "Text",
+      "image": "Image",
+      "button": "Button",
+      "form": "Form"
+    }
+  },
+  "hostedLanding": {
+    "notFound": "This page does not exist or is not published.",
+    "thanks": "Thanks — you're signed up.",
+    "emailPlaceholder": "you@example.com"
   }
 }

@@ -56,6 +56,7 @@ model Organization {
   integrations      Integration[]
   supportTickets    SupportTicket[]
   sendingDomains    SendingDomain[]
+  landingPages      LandingPage[]
 
   @@map("organization")
 }
@@ -111,6 +112,7 @@ model Workspace {
   meetings          Meeting[]
   integrations      Integration[]
   sendingDomains    SendingDomain[]
+  landingPages      LandingPage[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -1066,4 +1068,26 @@ model SendingDomain {
   @@unique([workspaceId, domain])
   @@index([organizationId])
   @@map("sending_domain")
+}
+
+/// A hosted, block-based landing page. Public at /p/<id> when published;
+/// a form block captures contacts into the page's workspace. Workspace-
+/// scoped and isolated by the standard RLS policy.
+model LandingPage {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  title          String
+  /// Ordered blocks — see @helio/core landingDocumentSchema.
+  blocks         Json     @default("[]")
+  published      Boolean  @default(false)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([workspaceId])
+  @@map("landing_page")
 }
