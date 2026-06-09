@@ -44,9 +44,11 @@ export function IntegrationsPanel({ canManage }: { canManage: boolean }) {
   const queryClient = useQueryClient();
   const workspaceId = useActiveWorkspaceId();
   const [open, setOpen] = useState(false);
+  const [sfOpen, setSfOpen] = useState(false);
 
   const list = useQuery({ ...trpc.integrations.list.queryOptions(), enabled: canManage });
   const connect = useMutation(trpc.integrations.connectShopify.mutationOptions());
+  const connectSf = useMutation(trpc.integrations.connectSalesforce.mutationOptions());
   const setEnabled = useMutation(trpc.integrations.setEnabled.mutationOptions());
   const disconnect = useMutation(trpc.integrations.disconnect.mutationOptions());
 
@@ -65,6 +67,24 @@ export function IntegrationsPanel({ canManage }: { canManage: boolean }) {
       await invalidate();
       toast.success(t('connected'));
       setOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('genericError'));
+    }
+  }
+
+  async function onConnectSalesforce(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!workspaceId) return;
+    const form = new FormData(event.currentTarget);
+    try {
+      await connectSf.mutateAsync({
+        workspaceId,
+        instanceUrl: String(form.get('instanceUrl') ?? '').trim(),
+        accessToken: String(form.get('accessToken') ?? '').trim(),
+      });
+      await invalidate();
+      toast.success(t('connected'));
+      setSfOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('genericError'));
     }
@@ -101,46 +121,97 @@ export function IntegrationsPanel({ canManage }: { canManage: boolean }) {
           <CardDescription>{t('subtitle')}</CardDescription>
         </div>
         {canManage && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" data-testid="integration-connect">
-                {t('connectShopify')}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>{t('connectTitle')}</DialogTitle>
-                <DialogDescription>{t('connectSubtitle')}</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={onConnect} className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="shop">{t('shopDomain')}</Label>
-                  <Input
-                    id="shop"
-                    name="shop"
-                    placeholder="acme.myshopify.com"
-                    required
-                    data-testid="integration-shop"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="secret">{t('secret')}</Label>
-                  <Input
-                    id="secret"
-                    name="secret"
-                    type="password"
-                    required
-                    data-testid="integration-secret"
-                  />
-                </div>
-                <DialogFooter>
-                  <Button type="submit" disabled={connect.isPending} data-testid="integration-save">
-                    {connect.isPending ? t('connecting') : t('connect')}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <div className="flex flex-wrap gap-2">
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" data-testid="integration-connect">
+                  {t('connectShopify')}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{t('connectTitle')}</DialogTitle>
+                  <DialogDescription>{t('connectSubtitle')}</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={onConnect} className="grid gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="shop">{t('shopDomain')}</Label>
+                    <Input
+                      id="shop"
+                      name="shop"
+                      placeholder="acme.myshopify.com"
+                      required
+                      data-testid="integration-shop"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="secret">{t('secret')}</Label>
+                    <Input
+                      id="secret"
+                      name="secret"
+                      type="password"
+                      required
+                      data-testid="integration-secret"
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      type="submit"
+                      disabled={connect.isPending}
+                      data-testid="integration-save"
+                    >
+                      {connect.isPending ? t('connecting') : t('connect')}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={sfOpen} onOpenChange={setSfOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline" data-testid="integration-connect-sf">
+                  {t('connectSalesforce')}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{t('connectSfTitle')}</DialogTitle>
+                  <DialogDescription>{t('connectSfSubtitle')}</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={onConnectSalesforce} className="grid gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="instanceUrl">{t('instanceUrl')}</Label>
+                    <Input
+                      id="instanceUrl"
+                      name="instanceUrl"
+                      placeholder="https://acme.my.salesforce.com"
+                      required
+                      data-testid="integration-instance"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="accessToken">{t('accessToken')}</Label>
+                    <Input
+                      id="accessToken"
+                      name="accessToken"
+                      type="password"
+                      required
+                      data-testid="integration-token"
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      type="submit"
+                      disabled={connectSf.isPending}
+                      data-testid="integration-save-sf"
+                    >
+                      {connectSf.isPending ? t('connecting') : t('connect')}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         )}
       </CardHeader>
       <CardContent className="grid gap-4">

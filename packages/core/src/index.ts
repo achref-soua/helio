@@ -100,6 +100,13 @@ export {
   unwrapOr,
 } from './result';
 export {
+  pushSalesforceLead,
+  SALESFORCE_API_VERSION,
+  type SalesforceLead,
+  salesforceLeadFromContact,
+  type SalesforceResult,
+} from './salesforce';
+export {
   type AvailabilityRule,
   availabilityRuleSchema,
   availabilitySchema,

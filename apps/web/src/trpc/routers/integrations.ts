@@ -10,6 +10,16 @@ const shopDomainSchema = z
   .toLowerCase()
   .regex(/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/, 'Must be a *.myshopify.com domain');
 
+const instanceUrlSchema = z
+  .string()
+  .trim()
+  .url()
+  .max(300)
+  .refine(
+    (value) => /^https:\/\//i.test(value) && /\.(salesforce|force)\.com/i.test(value),
+    'Must be an https Salesforce instance URL',
+  );
+
 /**
  * External platform connections. Shopify stores the shop domain (externalId)
  * and the app's webhook-signing secret; inbound webhooks land on the gateway
@@ -66,6 +76,38 @@ export const integrationsRouter = router({
           message: 'That shop is already connected to another organization',
         });
       }
+    }),
+
+  connectSalesforce: orgProcedure
+    .input(
+      z.object({
+        workspaceId: z.string().min(1),
+        instanceUrl: instanceUrlSchema,
+        accessToken: z.string().trim().min(8).max(500),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requireRole(ctx.memberRole, 'admin');
+      const integration = await ctx.tenantDb.integration.upsert({
+        where: {
+          organizationId_provider: { organizationId: ctx.organizationId, provider: 'SALESFORCE' },
+        },
+        create: {
+          id: newId('intg'),
+          organizationId: ctx.organizationId,
+          workspaceId: input.workspaceId,
+          provider: 'SALESFORCE',
+          secret: input.accessToken,
+          config: { instanceUrl: input.instanceUrl },
+        },
+        update: {
+          workspaceId: input.workspaceId,
+          secret: input.accessToken,
+          config: { instanceUrl: input.instanceUrl },
+          enabled: true,
+        },
+      });
+      return { id: integration.id };
     }),
 
   setEnabled: orgProcedure
