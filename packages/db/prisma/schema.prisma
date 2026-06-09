@@ -40,6 +40,7 @@ model Organization {
   pipelines         Pipeline[]
   pipelineStages    PipelineStage[]
   deals             Deal[]
+  tasks             Task[]
   subscription      Subscription?
   ssoProviders      SsoProvider[]
   scimToken         ScimToken?
@@ -94,6 +95,7 @@ model Workspace {
   pushSubscriptions PushSubscription[]
   pipelines         Pipeline[]
   deals             Deal[]
+  tasks             Task[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -166,6 +168,7 @@ model Contact {
   journeyRuns       JourneyRun[]
   pushSubscriptions PushSubscription[]
   deals             Deal[]
+  tasks             Task[]
 
   @@unique([workspaceId, email])
   @@index([organizationId])
@@ -785,8 +788,67 @@ model Deal {
   pipeline     Pipeline      @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
   stage        PipelineStage @relation(fields: [stageId], references: [id], onDelete: Restrict)
   contact      Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  tasks        Task[]
 
   @@index([organizationId])
   @@index([workspaceId, stageId, position])
   @@map("deal")
+}
+
+enum TaskStatus {
+  OPEN
+  DONE
+
+  @@map("task_status")
+}
+
+enum TaskType {
+  TODO
+  CALL
+  EMAIL
+  MEETING
+
+  @@map("task_type")
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+
+  @@map("task_priority")
+}
+
+/// A CRM to-do — a generic task, call, email, or meeting — optionally tied
+/// to a contact and/or a deal and assigned to a workspace member. Workspace-
+/// scoped and isolated by the standard RLS policy on organization_id.
+model Task {
+  id             String       @id
+  organizationId String       @map("organization_id")
+  workspaceId    String       @map("workspace_id")
+  title          String
+  /// Free-form detail shown under the title.
+  notes          String?
+  type           TaskType     @default(TODO)
+  priority       TaskPriority @default(MEDIUM)
+  status         TaskStatus   @default(OPEN)
+  /// When the task is due; null means no due date.
+  dueAt          DateTime?    @map("due_at")
+  /// Set when the task is marked done; cleared when it is reopened.
+  completedAt    DateTime?    @map("completed_at")
+  contactId      String?      @map("contact_id")
+  dealId         String?      @map("deal_id")
+  /// The assignee's auth user id (no hard FK across the auth split).
+  ownerId        String?      @map("owner_id")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contact      Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  deal         Deal?        @relation(fields: [dealId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([workspaceId, status, dueAt])
+  @@map("task")
 }

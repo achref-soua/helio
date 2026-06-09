@@ -1,10 +1,11 @@
 ---
 title: CRM-lite
-description: Pipelines with configurable stages and a deal board, all tenant-isolated.
+description: Pipelines with a deal board and a task list, all tenant-isolated.
 ---
 
-Helio includes a lightweight CRM for tracking deals alongside your marketing —
-pipelines, stages, and a board, without the weight of a full sales suite.
+Helio includes a lightweight CRM for tracking deals and follow-ups alongside
+your marketing — pipelines, stages, a board, and tasks, without the weight of a
+full sales suite.
 
 ## Pipelines & stages
 
@@ -19,9 +20,21 @@ between stages updates its status — a deal **closes** when it reaches a won/lo
 stage and **reopens** if it moves back to an open one. Like everything else in
 Helio, deals are tenant-isolated by [row-level security](/docs/concepts/tenancy).
 
+## Tasks
+
+A **task** is a to-do — a call, email, meeting, or generic reminder — with a
+priority and an optional due date. Tasks can be linked to a contact and/or a
+deal, so a follow-up sits next to the opportunity it belongs to.
+
+The task list groups open work by when it's due — **Overdue**, **Today**, and
+**Upcoming** — with **No due date** and **Done** below, so the most pressing
+follow-ups surface first. Completing a task stamps it done (and you can reopen
+it); the grouping is computed in your own time zone. Tasks are tenant-isolated
+like everything else.
+
 ## API
 
-Pipelines and deals are available through the dashboard today. The CRM data
-model (pipelines, stages, deals with status) is part of the platform; deal
-tasks and a meeting scheduler are on the
+Pipelines, deals, and tasks are available through the dashboard today. The CRM
+data model (pipelines, stages, deals with status, and tasks) is part of the
+platform; a meeting scheduler is on the
 [roadmap](https://github.com/achref-soua/helio#roadmap).

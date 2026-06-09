@@ -136,6 +136,23 @@ export {
   type StringOperator,
 } from './segments';
 export {
+  compareTasks,
+  groupTasksByBucket,
+  isTaskOverdue,
+  TASK_BUCKETS,
+  TASK_PRIORITIES,
+  TASK_STATUSES,
+  TASK_TYPES,
+  type TaskBucket,
+  taskBucket,
+  type TaskPriority,
+  taskPrioritySchema,
+  type TaskStatus,
+  taskStatusSchema,
+  type TaskType,
+  taskTypeSchema,
+} from './tasks';
+export {
   clickRedirectUrl,
   openPixelUrl,
   signClickTarget,

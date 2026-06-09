@@ -168,6 +168,38 @@ describe('row-level security tenant isolation', () => {
     expect(await tenantA.deal.count()).toBe(1);
   });
 
+  it('CRM tasks are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const taskId = newId('task');
+    await tenantA.task.create({
+      data: {
+        id: taskId,
+        organizationId: orgA.id,
+        workspaceId: workspaceA,
+        title: 'Call the lead',
+      },
+    });
+
+    // Org B sees none of it, even by direct id.
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.task.count()).toBe(0);
+    expect(await tenantB.task.findUnique({ where: { id: taskId } })).toBeNull();
+
+    // Org B cannot smuggle a task into Org A.
+    await expect(
+      tenantB.task.create({
+        data: {
+          id: newId('task'),
+          organizationId: orgA.id,
+          workspaceId: workspaceA,
+          title: 'Smuggled',
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.task.count()).toBe(1);
+  });
+
   it('subscriptions are tenant-isolated', async () => {
     await forTenant(app, orgA.id).subscription.create({
       data: { id: newId('sub'), organizationId: orgA.id, plan: 'PRO' },
