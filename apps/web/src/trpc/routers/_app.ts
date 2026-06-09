@@ -16,6 +16,7 @@ import { schedulingRouter } from './scheduling';
 import { scoringRouter } from './scoring';
 import { segmentRouter } from './segment';
 import { ssoRouter } from './sso';
+import { supportRouter } from './support';
 import { webhookRouter } from './webhook';
 import { workspaceRouter } from './workspace';
 
@@ -44,6 +45,7 @@ export const appRouter = router({
   webhook: webhookRouter,
   branding: brandingRouter,
   integrations: integrationsRouter,
+  support: supportRouter,
 });
 
 export type AppRouter = typeof appRouter;

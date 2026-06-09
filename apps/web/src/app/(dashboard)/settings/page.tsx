@@ -11,6 +11,7 @@ import { IntegrationsPanel } from './integrations-panel';
 import { MembersPanel } from './members-panel';
 import { ScimPanel } from './scim-panel';
 import { SsoPanel } from './sso-panel';
+import { SupportPanel } from './support-panel';
 import { WebhooksPanel } from './webhooks-panel';
 
 export default async function SettingsPage() {
@@ -57,6 +58,7 @@ export default async function SettingsPage() {
           <WebhooksPanel canManage />
           <IntegrationsPanel canManage />
           <BrandingPanel canManage />
+          <SupportPanel canManage />
         </>
       )}
     </div>

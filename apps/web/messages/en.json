@@ -822,5 +822,31 @@
     "connectSfSubtitle": "New contacts sync to Salesforce as Leads. Paste your instance URL and an access token.",
     "instanceUrl": "Instance URL",
     "accessToken": "Access token"
+  },
+  "support": {
+    "open": "Report a bug or send feedback",
+    "title": "Report a bug or send feedback",
+    "subtitle": "Tell us what happened. We capture the page you're on for context.",
+    "kind": "Type",
+    "subject": "Subject",
+    "body": "Details",
+    "send": "Send",
+    "sending": "Sending…",
+    "sent": "Thanks — your report was sent",
+    "genericError": "Something went wrong. Please try again.",
+    "panelTitle": "Support inbox",
+    "panelSubtitle": "Bug reports and feedback filed by your team.",
+    "panelEmpty": "No reports yet.",
+    "resolved": "Marked resolved",
+    "resolveLabel": "Resolve {subject}",
+    "kinds": {
+      "BUG": "Bug",
+      "FEEDBACK": "Feedback",
+      "QUESTION": "Question"
+    },
+    "statuses": {
+      "OPEN": "Open",
+      "RESOLVED": "Resolved"
+    }
   }
 }

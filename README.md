@@ -53,6 +53,7 @@ Marketing automation today forces a bad choice:
 - ✅ **SDKs & docs** — typed REST SDKs for JavaScript/TypeScript and Python, generated from the OpenAPI spec, plus a full documentation site (Fumadocs)
 - ✅ **Outbound webhooks** — subscribe endpoints to lifecycle events (contacts, deals, tasks); each delivery is HMAC-signed with the endpoint's own secret over a timestamped scheme and sent on a durable, retrying workflow, with a one-click test ping
 - ✅ **White-labeling** — per-organization display name, accent color, and logo applied across the dashboard shell and hosted pages; the accent drives the primary token with an auto-picked legible foreground, validated hex-only so it can't inject markup
+- ✅ **In-app support** — a report-a-bug / feedback widget in every page header (captures the current route for context) and an admin support inbox to triage and resolve; tenant-isolated
 - ✅ **Shopify** — connect a store and stream `customers/create|update` and `orders/create` into the CDP; every webhook is HMAC-verified, the shop domain resolves the org, and buyers gain `shopify_*` traits you can segment on
 - ✅ **Salesforce** — connect an org and new Helio contacts push to Salesforce as Leads via the REST API; best-effort so a Salesforce hiccup never blocks the contact write
 - 🗺️ **Platform integrations** — ad-audience sync

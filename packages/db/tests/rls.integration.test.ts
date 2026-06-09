@@ -302,6 +302,25 @@ describe('row-level security tenant isolation', () => {
     expect(await tenantA.integration.count()).toBe(1);
   });
 
+  it('support tickets are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const ticketId = newId('tkt');
+    await tenantA.supportTicket.create({
+      data: { id: ticketId, organizationId: orgA.id, subject: 'Broken', body: 'It broke' },
+    });
+
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.supportTicket.count()).toBe(0);
+    expect(await tenantB.supportTicket.findUnique({ where: { id: ticketId } })).toBeNull();
+    await expect(
+      tenantB.supportTicket.create({
+        data: { id: newId('tkt'), organizationId: orgA.id, subject: 'X', body: 'Y' },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.supportTicket.count()).toBe(1);
+  });
+
   it('subscriptions are tenant-isolated', async () => {
     await forTenant(app, orgA.id).subscription.create({
       data: { id: newId('sub'), organizationId: orgA.id, plan: 'PRO' },
