@@ -52,6 +52,7 @@ Marketing automation today forces a bad choice:
 - ✅ **Enterprise SSO & SCIM** — per-organization OIDC single sign-on (domain-routed, server-authoritative org binding) and SCIM 2.0 user provisioning; IdP client secrets and SCIM tokens are walled off from the tenant database role
 - ✅ **SDKs & docs** — typed REST SDKs for JavaScript/TypeScript and Python, generated from the OpenAPI spec, plus a full documentation site (Fumadocs)
 - ✅ **Outbound webhooks** — subscribe endpoints to lifecycle events (contacts, deals, tasks); each delivery is HMAC-signed with the endpoint's own secret over a timestamped scheme and sent on a durable, retrying workflow, with a one-click test ping
+- ✅ **White-labeling** — per-organization display name, accent color, and logo applied across the dashboard shell and hosted pages; the accent drives the primary token with an auto-picked legible foreground, validated hex-only so it can't inject markup
 - 🗺️ **Platform integrations** — Shopify & Salesforce, ad-audience sync
 
 ### The product in action
@@ -176,18 +177,18 @@ Hot-path budgets (ingestion ≥ 5k events/s, API reads p95 < 150 ms) have a comm
 
 ## Roadmap
 
-| Milestone | Focus                                                                                                                         |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| **v0.1**  | Foundation: monorepo, CI/CD, multi-tenant auth & RBAC, design system, observability baseline                                  |
-| **v0.2**  | Usable MVP: contacts & lists, event ingestion, segmentation, email sending & tracking, first journeys                         |
-| **v0.3**  | Growth: full journey canvas, SMS & push, landing pages, lead scoring, A/B testing, attribution                                |
-| **v0.4**  | AI: copilot, NL→segment, NL→journey, brand-voice generation, MCP server                                                       |
-| **v0.5**  | AI, cont'd: predictive scoring & churn, send-time optimization, autonomous A/B winner selection                               |
-| **v0.6**  | Platform: HubSpot/Mailchimp/Klaviyo importers, Segment-compatible ingestion, CRM-lite deal board                              |
-| **v0.7**  | Platform: opt-in Stripe billing with plan-gated usage limits and a signature-verified webhook                                 |
-| **v0.8**  | Platform: enterprise SSO & SCIM, generated REST SDKs (JS + Python), documentation site, richer demo seed                      |
-| **v0.9**  | Platform: Kubernetes Helm chart, and production & managed-cloud deployment guides                                             |
-| **v1.0**  | Launch: Shopify/Salesforce integrations, white-labeling, CRM meeting scheduler, load-test results, public demo, tagged v1.0.0 |
+| Milestone | Focus                                                                                                         |
+| --------- | ------------------------------------------------------------------------------------------------------------- |
+| **v0.1**  | Foundation: monorepo, CI/CD, multi-tenant auth & RBAC, design system, observability baseline                  |
+| **v0.2**  | Usable MVP: contacts & lists, event ingestion, segmentation, email sending & tracking, first journeys         |
+| **v0.3**  | Growth: full journey canvas, SMS & push, landing pages, lead scoring, A/B testing, attribution                |
+| **v0.4**  | AI: copilot, NL→segment, NL→journey, brand-voice generation, MCP server                                       |
+| **v0.5**  | AI, cont'd: predictive scoring & churn, send-time optimization, autonomous A/B winner selection               |
+| **v0.6**  | Platform: HubSpot/Mailchimp/Klaviyo importers, Segment-compatible ingestion, CRM-lite deal board              |
+| **v0.7**  | Platform: opt-in Stripe billing with plan-gated usage limits and a signature-verified webhook                 |
+| **v0.8**  | Platform: enterprise SSO & SCIM, generated REST SDKs (JS + Python), documentation site, richer demo seed      |
+| **v0.9**  | Platform: Kubernetes Helm chart, and production & managed-cloud deployment guides                             |
+| **v1.0**  | Launch: Shopify/Salesforce integrations, CRM meeting scheduler, load-test results, public demo, tagged v1.0.0 |
 
 ## Documentation
 
