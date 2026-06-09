@@ -799,7 +799,7 @@
     "enabled": "Active",
     "disabled": "Paused",
     "disconnectLabel": "Disconnect {account}",
-    "webhookHint": "Point your Shopify webhooks at",
+    "webhookHint": "Shopify: point your webhooks at",
     "topics": "subscribing to",
     "genericError": "Something went wrong. Please try again.",
     "columns": {
@@ -807,6 +807,11 @@
       "account": "Account",
       "status": "Status",
       "actions": "Actions"
-    }
+    },
+    "connectSalesforce": "Connect Salesforce",
+    "connectSfTitle": "Connect Salesforce",
+    "connectSfSubtitle": "New contacts sync to Salesforce as Leads. Paste your instance URL and an access token.",
+    "instanceUrl": "Instance URL",
+    "accessToken": "Access token"
   }
 }

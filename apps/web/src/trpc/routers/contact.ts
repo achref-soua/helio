@@ -8,6 +8,7 @@ import {
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { pushContactToSalesforce } from '@/lib/salesforce';
 import { emitWebhookEvent } from '@/lib/webhooks';
 
 import { orgProcedure, requireRole, router } from '../init';
@@ -132,6 +133,7 @@ export const contactRouter = router({
         email: contact.email,
         workspaceId: contact.workspaceId,
       });
+      await pushContactToSalesforce(ctx, contact);
       return contact;
     }),
 

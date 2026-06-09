@@ -41,5 +41,19 @@ never downgraded.
 
 ## Salesforce
 
-Salesforce connection support uses the same `Integration` model. See the
-[roadmap](https://github.com/achref-soua/helio#roadmap) for current status.
+Connect Salesforce by pasting your **instance URL** (`https://acme.my.salesforce.com`)
+and an **access token**. Once connected, every new Helio contact is pushed to
+Salesforce as a **Lead** — first/last name and email map across, and the
+contact's `company` attribute becomes the Lead's Company (falling back to the
+email and `Unknown` when those are missing, since Salesforce requires them).
+
+The push is **best-effort**: it runs through the Salesforce REST API
+(`/services/data/v60.0/sobjects/Lead`) after the contact is saved, and a
+Salesforce error is recorded on the request trace but never fails the contact
+write. The access token is stored in the org-scoped connection and never
+returned to the client.
+
+<Callout>
+  Token-based connect is the v1 path; an OAuth install flow that refreshes tokens automatically is
+  on the [roadmap](https://github.com/achref-soua/helio#roadmap).
+</Callout>
