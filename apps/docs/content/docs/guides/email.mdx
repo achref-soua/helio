@@ -1,0 +1,63 @@
+---
+title: Email
+description: Design emails with a block builder, personalize with tokens, and track opens and clicks.
+---
+
+Helio's email system covers design, personalization, sending, and tracking —
+with deliverability hygiene built in.
+
+## The block builder
+
+Compose emails from blocks (text, image, button, divider, columns) with a
+server-rendered **live preview** — what you see is exactly what renders, because
+the preview uses the same renderer as the send path. Templates are reusable and
+versioned per workspace.
+
+## Personalization
+
+Insert contact data with tokens that fall back gracefully when a value is
+missing:
+
+```
+Hi `{{firstName|there}}`, your `{{attributes.plan|free}}` plan renews soon.
+```
+
+The `|` provides a fallback, so an absent `firstName` renders `there` rather
+than a blank. Conditional blocks let you show or hide sections based on contact
+attributes.
+
+<Callout type="info">
+  In the dashboard you write tokens as `{{firstName|there}}` — the backticks
+  above are only so they render literally on this page.
+</Callout>
+
+## Open & click tracking
+
+- An invisible **open pixel** records opens.
+- Links are rewritten through an **HMAC-signed click redirector**, so a tracking
+  link can't be tampered with to point somewhere else — the signature binds the
+  destination to the specific send.
+
+Both stream engagement events into [analytics](/docs/guides/analytics) and can
+drive **wait-for-event** steps in [journeys](/docs/guides/journeys).
+
+## Unsubscribe & preferences
+
+Every marketing email carries a **one-click unsubscribe** (RFC 8058) header and
+link, plus a hosted **preference center**. Unsubscribes hit the suppression list
+immediately and are honored across all future sends.
+
+## Deliverability
+
+- Transactional and marketing streams are kept separate.
+- Bounce and complaint webhooks feed the suppression list automatically.
+- Helio sends through your relay (SMTP, SES, Postmark, Resend, or Mailgun) — it
+  deliberately does **not** ship its own MTA, which would be a deliverability
+  trap. In local development, all mail is caught by
+  [Mailpit](https://mailpit.axllent.org/) so nothing real is sent.
+
+## Natural language → email
+
+The [AI copilot](/docs/guides/ai-copilot) can draft an on-brand email from a
+prompt, grounded in your existing templates so the voice matches. The draft
+lands in the builder for you to edit before anything is sent.

@@ -1,0 +1,131 @@
+---
+title: Configuration
+description: Every environment variable each Helio service reads, what it does, and whether it is required.
+---
+
+Helio reads all configuration from the environment. The authoritative,
+always-current list is [`.env.example`](https://github.com/achref-soua/helio/blob/main/.env.example)
+at the repository root — every variable is documented there in the same pull
+request that introduces it. This page summarizes them by area.
+
+<Callout type="warn">
+  Variables marked **required** have no default and make the owning service fail fast at startup.
+  Never commit real secrets — inject them through your environment or a secrets manager.
+</Callout>
+
+## PostgreSQL
+
+| Variable                         | Required | Default                                           | Purpose                                                     |
+| -------------------------------- | -------- | ------------------------------------------------- | ----------------------------------------------------------- |
+| `DATABASE_URL`                   | ✅       | `postgresql://helio_app:…@localhost:5432/helio`   | Runtime connection. Uses the RLS-bound `helio_app` role.    |
+| `DATABASE_ADMIN_URL`             | for DDL  | `postgresql://helio:…@localhost:5432/helio`       | Schema owner, bypasses RLS — used only by migrate and seed. |
+| `POSTGRES_USER/PASSWORD/DB/PORT` | —        | `helio` / `helio_dev_password` / `helio` / `5432` | Local container credentials.                                |
+
+The split between `DATABASE_URL` (tenant-scoped, row-level security enforced)
+and `DATABASE_ADMIN_URL` (schema owner) is a core part of the
+[tenancy model](/docs/concepts/tenancy).
+
+## API gateway
+
+| Variable              | Default | Purpose                          |
+| --------------------- | ------- | -------------------------------- |
+| `API_PORT`            | `4000`  | Public REST gateway port.        |
+| `RATE_LIMIT_MAX`      | `100`   | Requests per window per API key. |
+| `RATE_LIMIT_WINDOW_S` | `60`    | Rate-limit window, seconds.      |
+
+The gateway authenticates with [per-organization API keys](/docs/api/rest)
+minted in the dashboard — there is no gateway-wide secret.
+
+## Redis
+
+| Variable    | Default                  | Purpose                                    |
+| ----------- | ------------------------ | ------------------------------------------ |
+| `REDIS_URL` | `redis://localhost:6379` | Cache, rate limits, idempotency, sessions. |
+
+## Event ingestion
+
+| Variable                         | Default                 | Purpose                                         |
+| -------------------------------- | ----------------------- | ----------------------------------------------- |
+| `INGEST_PORT`                    | `4100`                  | Ingestion service port.                         |
+| `KAFKA_BROKERS`                  | `localhost:19092`       | Kafka-protocol brokers (Redpanda by default).   |
+| `EVENTS_TOPIC`                   | `helio.events.v1`       | Topic events are produced to.                   |
+| `CLICKHOUSE_URL`                 | `http://localhost:8123` | ClickHouse HTTP interface (the analytics sink). |
+| `INGEST_RATE_LIMIT_MAX/WINDOW_S` | `600` / `60`            | Per-workspace event budget.                     |
+| `INGEST_SINK_ENABLED`            | `true`                  | Run the bus→ClickHouse sink in-process.         |
+
+## Engagement tracking
+
+| Variable              | Required | Purpose                                                        |
+| --------------------- | -------- | -------------------------------------------------------------- |
+| `TRACKING_SECRET`     | ✅       | HMAC key binding click-redirect targets to their send (≥ 24c). |
+| `PUBLIC_TRACKING_URL` | —        | Public base URL embedded in pixel and click links.             |
+| `TRACKING_PORT`       | —        | Tracking service port (default `4200`).                        |
+
+## Campaign delivery & journeys
+
+| Variable                 | Required | Purpose                                                     |
+| ------------------------ | -------- | ----------------------------------------------------------- |
+| `TEMPORAL_ADDRESS`       | —        | Temporal frontend (default `localhost:7233`).               |
+| `UNSUBSCRIBE_SECRET`     | ✅       | HMAC key for stateless one-click unsubscribe tokens (≥24c). |
+| `WEBHOOK_SIGNING_SECRET` | —        | Sign outbound journey webhooks (`x-helio-signature`).       |
+
+## Web push
+
+| Variable                                 | Purpose                                                   |
+| ---------------------------------------- | --------------------------------------------------------- |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | VAPID keypair. Push nodes no-op until both are set.       |
+| `VAPID_SUBJECT`                          | Contact URI for push (default `mailto:push@helio.local`). |
+
+## Intelligence / AI
+
+Pick **one** LLM provider. The copilot is scoped to your own organization's
+data only — see the [AI copilot guide](/docs/guides/ai-copilot) and
+[security model](#ai-security).
+
+| Variable                          | Default                   | Purpose                                                  |
+| --------------------------------- | ------------------------- | -------------------------------------------------------- |
+| `INTEL_LLM_PROVIDER`              | `groq`                    | `groq` · `openai` · `anthropic` · `ollama` · `local`.    |
+| `INTEL_LLM_MODEL`                 | `llama-3.3-70b-versatile` | Model id for the provider.                               |
+| `INTEL_LLM_API_KEY`               | —                         | Provider key (read as a secret, never logged).           |
+| `INTEL_LLM_BASE_URL`              | —                         | Endpoint override for self-hosted / proxied models.      |
+| `INTEL_LLM_REQUIRE_TLS`           | `true`                    | Refuse plaintext HTTP to remote hosts.                   |
+| `INTEL_DATABASE_URL`              | RLS app role              | Copilot RAG reads org data over the tenant-bound role.   |
+| `INTEL_MCP_ORGANIZATION_ID`       | —                         | Organization the [MCP server](/docs/api/mcp) may drive.  |
+| `INTEL_MCP_WORKSPACE_ID`          | —                         | Workspace the MCP server may drive.                      |
+| `INTEL_CLICKHOUSE_*`              | compose stack             | Feature reads for predictive scoring.                    |
+| `INTEL_SCORING_CONVERSION_EVENTS` | `["Converted", …]`        | Event names that count as a conversion (positive label). |
+
+### AI security
+
+Keys are read as secrets and never logged. Prompts are refused over plaintext
+HTTP to a non-local endpoint unless you explicitly opt out. Copilot retrieval
+runs over the RLS-bound application role, never the admin connection — so the
+model can never reach another tenant's data. For full data sovereignty, point
+`INTEL_LLM_PROVIDER` at `ollama` or `local`.
+
+## Billing (hosted only, optional)
+
+Self-hosted Helio is unlimited and unmetered — leave these blank. When set, the
+gateway accepts signature-verified Stripe webhooks and maps a subscription's
+price to a plan.
+
+| Variable                                  | Purpose                                     |
+| ----------------------------------------- | ------------------------------------------- |
+| `STRIPE_WEBHOOK_SECRET`                   | Verifies inbound Stripe webhook signatures. |
+| `STRIPE_PRICE_PRO` / `STRIPE_PRICE_SCALE` | Map Stripe prices to Helio plans.           |
+
+## Auth & email
+
+| Variable                  | Required | Purpose                                                  |
+| ------------------------- | -------- | -------------------------------------------------------- |
+| `BETTER_AUTH_SECRET`      | ✅       | Session/token signing secret, ≥ 32 chars.                |
+| `APP_URL`                 | —        | Public origin of the dashboard (callbacks, email links). |
+| `MAIL_FROM`               | —        | Sender for transactional mail.                           |
+| `SMTP_HOST` / `SMTP_PORT` | —        | SMTP relay (Mailpit `localhost:1025` in dev).            |
+
+## Observability (optional profile)
+
+| Variable                      | Purpose                                            |
+| ----------------------------- | -------------------------------------------------- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Point services at the collector to enable tracing. |
+| `LOG_LEVEL`                   | Structured log level (default `info`).             |

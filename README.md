@@ -187,6 +187,7 @@ Hot-path budgets (ingestion ≥ 5k events/s, API reads p95 < 150 ms) have a comm
 
 ## Documentation
 
+- 📖 **[Documentation site](apps/docs)** (Fumadocs) — concepts, self-hosting, configuration, every feature guide, the REST API, SDKs, the MCP server, and migration guides. Run it locally with `task docs` (→ `localhost:3002`).
 - [Architecture (C4) & trust boundaries](docs/architecture.md) · [Decision log (ADRs)](docs/adr) · [Threat model](docs/threat-model.md)
 - [Local-dev runbook](docs/runbooks/local-dev.md) · [SSO & SCIM setup](docs/sso.md) · [REST API guide](docs/api.md) · [API spec (OpenAPI 3.1)](apps/api/openapi.json)
 

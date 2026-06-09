@@ -1,0 +1,33 @@
+---
+title: Forms
+description: Hosted signup forms that upsert contacts idempotently and respect suppression.
+---
+
+Hosted forms are public signup pages that capture contacts directly into a
+workspace — no code required.
+
+## How they work
+
+Each form has a public URL. A submission:
+
+- **Upserts** a contact by email into the form's workspace — submitting twice
+  with the same email updates rather than duplicates.
+- Is **suppression-safe**: a previously-unsubscribed email is handled correctly
+  rather than silently re-subscribed.
+- Can only ever create or update a contact **inside that form's own workspace**
+  — the form id is the capability, so there is no way to write into another
+  tenant.
+
+## Using a form
+
+1. Create a form in the dashboard and choose the workspace and fields.
+2. Share the hosted URL, or embed it on your site.
+3. New submissions appear as [contacts](/docs/guides/contacts) and can trigger a
+   [journey](/docs/guides/journeys) via a segment-entry or event trigger.
+
+## Roadmap
+
+Progressive profiling, popups and embeds, A/B testing, and a full drag-and-drop
+landing-page builder are on the
+[roadmap](https://github.com/achref-soua/helio#roadmap). Today's hosted forms
+already cover the core capture-to-contact loop.

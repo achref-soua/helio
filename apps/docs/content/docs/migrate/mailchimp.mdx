@@ -1,0 +1,39 @@
+---
+title: From Mailchimp
+description: Export a Mailchimp audience and import it into Helio, keeping unsubscribed and cleaned contacts suppressed.
+---
+
+Helio detects Mailchimp audience exports and maps Mailchimp's subscription
+status to Helio's suppression list.
+
+## Export from Mailchimp
+
+1. In Mailchimp, go to **Audience → All contacts**.
+2. Use **Export Audience** to download a CSV. Mailchimp includes the
+   subscription **status** column (subscribed, unsubscribed, cleaned,
+   non-subscribed).
+3. If you keep multiple audiences, export each one separately.
+
+## Import into Helio
+
+1. Open **Contacts → Import** in Helio and drop the CSV.
+2. Helio detects the Mailchimp format and shows the count of contacts that will
+   be imported as **unsubscribed**.
+3. Review the validation summary and confirm.
+
+## What carries over
+
+- **Email** and name fields map to the built-in fields.
+- Contacts marked **unsubscribed**, **cleaned**, or otherwise non-mailable
+  import as `UNSUBSCRIBED` and join the
+  [suppression list](/docs/guides/contacts#suppression--privacy), so they're
+  never accidentally emailed.
+- Merge fields and tags become [attributes](/docs/guides/contacts).
+
+<Callout type="warn">
+  Mailchimp **cleaned** contacts (hard-bounced or flagged) are treated as suppressed on purpose —
+  re-mailing them would hurt your deliverability.
+</Callout>
+
+Next, recreate your audiences as [segments](/docs/guides/segments) — because
+segments are live predicates, they stay current without a sync step.

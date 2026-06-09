@@ -1,0 +1,37 @@
+{
+  "name": "@helio/docs",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Helio documentation site — Fumadocs on Next.js.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3002",
+    "build": "next build",
+    "start": "next start --port 3002",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "fumadocs-mdx"
+  },
+  "dependencies": {
+    "fumadocs-core": "16.9.3",
+    "fumadocs-mdx": "^15.0.11",
+    "fumadocs-ui": "16.9.3",
+    "next": "^16.2.7",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@helio/config": "workspace:*",
+    "@next/eslint-plugin-next": "^16.2.7",
+    "@tailwindcss/postcss": "^4.3.0",
+    "@types/mdx": "^2.0.13",
+    "@types/node": "^25.9.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^10.4.1",
+    "postcss": "^8.5.10",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^6.0.3"
+  }
+}

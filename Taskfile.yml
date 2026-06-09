@@ -93,6 +93,11 @@ tasks:
     cmds:
       - pnpm --filter @helio/web exec tsx scripts/screenshots.ts
 
+  docs:
+    desc: Run the documentation site (Fumadocs) at :3002
+    cmds:
+      - pnpm --filter @helio/docs dev
+
   logs:
     desc: Tail logs of the local stack (task logs -- <service>)
     cmds:

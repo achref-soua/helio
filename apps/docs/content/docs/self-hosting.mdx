@@ -1,0 +1,94 @@
+---
+title: Self-hosting
+description: Bring the whole Helio platform up locally with one command, then deploy it however you like.
+---
+
+Helio is built to be self-hosted. A reviewer cloning the repository should have
+the platform live locally in minutes, with seeded demo data. This page is the
+shortest path there, plus the full build-and-run reference.
+
+## Prerequisites
+
+| Tool             | Version | Notes                                              |
+| ---------------- | ------- | -------------------------------------------------- |
+| Node.js          | ≥ 20.9  | The product surface (dashboard, gateway, workers). |
+| pnpm             | 11.x    | Workspace package manager.                         |
+| Python           | 3.12    | The intelligence plane.                            |
+| uv               | latest  | Python env & deps (never pip/poetry directly).     |
+| Docker + Compose | latest  | Postgres, Redis, Mailpit, and the full stack.      |
+| Task (go-task)   | 3.x     | One-liners for everything (optional but handy).    |
+
+<Callout type="info">
+  Dev email never leaves your machine — the local stack routes all outbound mail to
+  [Mailpit](https://mailpit.axllent.org/), so you can safely test campaigns and journeys without
+  sending anything real.
+</Callout>
+
+## Quickstart
+
+```bash
+git clone https://github.com/achref-soua/helio.git
+cd helio
+cp .env.example .env       # set BETTER_AUTH_SECRET (openssl rand -hex 32)
+task setup                 # install dependencies + git hooks
+task up                    # Postgres (+pgvector), Redis, Mailpit
+task db:migrate && task db:seed
+pnpm --filter @helio/web dev
+```
+
+Open `http://localhost:3000`, sign up, and verify your email at Mailpit
+(`http://localhost:8025`). Onboarding creates your organization, and the seed
+provisions a demo workspace with contacts, a list, and a write key.
+
+## The full loop
+
+Campaigns, journeys, and event analytics need the full infrastructure profile —
+ClickHouse, Redpanda, Temporal, and MinIO:
+
+```bash
+task up:full                         # adds ClickHouse, Redpanda, Temporal, MinIO
+pnpm --filter @helio/ingest dev      # event ingestion :4100
+pnpm --filter @helio/tracking dev    # open/click tracking :4200
+pnpm --filter @helio/workers dev     # Temporal worker (sends + journeys)
+```
+
+Create a template under **Emails**, a campaign under **Campaigns**, and hit
+Send — mail lands in Mailpit with live tracking links, and opens and clicks
+stream into the dashboard.
+
+## Everything you can run
+
+| Command                                                                          | What it does                                                                 |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `task up` / `task up:full` / `task up:observability`                             | core infra / + ClickHouse, Redpanda, Temporal, MinIO / + Prometheus, Grafana |
+| `task db:migrate` · `db:seed` · `db:studio` · `db:reset`                         | schema & data lifecycle                                                      |
+| `task lint` · `typecheck` · `test` · `format` · `build`                          | the quality pipeline                                                         |
+| `pnpm --filter @helio/web dev` / `@helio/api dev`                                | dashboard :3000 / gateway :4000                                              |
+| `pnpm --filter @helio/ingest dev` / `@helio/tracking dev` / `@helio/workers dev` | ingestion :4100 / tracking :4200 / Temporal worker                           |
+| `cd apps/intelligence && uv run uvicorn helio_intelligence.app:app --reload`     | intelligence :8000                                                           |
+| `pnpm --filter @helio/docs dev`                                                  | this documentation site :3002                                                |
+
+## Deployment
+
+Multi-stage, non-root, healthchecked images for every service live in
+`infra/docker/` and publish to GHCR on every `main` push (Trivy-gated, with an
+SBOM attached):
+
+```bash
+for service in web api ingest tracking workers intelligence; do
+  docker build -f "infra/docker/$service.Dockerfile" -t "helio-$service" .
+done
+```
+
+Compose profiles cover local and self-host topologies:
+
+- **`core`** — app + Postgres + Redis + Mailpit. Enough for auth, contacts,
+  segments, and email design.
+- **`full`** — adds ClickHouse, Redpanda, Temporal, and MinIO for the complete
+  campaign/journey/analytics loop.
+- **`observability`** — adds the OpenTelemetry collector, Prometheus, and
+  Grafana.
+
+A Helm chart and a managed-cloud walkthrough ship with the v1 platform
+milestone. See the [configuration reference](/docs/configuration) for every
+environment variable each service reads.

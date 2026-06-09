@@ -1,0 +1,110 @@
+---
+title: REST API
+description: Helio's typed REST gateway — per-organization API keys, RFC 9457 errors, idempotency, and cursor pagination.
+---
+
+Helio exposes a typed REST gateway (`apps/api`) with an auto-generated
+**OpenAPI 3.1** document at
+[`apps/api/openapi.json`](https://github.com/achref-soua/helio/blob/main/apps/api/openapi.json).
+A contract test keeps the spec in lockstep with the code.
+
+## Authentication
+
+Every `/v1` request is authenticated with a **per-organization API key**. Create
+one in **Settings → API keys** (owner/admin); the secret is shown once. Send it
+as a bearer token:
+
+```bash
+curl https://your-helio-host/v1/workspaces \
+  -H "Authorization: Bearer hk_<org>.<secret>"
+```
+
+The key is scoped to the organization that minted it — there is no
+`organizationId` parameter, and a key can never read or write another tenant's
+data. Only a SHA-256 hash of the key is stored; revoke it any time from the same
+page. See [Tenancy](/docs/concepts/tenancy) for the two-wall design.
+
+## Conventions
+
+- **Errors** are `application/problem+json` (RFC 9457):
+  `{ type, title, status, detail }`.
+- **Idempotency** — send `Idempotency-Key: <uuid>` on a `POST`; repeating the
+  key replays the original response instead of acting twice.
+- **Rate limiting** — responses carry `RateLimit-Limit` / `RateLimit-Remaining`;
+  a `429` includes `Retry-After`.
+- **Pagination** — list endpoints are cursor-paginated, newest first, returning
+  `{ "data": [ … ], "nextCursor": "…" }`. Pass `cursor` to fetch the next page.
+
+## Workspaces
+
+```bash
+# List the key's organization's workspaces
+curl https://your-helio-host/v1/workspaces -H "Authorization: Bearer $HELIO_KEY"
+
+# Create one (idempotent)
+curl -X POST https://your-helio-host/v1/workspaces \
+  -H "Authorization: Bearer $HELIO_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d '{"name":"Production","slug":"production"}'
+```
+
+## Contacts
+
+Full CRUD over the CDP. Contacts are workspace-scoped (`workspaceId` is required
+to create one) and email is unique per workspace.
+
+```bash
+# Create a contact (idempotent). Email is normalized (trimmed, lowercased).
+curl -X POST https://your-helio-host/v1/contacts \
+  -H "Authorization: Bearer $HELIO_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d '{"workspaceId":"ws_…","email":"jane@example.com","firstName":"Jane","attributes":{"plan":"trial"}}'
+
+# List (cursor-paginated). Filter by workspace, list, or search.
+curl "https://your-helio-host/v1/contacts?workspaceId=ws_…&limit=50" \
+  -H "Authorization: Bearer $HELIO_KEY"
+
+# Retrieve, update (PATCH — null clears a field), and delete (GDPR erasure).
+curl https://your-helio-host/v1/contacts/contact_… -H "Authorization: Bearer $HELIO_KEY"
+curl -X PATCH https://your-helio-host/v1/contacts/contact_… \
+  -H "Authorization: Bearer $HELIO_KEY" -H "Content-Type: application/json" \
+  -d '{"firstName":null,"status":"UNSUBSCRIBED"}'
+curl -X DELETE https://your-helio-host/v1/contacts/contact_… -H "Authorization: Bearer $HELIO_KEY"
+```
+
+A create returns `409` if the email already exists in the workspace, `404` if
+the workspace does not exist, and `403` if the organization's plan contact limit
+is reached (hosted deployments only — self-hosted is uncapped).
+
+## Lists
+
+```bash
+# Create a list (idempotent). Name is unique per workspace.
+curl -X POST https://your-helio-host/v1/lists \
+  -H "Authorization: Bearer $HELIO_KEY" -H "Content-Type: application/json" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d '{"workspaceId":"ws_…","name":"Newsletter subscribers"}'
+
+# Add contacts (batch, idempotent; ids not in the list's workspace are skipped).
+curl -X POST https://your-helio-host/v1/lists/list_…/members \
+  -H "Authorization: Bearer $HELIO_KEY" -H "Content-Type: application/json" \
+  -d '{"contactIds":["contact_a","contact_b"]}'
+# → { "added": 2 }
+
+# Remove one member.
+curl -X DELETE https://your-helio-host/v1/lists/list_…/members/contact_a \
+  -H "Authorization: Bearer $HELIO_KEY"
+```
+
+List a list's members through the contacts endpoint:
+`GET /v1/contacts?listId=list_…`.
+
+## The full surface
+
+The current gateway surface is `/v1/workspaces`, `/v1/contacts`, and
+`/v1/lists`. The complete request/response schema for every endpoint is the
+OpenAPI document. Most users should reach for an [SDK](/docs/api/sdks) rather
+than raw HTTP. The design rationale is in
+[ADR-0015](https://github.com/achref-soua/helio/blob/main/docs/adr/0015-gateway-api-keys.md).

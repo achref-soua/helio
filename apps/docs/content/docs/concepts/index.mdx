@@ -1,0 +1,81 @@
+---
+title: Core concepts
+description: The handful of objects you need to understand to use Helio — organizations, workspaces, contacts, segments, journeys, and campaigns.
+---
+
+Helio has a small set of core objects. Understand these six and the rest of the
+product follows naturally.
+
+## The shape of an account
+
+```
+Organization                      billing & identity boundary
+└─ Workspace                      a brand, product, or environment
+   ├─ Contacts                    people, with free-form attributes
+   ├─ Lists & Segments           static groups and live predicates
+   ├─ Templates & Campaigns      what you send, and a one-off blast
+   └─ Journeys                    durable, multi-step automation
+```
+
+- **Organization** — the top-level tenant. It owns billing, members, roles,
+  SSO, and audit. Every piece of data belongs to exactly one organization, and
+  [row-level security](/docs/concepts/tenancy) makes that boundary impossible
+  to cross.
+- **Workspace** — a container inside an organization for one brand, product, or
+  environment (for example _Production_ and _Staging_, or two separate
+  products). Contacts, lists, templates, campaigns, and journeys all live in a
+  workspace.
+
+## The objects you work with
+
+<Cards>
+  <Card
+    title="Contacts"
+    href="/docs/guides/contacts"
+    description="People in your CDP, with arbitrary attributes and a full event timeline."
+  />
+  <Card
+    title="Segments"
+    href="/docs/guides/segments"
+    description="Live predicates over contact fields, attributes, and behavior."
+  />
+  <Card
+    title="Journeys"
+    href="/docs/guides/journeys"
+    description="Durable, multi-step automations that run on Temporal."
+  />
+  <Card
+    title="Campaigns"
+    href="/docs/guides/campaigns"
+    description="One-off sends to a segment or list, delivered durably."
+  />
+</Cards>
+
+## Contacts and the event timeline
+
+A **contact** is a person. Beyond the built-in fields (email, name, status),
+contacts carry **attributes** — arbitrary key/value data you define, like
+`plan` or `signup_source`. Events flow in from the
+[tracking SDK](/docs/api/sdks) and the ingestion API and form each contact's
+**timeline**, which is what behavioral segments and predictive scoring read.
+
+## Segments are predicates, not sync jobs
+
+A **list** is a static group — you add and remove members explicitly. A
+**segment** is a _live predicate_: a rule like "plan is trial AND signed up in
+the last 7 days." Membership is always current because it is evaluated on
+demand, never a stale synced copy. Segments can combine contact fields, JSON
+attributes, recency, behavior (events in ClickHouse), lead score, and
+AI predictions. See the [segments guide](/docs/guides/segments).
+
+## Campaigns vs journeys
+
+- A **campaign** is a one-off send to a segment or list — a newsletter, an
+  announcement — optionally with subject or content A/B testing.
+- A **journey** is an ongoing, event-driven automation: a contact enters (from
+  an event, a segment, a schedule, or the API), then flows through sends,
+  waits, branches, and splits. Journeys run durably on Temporal and survive
+  restarts mid-wait.
+
+Both honor suppression and unsubscribes everywhere, and both report opens,
+clicks, and conversions into [analytics](/docs/guides/analytics).

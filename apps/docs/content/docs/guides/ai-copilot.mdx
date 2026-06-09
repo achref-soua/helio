@@ -1,0 +1,56 @@
+---
+title: AI copilot
+description: Describe a segment, journey, or email in a sentence — plus predictive scoring, send-time optimization, and autonomous A/B winners.
+---
+
+Helio is AI-native, not AI-bolted-on. The copilot turns intent into working
+drafts, and a set of predictive models quietly improve every send — all grounded
+in **your own organization's data**.
+
+## What the copilot does
+
+| Capability                 | Prompt example                                                    |
+| -------------------------- | ----------------------------------------------------------------- |
+| Natural language → segment | "Trial users who opened an email last week but didn't convert."   |
+| Natural language → journey | "A 5-step trial-conversion sequence with a wait and an A/B test." |
+| Natural language → email   | "A friendly win-back email offering 20% off, on brand."           |
+
+Every result is a **validated draft** you review and edit before anything runs.
+The copilot proposes; you decide. It never sends, launches, or mutates on its
+own.
+
+## Predictive intelligence
+
+| Model                   | What it produces                                         |
+| ----------------------- | -------------------------------------------------------- |
+| Predictive lead scoring | `conversionProbability` per contact, usable in segments. |
+| Churn prediction        | `churnRisk` per contact.                                 |
+| Send-time optimization  | The best hour to reach each contact.                     |
+| Autonomous A/B winner   | Picks and promotes the winning variant via a z-test.     |
+
+Scoring blends a gradient-boosted model over ClickHouse behavioral features
+with a heuristic fallback, so it produces sensible results even with little
+history. Predictions surface as contact fields and as
+[segment](/docs/guides/segments) conditions.
+
+## Grounding & security
+
+The copilot's retrieval is **strictly scoped to your organization** over the
+RLS-bound application role — the model chooses which tools to call, but it can
+never widen its own scope to another tenant. Provider keys are read as secrets
+and never logged.
+
+## Bring your own model
+
+The LLM gateway is provider-agnostic: `groq`, `openai`, `anthropic`, `ollama`,
+or any OpenAI-compatible `local` server (vLLM, LM Studio, llama.cpp). For full
+data sovereignty, run a local model — nothing leaves your infrastructure. See
+the [configuration reference](/docs/configuration#intelligence--ai) for the
+environment variables.
+
+## For external agents
+
+Everything above is also exposed to external AI agents through the
+[MCP server](/docs/api/mcp), so an agent in another tool can search contacts,
+draft a segment or journey, and read a workspace summary — within the same
+tenant scope.
