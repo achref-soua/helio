@@ -1,0 +1,87 @@
+---
+title: Architecture
+description: A deep dive into Helio's polyglot architecture, trust boundaries, and where everything lives.
+---
+
+Helio is **polyglot by design**. TypeScript owns the product surface — the
+dashboard, the public API, and the journey workers that run on Temporal for
+durable execution. Python owns the intelligence plane — scoring, content
+generation, segment compute, and the MCP server. PostgreSQL holds transactional
+state with row-level security per tenant; ClickHouse holds the event firehose
+for analytics; Redpanda is the backbone between them.
+
+<Callout type="info">
+  The rendered C4 diagrams (system context and containers) live in
+  [`docs/architecture.md`](https://github.com/achref-soua/helio/blob/main/docs/architecture.md) and
+  the [README](https://github.com/achref-soua/helio#architecture), which GitHub renders as Mermaid.
+  The decision log is in [`docs/adr/`](https://github.com/achref-soua/helio/tree/main/docs/adr).
+</Callout>
+
+## System context (C4 level 1)
+
+| Actor / system          | Relationship to Helio                                                       |
+| ----------------------- | --------------------------------------------------------------------------- |
+| Marketing operator      | Builds segments, journeys, and campaigns via the dashboard and API.         |
+| Tracked end-user        | Receives messages; generates events via the tracking SDK; opens and clicks. |
+| Email relay (external)  | SMTP / SES / Postmark / Resend / Mailgun — Helio sends through it.          |
+| LLM provider (external) | Anthropic / OpenAI / Groq / local — powers copilot, generation, scoring.    |
+
+## Containers (C4 level 2)
+
+| Container       | Tech                  | Responsibility                                           |
+| --------------- | --------------------- | -------------------------------------------------------- |
+| Dashboard       | Next.js 16            | UI, Better-Auth kernel, tRPC BFF.                        |
+| Gateway         | Hono                  | Public REST/OpenAPI, webhooks, idempotency, rate limits. |
+| Intelligence    | FastAPI / uv          | Copilot, scoring, segment compute, MCP server.           |
+| Journey workers | TypeScript + Temporal | Durable journey and campaign execution.                  |
+| Ingestion       | Node                  | Write-key-authenticated event intake → Redpanda.         |
+| Tracking        | Node                  | Open pixel + HMAC-signed click redirector.               |
+| PostgreSQL 16   | pgvector + RLS        | Transactional source of truth.                           |
+| ClickHouse      | —                     | Event analytics store.                                   |
+| Redis           | —                     | Rate limits, idempotency, cache, sessions.               |
+| Redpanda        | Kafka API             | Event backbone.                                          |
+| MinIO / S3      | —                     | Assets and exports.                                      |
+
+## Trust boundaries
+
+Three planes, each with a distinct database posture:
+
+- **Auth kernel** — inside `apps/web`, on the admin connection: identity,
+  sessions, memberships. Identity tables are _revoked_ from the application
+  role ([ADR-0004](https://github.com/achref-soua/helio/blob/main/docs/adr/0004-better-auth-kernel.md)),
+  so a compromised tenant path can never read credentials, SSO secrets, or
+  SCIM tokens.
+- **Domain plane** — the `helio_app` role, with row-level security _forced_:
+  everything tenant-owned. `forTenant()` is the only path to it
+  ([ADR-0003](https://github.com/achref-soua/helio/blob/main/docs/adr/0003-postgres-rls-tenancy.md)).
+- **Public edge** — `apps/api`: bearer-authenticated, rate-limited, idempotent,
+  problem+json
+  ([ADR-0008](https://github.com/achref-soua/helio/blob/main/docs/adr/0008-hono-openapi-gateway.md)).
+
+This is why cross-tenant access is impossible at the database, not merely
+filtered in application code. See [Tenancy](/docs/concepts/tenancy) for the
+runtime mechanics.
+
+## Where things live
+
+| Concern                                            | Location            |
+| -------------------------------------------------- | ------------------- |
+| Domain types, env validation, errors, ids, RBAC    | `packages/core`     |
+| Schema, migrations, tenant client                  | `packages/db`       |
+| Design system + Storybook                          | `packages/ui`       |
+| Lint / TS / test presets                           | `packages/config`   |
+| Dashboard + auth + tRPC                            | `apps/web`          |
+| Public REST gateway                                | `apps/api`          |
+| Python intelligence plane                          | `apps/intelligence` |
+| Compose profiles, Dockerfiles, observability stack | `infra/`            |
+| This documentation site                            | `apps/docs`         |
+
+## Durable execution
+
+Every journey runs as one Temporal workflow per enrolled contact. Waits are
+real durable timers, not rows polled by a cron — a worker can be killed with
+`kill -9` mid-wait and, on restart, the journey resumes exactly where it left
+off with no double-sends. Per-recipient send rows make every delivery
+idempotent. The rationale is in
+[ADR-0005](https://github.com/achref-soua/helio/blob/main/docs/adr/0005-temporal-orchestration.md)
+and [ADR-0012](https://github.com/achref-soua/helio/blob/main/docs/adr/0012-journey-execution.md).

@@ -1,0 +1,62 @@
+---
+title: Migrating in
+description: Import your contacts from HubSpot, Mailchimp, or Klaviyo — with unsubscribe state preserved.
+---
+
+Moving to Helio shouldn't mean re-subscribing people who already opted out.
+Helio's importer **detects** an export from HubSpot, Mailchimp, or Klaviyo and
+maps each vendor's consent fields to the right Helio status, so suppression
+carries over from day one.
+
+## How it works
+
+1. Export your contacts as CSV from your current tool (vendor-specific steps are
+   linked below).
+2. In Helio, open **Contacts → Import** and drop the CSV.
+3. Helio **detects the source vendor** from the file's columns and shows you the
+   detected vendor plus how many contacts will be **suppressed** (imported as
+   unsubscribed) before you commit.
+4. Review the validation summary and import.
+
+## What maps
+
+| Helio status   | Set when the vendor marks a contact as…         |
+| -------------- | ----------------------------------------------- |
+| `ACTIVE`       | subscribed / opted-in                           |
+| `UNSUBSCRIBED` | unsubscribed, opted-out, cleaned, or suppressed |
+
+Unsubscribed contacts are imported but added to the
+[suppression list](/docs/guides/contacts#suppression--privacy), so they are
+never accidentally emailed. Standard fields (email, name) map directly; extra
+columns land in [attributes](/docs/guides/contacts) you can segment on.
+
+<Callout type="info">
+  The importer is tolerant: malformed rows are reported in the summary and skipped rather than
+  failing the whole import.
+</Callout>
+
+## Vendor guides
+
+<Cards>
+  <Card
+    title="From HubSpot"
+    href="/docs/migrate/hubspot"
+    description="Export a contacts list and import it into Helio."
+  />
+  <Card
+    title="From Mailchimp"
+    href="/docs/migrate/mailchimp"
+    description="Export an audience, including cleaned and unsubscribed members."
+  />
+  <Card
+    title="From Klaviyo"
+    href="/docs/migrate/klaviyo"
+    description="Export a profiles segment with consent state."
+  />
+</Cards>
+
+## Events & ongoing sync
+
+For ongoing event data, Helio speaks the **Segment/RudderStack** HTTP Tracking
+API, so existing instrumentation can point straight at Helio's
+[ingestion endpoint](/docs/api/sdks) without rewrites.

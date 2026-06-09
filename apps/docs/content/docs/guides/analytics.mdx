@@ -1,0 +1,38 @@
+---
+title: Analytics
+description: Dashboards, engagement timelines, and per-campaign opens and clicks — backed by ClickHouse.
+---
+
+Helio's analytics read from **ClickHouse**, the event store, so aggregations
+over millions of events stay fast.
+
+## The overview dashboard
+
+The dashboard surfaces the health of your messaging at a glance:
+
+- An **engagement timeline** of opens and clicks over time.
+- **Per-campaign** breakdowns of sends, opens, and clicks.
+- Headline contact and list counts.
+
+<Callout type="info">
+  Analytics **degrade gracefully**. If the full profile (and therefore ClickHouse) isn't running,
+  the dashboard renders what it can from PostgreSQL instead of erroring — handy when you're working
+  in the lightweight `core` profile.
+</Callout>
+
+## What's measured
+
+| Metric                  | Source                                                        |
+| ----------------------- | ------------------------------------------------------------- |
+| Opens / clicks          | The [tracking service](/docs/guides/email) pixel & redirector |
+| Campaign engagement     | Per-send rows joined with engagement events                   |
+| A/B variant performance | Variant stamped on each send and event                        |
+| Conversions             | Events you designate as conversions                           |
+
+## Roadmap
+
+Funnels, retention and cohort analysis, multi-touch revenue attribution, A/B
+statistical-significance views, deliverability analytics, and a SQL explorer
+over ClickHouse are on the [roadmap](https://github.com/achref-soua/helio#roadmap).
+The event pipeline that feeds them is already in place, so these are
+presentation layers over data Helio is collecting today.

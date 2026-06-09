@@ -1,0 +1,74 @@
+---
+title: Introduction
+description: Helio is the open-source, self-hostable, AI-native platform for marketing automation and customer engagement.
+---
+
+**Helio** is an open-source growth platform: unify customer data, segment
+anyone, orchestrate journeys across every channel, and let AI do the heavy
+lifting. Self-host it, own your data, and pay nothing per contact.
+
+It is a modern, fast alternative to HubSpot Marketing Hub, Customer.io,
+ActiveCampaign, Klaviyo, and Brevo — and an open-source successor to
+Mautic and Listmonk, built on a 2026-grade, AI-first stack.
+
+## Why Helio
+
+Marketing automation today forces a bad choice:
+
+- **HubSpot, Customer.io, Klaviyo** are polished, but closed, expensive, and
+  priced per contact. Real automation sits behind premium tiers, and your
+  customer data lives in someone else's cloud.
+- **Mautic** is powerful but heavy (PHP/Symfony, 4–8 GB RAM) with slowing
+  community velocity.
+- **Listmonk** is delightfully fast, but newsletters only — no journeys, no
+  automation.
+
+Helio takes the best of each: Listmonk's performance, Mautic's automation
+depth, HubSpot's polish — open-source, self-hostable, data-sovereign, and
+AI-native from the first commit rather than as a bolt-on.
+
+## What you can do today
+
+The end-to-end loop works now: bring contacts in, build a segment, design an
+email, launch a campaign or an event-triggered journey, and watch opens and
+clicks land in the dashboard.
+
+- **Durable journeys.** Every journey runs on [Temporal](https://temporal.io):
+  it survives a `kill -9` mid-wait without double-sending.
+- **AI copilot.** Describe a segment, journey, or on-brand email in a sentence
+  and get a working draft — all grounded in your own organization's data.
+- **Agent-ready.** An [MCP server](/docs/api/mcp) exposes Helio's capabilities
+  as tools, so external AI agents can drive campaigns programmatically.
+- **Own your data.** Postgres with row-level security isolates every tenant at
+  the database, not just in application code.
+
+## Where to start
+
+<Cards>
+  <Card
+    title="Self-hosting"
+    href="/docs/self-hosting"
+    description="Bring the whole platform up locally with one command, then deploy it."
+  />
+  <Card
+    title="Core concepts"
+    href="/docs/concepts"
+    description="Organizations, workspaces, contacts, segments, and how tenancy works."
+  />
+  <Card
+    title="Feature guides"
+    href="/docs/guides/contacts"
+    description="Contacts, segments, email, campaigns, journeys, analytics, and AI."
+  />
+  <Card
+    title="REST API"
+    href="/docs/api/rest"
+    description="The public gateway, SDKs, webhooks, and the MCP server."
+  />
+</Cards>
+
+## License
+
+Helio is licensed under [AGPL-3.0](https://github.com/achref-soua/helio/blob/main/LICENSE)
+— free to self-host, modify, and redistribute; network-service modifications
+must stay open.

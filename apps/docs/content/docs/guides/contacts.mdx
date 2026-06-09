@@ -1,0 +1,65 @@
+---
+title: Contacts & lists
+description: Helio's customer data platform — profiles with free-form attributes, CSV import, and static lists.
+---
+
+Contacts are the heart of Helio's CDP. A contact is a person with built-in
+fields, arbitrary attributes, and a full event timeline.
+
+## Anatomy of a contact
+
+| Field                    | Notes                                                           |
+| ------------------------ | --------------------------------------------------------------- |
+| `email`                  | Normalized (trimmed, lowercased); unique per workspace.         |
+| `firstName` / `lastName` | Optional.                                                       |
+| `status`                 | `ACTIVE`, `UNSUBSCRIBED`, or suppressed.                        |
+| `attributes`             | Free-form JSON — anything you want, e.g. `plan`, `mrr`, `city`. |
+| timeline                 | Events from the [tracking SDK](/docs/api/sdks) and ingestion.   |
+
+Attributes are schemaless: write `{"plan": "trial", "seats": 5}` on one contact
+and `{"industry": "SaaS"}` on another. [Segments](/docs/guides/segments) can
+filter on any of them.
+
+## Importing contacts
+
+The dashboard imports CSV with a tolerant parser that shows a validation
+summary — how many rows will be created, updated, or skipped, and why — before
+you commit. Helio also detects exports from other tools and maps their
+unsubscribe state automatically; see the [migration guides](/docs/migrate).
+
+Programmatic import goes through the [REST API](/docs/api/rest) or an
+[SDK](/docs/api/sdks):
+
+```ts
+import { HelioApiClient } from '@helio/sdk-js/rest';
+
+const helio = new HelioApiClient({ apiKey: process.env.HELIO_API_KEY! });
+await helio.createContact({
+  workspaceId: 'ws_…',
+  email: 'jane@example.com',
+  firstName: 'Jane',
+  attributes: { plan: 'trial' },
+});
+```
+
+## Lists
+
+A **list** is a static, explicitly-managed group of contacts — good for things
+like "Beta cohort" or "Conference leads." Create a list, add or remove members,
+and target it from a [campaign](/docs/guides/campaigns) or
+[journey](/docs/guides/journeys). For dynamic membership that updates itself,
+use a [segment](/docs/guides/segments) instead.
+
+```ts
+const vips = await helio.createList({ workspaceId: 'ws_…', name: 'VIPs' });
+await helio.addListMembers(vips.id, ['contact_a', 'contact_b']);
+```
+
+## Suppression & privacy
+
+- Unsubscribes and bounces add a contact to the **suppression list**, which is
+  honored at every send — at audience enumeration _and_ again per message.
+- **One-click unsubscribe** (RFC 8058) and a hosted preference page are built
+  in.
+- A contact can be exported or erased for **GDPR** data-subject requests; a
+  delete through the API is a true erasure.

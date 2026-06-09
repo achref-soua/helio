@@ -1,0 +1,109 @@
+---
+title: SDKs
+description: Official JavaScript/TypeScript and Python clients for the tracking and REST APIs.
+---
+
+Helio ships two SDKs, both typed and minimal-dependency. Types for the REST
+clients are **generated from the gateway's OpenAPI document**, so they always
+match the live contract.
+
+## JavaScript / TypeScript
+
+The `@helio/sdk-js` package has two zero-dependency clients.
+
+### Browser tracking
+
+`@helio/sdk-js` is a ~2 kB browser client that queues, batches, and delivers
+events, flushing with `sendBeacon` when the page goes away.
+
+```ts
+import { HelioClient } from '@helio/sdk-js';
+
+const helio = new HelioClient({
+  writeKey: 'wk_…', // Workspace write key (Settings → Sources)
+  host: 'https://ingest.your-helio.example',
+});
+
+helio.page('Pricing');
+helio.track('Signed Up', { plan: 'pro' });
+helio.identify('user-42', { email: 'ada@example.com' });
+helio.reset(); // on logout
+```
+
+It keeps a per-browser `anonymousId`, batches events (default flush at 20 events
+or 5 s), requeues on 5xx/network errors, discards permanent 4xx, and is SSR-safe
+— every browser API is feature-checked.
+
+### REST client
+
+`@helio/sdk-js/rest` is a typed wrapper over the public gateway. The API key
+grants full org access, so use it **server-side only**.
+
+```ts
+import { HelioApiClient, HelioApiError } from '@helio/sdk-js/rest';
+
+const helio = new HelioApiClient({
+  apiKey: process.env.HELIO_API_KEY!, // hk_<org>.<secret>
+  baseUrl: 'https://api.your-helio.example',
+});
+
+const contact = await helio.createContact({
+  workspaceId: 'ws_…',
+  email: 'jane@example.com',
+  idempotencyKey: crypto.randomUUID(),
+});
+
+try {
+  await helio.getContact('contact_missing');
+} catch (error) {
+  if (error instanceof HelioApiError) console.error(error.status, error.detail);
+}
+```
+
+It covers workspaces, contacts, and lists; handles cursor pagination,
+idempotency, and `AbortSignal`; accepts an injectable `fetch`; and throws
+`HelioApiError` carrying the RFC 9457 problem document. Zero runtime
+dependencies.
+
+## Python
+
+`helio-sdk` is an [`httpx`](https://www.python-httpx.org/)-based client, managed
+with [`uv`](https://docs.astral.sh/uv/).
+
+```python
+from helio_sdk import HelioApiError, HelioClient
+
+with HelioClient(
+    api_key="hk_<org>.<secret>",  # server-side only
+    base_url="https://api.your-helio.example",
+) as helio:
+    contact = helio.create_contact(
+        workspace_id="ws_…",
+        email="jane@example.com",
+        first_name="Jane",
+        idempotency_key="…",
+    )
+
+    vips = helio.create_list(workspace_id="ws_…", name="VIPs")
+    helio.add_list_members(vips["id"], [contact["id"]])
+
+    cursor: str | None = None
+    while True:
+        page = helio.list_contacts(workspace_id="ws_…", cursor=cursor)
+        for c in page["data"]:
+            print(c["email"])
+        cursor = page["nextCursor"]
+        if cursor is None:
+            break
+```
+
+Responses are typed `TypedDict`s matching the API's JSON (camelCase keys).
+`update_contact(…, first_name=None)` clears a field; omitting the argument
+leaves it unchanged. Every non-2xx response raises `HelioApiError` with the
+problem document (`status`, `type`, `title`, `detail`).
+
+<Callout type="warn">
+  A REST API key grants full organization access. Keep it server-side — never ship it to a browser
+  or mobile client. For client-side event capture, use the browser tracking client with a workspace
+  **write key** instead.
+</Callout>
