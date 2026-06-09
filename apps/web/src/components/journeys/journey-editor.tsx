@@ -17,7 +17,17 @@ import {
   useEdgesState,
   useNodesState,
 } from '@xyflow/react';
-import { Bell, GitBranch, Mail, Percent, Square, Tag, Timer, Webhook } from 'lucide-react';
+import {
+  Bell,
+  GitBranch,
+  Mail,
+  MessageSquare,
+  Percent,
+  Square,
+  Tag,
+  Timer,
+  Webhook,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -86,6 +96,7 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
       | 'update_trait'
       | 'webhook'
       | 'send_push'
+      | 'send_sms'
       | 'end',
   ) {
     const id = nextCanvasId(type);
@@ -109,7 +120,9 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
                   ? { url: 'https://' }
                   : type === 'send_push'
                     ? { title: '', body: '', url: '' }
-                    : {};
+                    : type === 'send_sms'
+                      ? { body: '' }
+                      : {};
     setNodes((current) => [...current, { id, type, position, data }]);
     if (tailId) {
       const tailNode = nodes.find((node) => node.id === tailId);
@@ -192,6 +205,9 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
         </Button>
         <Button variant="outline" size="sm" onClick={() => addNode('send_push')}>
           <Bell aria-hidden /> {t('addSendPush')}
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => addNode('send_sms')}>
+          <MessageSquare aria-hidden /> {t('addSendSms')}
         </Button>
         <Button variant="outline" size="sm" onClick={() => addNode('end')}>
           <Square aria-hidden /> {t('addEnd')}

@@ -3,7 +3,18 @@
 import { Input } from '@helio/ui/components/input';
 import { useQuery } from '@tanstack/react-query';
 import { Handle, type NodeProps, Position, useReactFlow } from '@xyflow/react';
-import { Bell, GitBranch, Mail, Percent, Play, Square, Tag, Timer, Webhook } from 'lucide-react';
+import {
+  Bell,
+  GitBranch,
+  Mail,
+  MessageSquare,
+  Percent,
+  Play,
+  Square,
+  Tag,
+  Timer,
+  Webhook,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
@@ -14,6 +25,7 @@ import type {
   BranchData,
   SendEmailData,
   SendPushData,
+  SendSmsData,
   TriggerData,
   UpdateTraitData,
   WaitData,
@@ -299,6 +311,26 @@ export function SendPushNode({ id, data, selected }: NodeProps) {
   );
 }
 
+export function SendSmsNode({ id, data, selected }: NodeProps) {
+  const t = useTranslations('journeys.nodes');
+  const { updateNodeData } = useReactFlow();
+  const sms = data as SendSmsData;
+  return (
+    <div className={shell(selected)} data-testid="node-send-sms">
+      <Header icon={MessageSquare} label={t('sendSms')} />
+      <Input
+        aria-label={t('smsBody')}
+        placeholder={t('smsBodyPlaceholder')}
+        value={sms.body}
+        onChange={(event) => updateNodeData(id, { body: event.target.value })}
+        className="nodrag h-8"
+      />
+      <Handle type="target" position={Position.Top} />
+      <Handle type="source" position={Position.Bottom} />
+    </div>
+  );
+}
+
 export const nodeTypes = {
   trigger: TriggerNode,
   send_email: SendEmailNode,
@@ -308,5 +340,6 @@ export const nodeTypes = {
   update_trait: UpdateTraitNode,
   webhook: WebhookNode,
   send_push: SendPushNode,
+  send_sms: SendSmsNode,
   end: EndNode,
 };

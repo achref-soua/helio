@@ -242,6 +242,29 @@ describe('journeyRunWorkflow v2 nodes', () => {
     expect(activities.sendJourneyEmail).toHaveBeenCalledTimes(1);
   });
 
+  it('texts the contact at a send_sms node', async () => {
+    const smsDefinition = {
+      trigger: { type: 'event', event: 'Signed Up' },
+      startNodeId: 'sms',
+      nodes: [
+        { id: 'sms', type: 'send_sms', body: 'Hi {{firstName}}' },
+        { id: 'fin', type: 'end' },
+      ],
+      edges: [{ from: 'sms', to: 'fin' }],
+    };
+    const sendJourneySms = vi.fn(async () => ({ sent: 1 }));
+    const activities = makeV2Activities({
+      loadJourney: vi.fn(async () => ({
+        organizationId: 'org',
+        workspaceId: 'ws',
+        definition: smsDefinition,
+      })),
+      sendJourneySms,
+    } as Partial<JourneyActivities>);
+    await runV2(activities);
+    expect(sendJourneySms).toHaveBeenCalledWith('contact_2', 'Hi {{firstName}}');
+  });
+
   it('defers the send while quiet hours are active (time-skipped)', async () => {
     const activities = makeV2Activities({
       sendGate: vi.fn(async () => 6 * 60 * 60 * 1000), // six-hour quiet window

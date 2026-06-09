@@ -90,6 +90,7 @@ export const contactRouter = router({
       z.object({
         workspaceId: z.string().min(1),
         email: contactEmailSchema,
+        phone: z.string().trim().max(32).optional(),
         firstName: z.string().trim().max(80).optional(),
         lastName: z.string().trim().max(80).optional(),
         attributes: attributesSchema,
@@ -111,6 +112,7 @@ export const contactRouter = router({
           organizationId: ctx.organizationId,
           workspaceId: input.workspaceId,
           email: input.email,
+          phone: input.phone,
           firstName: input.firstName,
           lastName: input.lastName,
           attributes: input.attributes,
