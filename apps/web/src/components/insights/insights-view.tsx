@@ -11,6 +11,7 @@ import { BarChart3, Target, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { SqlExplorer } from '@/components/insights/sql-explorer';
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
 import { useTRPC } from '@/trpc/client';
 
@@ -352,6 +353,7 @@ export function InsightsView() {
       <FunnelReport workspaceId={workspaceId} />
       <RetentionReport workspaceId={workspaceId} />
       <AttributionReport workspaceId={workspaceId} />
+      <SqlExplorer workspaceId={workspaceId} />
     </div>
   );
 }

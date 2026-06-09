@@ -4,14 +4,17 @@ import {
   funnelInputSchema,
   funnelReport,
   funnelStepCounts,
+  guardAnalyticsQuery,
+  MAX_SQL_ROWS,
   retentionInputSchema,
   retentionMatrix,
 } from '@helio/core';
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 import { getClickHouse } from '@/lib/clickhouse';
 
-import { orgProcedure, router } from '../init';
+import { orgProcedure, requireRole, router } from '../init';
 
 interface DailyRow {
   day: string;
@@ -309,4 +312,56 @@ export const analyticsRouter = router({
       rows: rows.map((row) => ({ ...row, name: names.get(row.campaignId) ?? row.campaignId })),
     };
   }),
+
+  /**
+   * Ad-hoc read-only SQL over the workspace's events. `guardAnalyticsQuery`
+   * enforces a single SELECT against the events table only and rewrites it to
+   * a workspace-scoped CTE; ClickHouse then runs it read-only with row/time
+   * caps. The workspace is confirmed to belong to the org first (the CTE param
+   * is trusted, but ClickHouse has no RLS — so it must be a workspace we own).
+   */
+  runSql: orgProcedure
+    .input(z.object({ workspaceId: z.string().min(1), sql: z.string().min(1).max(5000) }))
+    .mutation(async ({ ctx, input }) => {
+      requireRole(ctx.memberRole, 'editor');
+      const workspace = await ctx.tenantDb.workspace.findUnique({
+        where: { id: input.workspaceId },
+        select: { id: true },
+      });
+      if (!workspace) throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
+
+      const guard = guardAnalyticsQuery(input.sql);
+      if (!guard.ok) return { ok: false as const, error: guard.error, columns: [], rows: [] };
+
+      try {
+        const result = await getClickHouse().query({
+          query: guard.sql,
+          query_params: { workspaceId: input.workspaceId },
+          format: 'JSON',
+          clickhouse_settings: {
+            readonly: '1',
+            max_execution_time: 10,
+            max_result_rows: String(MAX_SQL_ROWS),
+            result_overflow_mode: 'break',
+          },
+        });
+        const body = (await result.json()) as {
+          meta: Array<{ name: string }>;
+          data: Array<Record<string, unknown>>;
+        };
+        return {
+          ok: true as const,
+          error: null,
+          columns: body.meta.map((column) => column.name),
+          rows: body.data,
+        };
+      } catch (error) {
+        return {
+          ok: false as const,
+          error: error instanceof Error ? error.message : 'Query failed',
+          columns: [],
+          rows: [],
+        };
+      }
+    }),
 });
