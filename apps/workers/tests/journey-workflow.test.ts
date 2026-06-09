@@ -265,6 +265,29 @@ describe('journeyRunWorkflow v2 nodes', () => {
     expect(sendJourneySms).toHaveBeenCalledWith('contact_2', 'Hi {{firstName}}');
   });
 
+  it('messages the contact at a send_whatsapp node', async () => {
+    const whatsappDefinition = {
+      trigger: { type: 'event', event: 'Signed Up' },
+      startNodeId: 'wa',
+      nodes: [
+        { id: 'wa', type: 'send_whatsapp', body: 'Hi {{firstName}}' },
+        { id: 'fin', type: 'end' },
+      ],
+      edges: [{ from: 'wa', to: 'fin' }],
+    };
+    const sendJourneyWhatsApp = vi.fn(async () => ({ sent: 1 }));
+    const activities = makeV2Activities({
+      loadJourney: vi.fn(async () => ({
+        organizationId: 'org',
+        workspaceId: 'ws',
+        definition: whatsappDefinition,
+      })),
+      sendJourneyWhatsApp,
+    } as Partial<JourneyActivities>);
+    await runV2(activities);
+    expect(sendJourneyWhatsApp).toHaveBeenCalledWith('contact_2', 'Hi {{firstName}}');
+  });
+
   it('defers the send while quiet hours are active (time-skipped)', async () => {
     const activities = makeV2Activities({
       sendGate: vi.fn(async () => 6 * 60 * 60 * 1000), // six-hour quiet window

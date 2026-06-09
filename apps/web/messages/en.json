@@ -548,7 +548,8 @@
       "capDays": "Cap window (days)",
       "capDaysSuffix": "days",
       "addSendPush": "Web push",
-      "addSendSms": "SMS"
+      "addSendSms": "SMS",
+      "addSendWhatsapp": "WhatsApp"
     },
     "nodes": {
       "trigger": "Trigger",
@@ -591,7 +592,10 @@
       "pushUrlPlaceholder": "https:// (optional)",
       "sendSms": "Send SMS",
       "smsBody": "SMS message",
-      "smsBodyPlaceholder": "Hi {{firstName}}, …"
+      "smsBodyPlaceholder": "Hi {{firstName}}, …",
+      "sendWhatsapp": "Send WhatsApp",
+      "whatsappBody": "WhatsApp message",
+      "whatsappBodyPlaceholder": "Hi {{firstName}}, …"
     }
   },
   "forms": {

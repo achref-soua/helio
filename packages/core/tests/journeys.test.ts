@@ -61,6 +61,19 @@ describe('journeyDefinitionSchema', () => {
     ).toBe(false);
   });
 
+  it('accepts a send_whatsapp node', () => {
+    const withWhatsapp = {
+      trigger: { type: 'event', event: 'Signed Up' },
+      startNodeId: 'w1',
+      nodes: [
+        { id: 'w1', type: 'send_whatsapp', body: 'Hi {{firstName}}' },
+        { id: 'w2', type: 'end' },
+      ],
+      edges: [{ from: 'w1', to: 'w2' }],
+    };
+    expect(journeyDefinitionSchema.safeParse(withWhatsapp).success).toBe(true);
+  });
+
   it('rejects unknown start nodes, dangling edges, and duplicate ids', () => {
     expect(journeyDefinitionSchema.safeParse({ ...valid, startNodeId: 'ghost' }).success).toBe(
       false,
