@@ -718,5 +718,18 @@
       "status": "Status",
       "actions": "Actions"
     }
+  },
+  "branding": {
+    "title": "Branding",
+    "subtitle": "White-label the dashboard and your hosted pages with your own name, color, and logo.",
+    "name": "Display name",
+    "color": "Accent color",
+    "default": "Default",
+    "reset": "Reset",
+    "logo": "Logo URL",
+    "save": "Save branding",
+    "saving": "Saving…",
+    "saved": "Branding updated",
+    "genericError": "Something went wrong. Please try again."
   }
 }

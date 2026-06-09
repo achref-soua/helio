@@ -15,12 +15,17 @@ datasource db {
 /// Tenant root. Better-Auth's organization plugin owns the auth-facing
 /// fields; domain tables hang off it and are isolated by RLS.
 model Organization {
-  id        String   @id
-  name      String
-  slug      String   @unique
-  logo      String?
-  metadata  String?
-  createdAt DateTime @default(now()) @map("created_at")
+  id         String   @id
+  name       String
+  slug       String   @unique
+  logo       String?
+  metadata   String?
+  /// White-label display name shown in the dashboard and on hosted pages
+  /// (falls back to the product name when unset).
+  brandName  String?  @map("brand_name")
+  /// White-label accent color as a #rrggbb hex; applied as the primary token.
+  brandColor String?  @map("brand_color")
+  createdAt  DateTime @default(now()) @map("created_at")
 
   workspaces        Workspace[]
   auditLogs         AuditLog[]

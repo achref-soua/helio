@@ -2,6 +2,7 @@ import { protectedProcedure, publicProcedure, router } from '../init';
 import { analyticsRouter } from './analytics';
 import { apiKeyRouter } from './api-key';
 import { billingRouter } from './billing';
+import { brandingRouter } from './branding';
 import { campaignRouter } from './campaign';
 import { contactRouter } from './contact';
 import { contactListRouter } from './contact-list';
@@ -38,6 +39,7 @@ export const appRouter = router({
   sso: ssoRouter,
   apiKey: apiKeyRouter,
   webhook: webhookRouter,
+  branding: brandingRouter,
 });
 
 export type AppRouter = typeof appRouter;
