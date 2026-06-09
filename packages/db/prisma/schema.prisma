@@ -55,6 +55,7 @@ model Organization {
   meetings          Meeting[]
   integrations      Integration[]
   supportTickets    SupportTicket[]
+  sendingDomains    SendingDomain[]
 
   @@map("organization")
 }
@@ -109,6 +110,7 @@ model Workspace {
   bookingPages      BookingPage[]
   meetings          Meeting[]
   integrations      Integration[]
+  sendingDomains    SendingDomain[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -1029,4 +1031,39 @@ model SupportTicket {
 
   @@index([organizationId, status])
   @@map("support_ticket")
+}
+
+enum DomainStatus {
+  PENDING
+  VERIFIED
+
+  @@map("domain_status")
+}
+
+/// A sending domain in the deliverability wizard. Helio generates the DKIM
+/// key pair on add; the operator publishes the SPF/DKIM/DMARC records and
+/// verifies them by DNS lookup. Workspace-scoped and RLS-isolated.
+model SendingDomain {
+  id             String       @id
+  organizationId String       @map("organization_id")
+  workspaceId    String       @map("workspace_id")
+  domain         String
+  dkimSelector   String       @default("helio") @map("dkim_selector")
+  /// Base64 DER of the DKIM public key (published in DNS).
+  dkimPublicKey  String       @map("dkim_public_key")
+  /// PEM private key used to sign outgoing mail; never leaves the server.
+  dkimPrivateKey String       @map("dkim_private_key")
+  /// SPF include for the sending provider (e.g. amazonses.com).
+  spfInclude     String?      @map("spf_include")
+  status         DomainStatus @default(PENDING)
+  verifiedAt     DateTime?    @map("verified_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, domain])
+  @@index([organizationId])
+  @@map("sending_domain")
 }

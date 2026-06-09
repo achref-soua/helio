@@ -321,6 +321,39 @@ describe('row-level security tenant isolation', () => {
     expect(await tenantA.supportTicket.count()).toBe(1);
   });
 
+  it('sending domains (and their DKIM private keys) are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const domainId = newId('dom');
+    await tenantA.sendingDomain.create({
+      data: {
+        id: domainId,
+        organizationId: orgA.id,
+        workspaceId: workspaceA,
+        domain: 'mail.a.example',
+        dkimPublicKey: 'PUB',
+        dkimPrivateKey: 'PRIV',
+      },
+    });
+
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.sendingDomain.count()).toBe(0);
+    expect(await tenantB.sendingDomain.findUnique({ where: { id: domainId } })).toBeNull();
+    await expect(
+      tenantB.sendingDomain.create({
+        data: {
+          id: newId('dom'),
+          organizationId: orgA.id,
+          workspaceId: workspaceA,
+          domain: 'smuggled.example',
+          dkimPublicKey: 'P',
+          dkimPrivateKey: 'P',
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.sendingDomain.count()).toBe(1);
+  });
+
   it('subscriptions are tenant-isolated', async () => {
     await forTenant(app, orgA.id).subscription.create({
       data: { id: newId('sub'), organizationId: orgA.id, plan: 'PRO' },

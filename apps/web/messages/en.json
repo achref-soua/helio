@@ -880,5 +880,27 @@
         "body": "Hit the life-ring in the top bar anytime to report a bug or send feedback. Enjoy!"
       }
     }
+  },
+  "deliverability": {
+    "title": "Email deliverability",
+    "subtitle": "Authenticate your sending domains so inboxes trust your mail.",
+    "addAction": "Add domain",
+    "addTitle": "Add a sending domain",
+    "addSubtitle": "We'll generate a DKIM key and show the records to publish.",
+    "domain": "Domain",
+    "spfInclude": "SPF include (your email provider)",
+    "add": "Generate records",
+    "adding": "Generating…",
+    "added": "Domain added — publish the records, then verify",
+    "empty": "No sending domains yet.",
+    "verify": "Verify",
+    "verified": "Domain verified",
+    "notVerified": "Not verified yet — still missing: {missing}",
+    "removeLabel": "Remove {domain}",
+    "genericError": "Something went wrong. Please try again.",
+    "status": {
+      "PENDING": "Pending",
+      "VERIFIED": "Verified"
+    }
   }
 }

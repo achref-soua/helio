@@ -1,0 +1,33 @@
+---
+title: Deliverability
+description: Authenticate your sending domains with SPF, DKIM, and DMARC, then verify by DNS.
+---
+
+Inboxes trust mail that proves who sent it. The deliverability wizard
+(**Settings → Email deliverability**, admins only) walks you through
+authenticating a sending domain.
+
+## Add a domain
+
+Enter your sending domain (`mail.acme.com`) and, optionally, your email
+provider's SPF include (e.g. `amazonses.com`). Helio generates a **DKIM key
+pair** on the spot — the private key stays on the server, the public key goes
+into DNS — and shows you the three records to publish:
+
+| Record | Host                             | Proves                                    |
+| ------ | -------------------------------- | ----------------------------------------- |
+| SPF    | `mail.acme.com`                  | which servers may send for the domain     |
+| DKIM   | `helio._domainkey.mail.acme.com` | each message is signed and untampered     |
+| DMARC  | `_dmarc.mail.acme.com`           | what to do with mail that fails the above |
+
+## Verify
+
+Publish the records at your DNS provider, then hit **Verify**. Helio does a live
+DNS TXT lookup for each record, and the domain flips to **Verified** once all
+three are present (the check tells you which are still missing). The DKIM
+private key is tenant-isolated and never returned to the browser.
+
+<Callout>
+  SPF and DMARC are quick to publish; DKIM is the one that requires the generated public key. Give
+  DNS a few minutes to propagate before verifying.
+</Callout>

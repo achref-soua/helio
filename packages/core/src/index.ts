@@ -29,6 +29,15 @@ export {
   type NormalizeResult,
 } from './contacts';
 export {
+  deliverabilityRecords,
+  dkimPasses,
+  dmarcPasses,
+  type DnsRecord,
+  isLikelyDomain,
+  type RecordOptions,
+  spfPasses,
+} from './deliverability';
+export {
   type EmailBlock,
   emailBlockSchema,
   type EmailDocument,
