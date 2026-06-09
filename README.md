@@ -46,7 +46,7 @@ Marketing automation today forces a bad choice:
 - 🗺️ **Growth tooling** — landing-page builder, lead scoring, A/B testing, attribution, deliverability wizard
 - ✅ **AI copilot** — describe a segment, journey, or on-brand email in a sentence and get a working draft; predictive lead scoring & churn; send-time optimization; autonomous A/B winner selection — all grounded in your own org's data
 - ✅ **Agent-ready** — an MCP server exposes Helio's capabilities as tools, so external AI agents can drive campaigns programmatically
-- ✅ **CRM-lite** — pipelines with configurable stages and a deal board; deals close and reopen as they move, all tenant-isolated
+- ✅ **CRM-lite** — pipelines with configurable stages and a deal board, plus a task list (calls, emails, meetings, to-dos) grouped by due date and linkable to contacts and deals; all tenant-isolated
 - ✅ **Migration & ingestion** — one-click importers that detect HubSpot/Mailchimp/Klaviyo exports (mapping who's unsubscribed), and a Segment/RudderStack-compatible HTTP Tracking API so existing instrumentation points straight at Helio
 - ✅ **Billing** — opt-in Stripe billing with plan-gated usage limits and a signature-verified webhook; self-hosted stays unlimited and unmetered
 - ✅ **Enterprise SSO & SCIM** — per-organization OIDC single sign-on (domain-routed, server-authoritative org binding) and SCIM 2.0 user provisioning; IdP client secrets and SCIM tokens are walled off from the tenant database role
@@ -124,7 +124,7 @@ task db:migrate && task db:seed
 pnpm --filter @helio/web dev
 ```
 
-Open `http://localhost:3000`, sign up, and verify your email at Mailpit (`http://localhost:8025`) — onboarding creates your organization, and the seed provisions a ready-to-explore demo workspace: contacts (with lead scores and AI predictions), lists, segments, email templates, a campaign, an active welcome journey, lead-scoring rules, a CRM pipeline with deals, and a demo write key. Dev email never leaves your machine.
+Open `http://localhost:3000`, sign up, and verify your email at Mailpit (`http://localhost:8025`) — onboarding creates your organization, and the seed provisions a ready-to-explore demo workspace: contacts (with lead scores and AI predictions), lists, segments, email templates, a campaign, an active welcome journey, lead-scoring rules, a CRM pipeline with deals and tasks, and a demo write key. Dev email never leaves your machine.
 
 **Want the full loop (campaigns, journeys, event analytics)?**
 
@@ -186,7 +186,7 @@ Hot-path budgets (ingestion ≥ 5k events/s, API reads p95 < 150 ms) have a comm
 | **v0.7**  | Platform: opt-in Stripe billing with plan-gated usage limits and a signature-verified webhook                                 |
 | **v0.8**  | Platform: enterprise SSO & SCIM, generated REST SDKs (JS + Python), documentation site, richer demo seed                      |
 | **v0.9**  | Platform: Kubernetes Helm chart, and production & managed-cloud deployment guides                                             |
-| **v1.0**  | Launch: Shopify/Salesforce integrations, white-labeling, CRM tasks & scheduler, load-test results, public demo, tagged v1.0.0 |
+| **v1.0**  | Launch: Shopify/Salesforce integrations, white-labeling, CRM meeting scheduler, load-test results, public demo, tagged v1.0.0 |
 
 ## Documentation
 

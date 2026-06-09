@@ -7,6 +7,7 @@ import {
   FileText,
   Handshake,
   LayoutDashboard,
+  ListTodo,
   Mail,
   Megaphone,
   Menu,
@@ -35,6 +36,7 @@ const NAV_ITEMS = [
   { key: 'forms', href: '/forms', icon: FileText },
   { key: 'journeys', href: '/journeys', icon: Workflow },
   { key: 'deals', href: '/deals', icon: Handshake },
+  { key: 'tasks', href: '/tasks', icon: ListTodo },
   { key: 'copilot', href: '/copilot', icon: Sparkles },
   { key: 'settings', href: '/settings', icon: Settings },
 ] as const;

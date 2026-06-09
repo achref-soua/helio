@@ -14,7 +14,8 @@
     "campaigns": "Campaigns",
     "forms": "Forms",
     "deals": "Deals",
-    "copilot": "Copilot"
+    "copilot": "Copilot",
+    "tasks": "Tasks"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -646,5 +647,44 @@
     "emailBlocks": "{count, plural, one {# block} other {# blocks}}",
     "createEmail": "Save as template",
     "emailCreated": "Email template created"
+  },
+  "tasks": {
+    "title": "Tasks",
+    "subtitle": "Calls, emails, meetings, and to-dos — grouped by when they're due.",
+    "newTask": "New task",
+    "newTaskSubtitle": "Add a to-do, call, email, or meeting.",
+    "taskTitle": "Title",
+    "taskType": "Type",
+    "taskPriority": "Priority",
+    "taskDue": "Due date",
+    "taskNotes": "Notes",
+    "createTask": "Create task",
+    "cancel": "Cancel",
+    "taskCreated": "Task created",
+    "taskDeleted": "Task deleted",
+    "emptyTitle": "No tasks yet",
+    "emptyBody": "Create your first task to keep track of calls, emails, meetings, and follow-ups.",
+    "markDone": "Mark {title} done",
+    "reopen": "Reopen {title}",
+    "deleteTask": "Delete {title}",
+    "genericError": "Something went wrong. Please try again.",
+    "bucket": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "upcoming": "Upcoming",
+      "someday": "No due date",
+      "done": "Done"
+    },
+    "type": {
+      "TODO": "To-do",
+      "CALL": "Call",
+      "EMAIL": "Email",
+      "MEETING": "Meeting"
+    },
+    "priority": {
+      "LOW": "Low",
+      "MEDIUM": "Medium",
+      "HIGH": "High"
+    }
   }
 }
