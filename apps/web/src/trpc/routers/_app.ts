@@ -8,6 +8,7 @@ import { contactRouter } from './contact';
 import { contactListRouter } from './contact-list';
 import { copilotRouter } from './copilot';
 import { crmRouter } from './crm';
+import { deliverabilityRouter } from './deliverability';
 import { emailTemplateRouter } from './email-template';
 import { formRouter } from './form';
 import { integrationsRouter } from './integrations';
@@ -46,6 +47,7 @@ export const appRouter = router({
   branding: brandingRouter,
   integrations: integrationsRouter,
   support: supportRouter,
+  deliverability: deliverabilityRouter,
 });
 
 export type AppRouter = typeof appRouter;
