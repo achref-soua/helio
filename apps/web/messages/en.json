@@ -1002,7 +1002,7 @@
   },
   "insights": {
     "title": "Insights",
-    "subtitle": "Behavioral analytics over your event stream — conversion funnels and cohort retention.",
+    "subtitle": "Behavioral analytics over your event stream — conversion funnels, cohort retention, and multi-touch attribution.",
     "run": "Run",
     "noClickhouse": "Connect the analytics store (ClickHouse) to see this report. Start the full stack with the “full” Compose profile.",
     "funnel": {
@@ -1022,6 +1022,21 @@
       "cohort": "Cohort",
       "size": "People",
       "empty": "No activity in this window yet."
+    },
+    "attribution": {
+      "title": "Multi-touch attribution",
+      "subtitle": "Credit conversions to the campaigns that touched each person beforehand.",
+      "event": "Conversion event",
+      "eventPlaceholder": "Order Completed",
+      "model": "Model",
+      "models": {
+        "first": "First touch",
+        "last": "Last touch",
+        "linear": "Linear"
+      },
+      "hint": "Name the event that counts as a conversion, then run attribution.",
+      "empty": "No credited touches in this window yet.",
+      "converters": "{count} converters with a prior campaign touch"
     }
   }
 }

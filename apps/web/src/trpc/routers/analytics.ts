@@ -1,4 +1,6 @@
 import {
+  aggregateAttribution,
+  attributionInputSchema,
   funnelInputSchema,
   funnelReport,
   funnelStepCounts,
@@ -26,6 +28,11 @@ interface RetentionCellRow {
   cohort: string;
   period: string;
   people: string;
+}
+
+interface AttributionConverterRow {
+  person: string;
+  campaigns: string[];
 }
 
 interface CampaignEngagementRow {
@@ -235,5 +242,71 @@ export const analyticsRouter = router({
     } catch {
       return { clickhouseUp: false, cohorts: [] };
     }
+  }),
+
+  /**
+   * Multi-touch attribution: for everyone who fired the conversion event,
+   * assemble the campaign touches that preceded their first conversion, then
+   * distribute credit by the chosen model. Campaign names are joined from
+   * Postgres; unknown ids (deleted campaigns) keep their id as the label.
+   */
+  attribution: orgProcedure.input(attributionInputSchema).query(async ({ ctx, input }) => {
+    // Isolate the ClickHouse read so a PG enrichment error isn't reported as
+    // "no analytics store"; null means ClickHouse is unavailable.
+    const converterRows = await (async (): Promise<AttributionConverterRow[] | null> => {
+      try {
+        const result = await getClickHouse().query({
+          query: `
+            WITH converters AS (
+              SELECT person, min(timestamp) AS conv_time FROM (
+                SELECT if(user_id != '', user_id, anonymous_id) AS person, timestamp
+                FROM events
+                WHERE workspace_id = {workspaceId:String} AND event = {conv:String}
+                  AND timestamp >= now() - INTERVAL {days:UInt16} DAY
+              ) GROUP BY person
+            )
+            SELECT touches.person AS person,
+                   arrayMap(t -> t.2, arraySort(t -> t.1,
+                     groupArray((touches.timestamp, touches.campaign)))) AS campaigns
+            FROM (
+              SELECT if(user_id != '', user_id, anonymous_id) AS person, timestamp,
+                     JSONExtractString(properties, 'campaignId') AS campaign
+              FROM events
+              WHERE workspace_id = {workspaceId:String}
+                AND timestamp >= now() - INTERVAL {days:UInt16} DAY
+                AND JSONExtractString(properties, 'campaignId') != ''
+            ) AS touches
+            INNER JOIN converters ON touches.person = converters.person
+            WHERE touches.timestamp <= converters.conv_time
+            GROUP BY touches.person`,
+          query_params: {
+            workspaceId: input.workspaceId,
+            conv: input.conversionEvent,
+            days: input.windowDays,
+          },
+          format: 'JSONEachRow',
+        });
+        return (await result.json()) as AttributionConverterRow[];
+      } catch {
+        return null;
+      }
+    })();
+
+    if (!converterRows) return { clickhouseUp: false, converters: 0, rows: [] };
+    const rows = aggregateAttribution(
+      converterRows.map((row) => row.campaigns ?? []),
+      input.model,
+    );
+
+    const campaigns = await ctx.tenantDb.campaign.findMany({
+      where: { id: { in: rows.map((row) => row.campaignId) } },
+      select: { id: true, name: true },
+    });
+    const names = new Map(campaigns.map((campaign) => [campaign.id, campaign.name]));
+    return {
+      clickhouseUp: true,
+      converters: converterRows.length,
+      rows: rows.map((row) => ({ ...row, name: names.get(row.campaignId) ?? row.campaignId })),
+    };
   }),
 });

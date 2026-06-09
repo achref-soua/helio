@@ -18,6 +18,15 @@ export {
   retentionMatrix,
 } from './analytics';
 export {
+  aggregateAttribution,
+  attributeCredit,
+  ATTRIBUTION_MODELS,
+  type AttributionInput,
+  attributionInputSchema,
+  type AttributionModel,
+  type AttributionRow,
+} from './attribution';
+export {
   contactLimitFor,
   isValidPlan,
   type Plan,

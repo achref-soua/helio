@@ -9,12 +9,15 @@ test('insights page runs a funnel and shows both reports', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Insights', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Conversion funnel' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Cohort retention' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Multi-touch attribution' })).toBeVisible();
 
   await page.getByTestId('funnel-steps').fill('Viewed Pricing, Signed Up');
   await page.getByTestId('funnel-run').click();
+  await page.getByTestId('attribution-run').click();
 
-  // Without ClickHouse, both reports render their no-data guidance rather than
+  // Without ClickHouse, every report renders its no-data guidance rather than
   // crashing or hanging.
   await expect(page.getByTestId('funnel-nodata')).toBeVisible();
   await expect(page.getByTestId('retention-nodata')).toBeVisible();
+  await expect(page.getByTestId('attribution-nodata')).toBeVisible();
 });
