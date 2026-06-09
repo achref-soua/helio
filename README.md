@@ -123,7 +123,7 @@ task db:migrate && task db:seed
 pnpm --filter @helio/web dev
 ```
 
-Open `http://localhost:3000`, sign up, and verify your email at Mailpit (`http://localhost:8025`) — onboarding creates your organization, and the seed provisions a demo workspace with contacts, a list, and a write key. Dev email never leaves your machine.
+Open `http://localhost:3000`, sign up, and verify your email at Mailpit (`http://localhost:8025`) — onboarding creates your organization, and the seed provisions a ready-to-explore demo workspace: contacts (with lead scores and AI predictions), lists, segments, email templates, a campaign, an active welcome journey, lead-scoring rules, a CRM pipeline with deals, and a demo write key. Dev email never leaves your machine.
 
 **Want the full loop (campaigns, journeys, event analytics)?**
 
