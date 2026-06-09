@@ -50,10 +50,22 @@ Helio groups people by the week they were first seen and shows the share still
 active in each later week. Pick how many weeks to analyze (4–26). Period 0 is the
 cohort size; each later cell is that cohort's retention, shaded by strength.
 
+### Multi-touch attribution
+
+Name the event that counts as a conversion (for example `Order Completed`).
+Helio finds everyone who fired it, assembles the campaign touches that preceded
+each person's first conversion, and distributes credit by the model you pick:
+
+- **First touch** — all credit to the earliest campaign that touched them.
+- **Last touch** — all credit to the most recent campaign before converting.
+- **Linear** — credit split equally across the distinct campaigns involved.
+
+Credit is summed across all converters and ranked by campaign, so you can see
+which campaigns actually drive conversions under each model.
+
 ## Roadmap
 
-Multi-touch revenue attribution, A/B statistical-significance views,
-deliverability analytics, and a SQL explorer over ClickHouse are on the
-[roadmap](https://github.com/achref-soua/helio#roadmap). The event pipeline that
-feeds them is already in place, so these are presentation layers over data Helio
-is collecting today.
+A/B statistical-significance views, deliverability analytics, and a SQL explorer
+over ClickHouse are on the [roadmap](https://github.com/achref-soua/helio#roadmap).
+The event pipeline that feeds them is already in place, so these are presentation
+layers over data Helio is collecting today.

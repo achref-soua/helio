@@ -7,7 +7,7 @@ import { Label } from '@helio/ui/components/label';
 import { Skeleton } from '@helio/ui/components/skeleton';
 import { cn } from '@helio/ui/lib/utils';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Users } from 'lucide-react';
+import { BarChart3, Target, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -206,6 +206,137 @@ function RetentionReport({ workspaceId }: { workspaceId: string }) {
   );
 }
 
+const ATTRIBUTION_MODELS = ['first', 'last', 'linear'] as const;
+
+function AttributionReport({ workspaceId }: { workspaceId: string }) {
+  const t = useTranslations('insights');
+  const trpc = useTRPC();
+  const [eventName, setEventName] = useState('Order Completed');
+  const [model, setModel] = useState<(typeof ATTRIBUTION_MODELS)[number]>('last');
+  const [windowDays, setWindowDays] = useState(30);
+  const [query, setQuery] = useState<{
+    conversionEvent: string;
+    model: (typeof ATTRIBUTION_MODELS)[number];
+    windowDays: number;
+  } | null>(null);
+
+  const attribution = useQuery({
+    ...trpc.analytics.attribution.queryOptions({
+      workspaceId,
+      conversionEvent: query?.conversionEvent ?? '',
+      model: query?.model ?? 'last',
+      windowDays: query?.windowDays ?? 30,
+    }),
+    enabled: !!query,
+  });
+
+  function run(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const conversionEvent = eventName.trim();
+    if (conversionEvent) setQuery({ conversionEvent, model, windowDays });
+  }
+
+  const rows = attribution.data?.rows ?? [];
+  const max = rows.reduce((peak, row) => Math.max(peak, row.credit), 0);
+
+  return (
+    <Card>
+      <CardContent className="grid gap-4 py-5">
+        <div className="flex items-center gap-2">
+          <Target className="text-primary size-5" aria-hidden />
+          <h2 className="text-lg font-semibold">{t('attribution.title')}</h2>
+        </div>
+        <p className="text-muted-foreground -mt-2 text-sm">{t('attribution.subtitle')}</p>
+
+        <form onSubmit={run} className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
+          <div className="grid gap-1.5">
+            <Label htmlFor="attr-event">{t('attribution.event')}</Label>
+            <Input
+              id="attr-event"
+              value={eventName}
+              onChange={(event) => setEventName(event.target.value)}
+              placeholder={t('attribution.eventPlaceholder')}
+              data-testid="attribution-event"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="attr-model">{t('attribution.model')}</Label>
+            <select
+              id="attr-model"
+              value={model}
+              onChange={(event) =>
+                setModel(event.target.value as (typeof ATTRIBUTION_MODELS)[number])
+              }
+              className={FIELD_CLASS}
+            >
+              {ATTRIBUTION_MODELS.map((value) => (
+                <option key={value} value={value}>
+                  {t(`attribution.models.${value}`)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="attr-window">{t('funnel.window')}</Label>
+            <select
+              id="attr-window"
+              value={windowDays}
+              onChange={(event) => setWindowDays(Number(event.target.value))}
+              className={FIELD_CLASS}
+            >
+              {[7, 14, 30, 60, 90].map((days) => (
+                <option key={days} value={days}>
+                  {t('funnel.days', { days })}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Button type="submit" data-testid="attribution-run">
+            {t('run')}
+          </Button>
+        </form>
+
+        {attribution.isFetching ? (
+          <Skeleton className="h-32" />
+        ) : !query ? (
+          <p className="text-muted-foreground text-sm">{t('attribution.hint')}</p>
+        ) : attribution.data && !attribution.data.clickhouseUp ? (
+          <p className="text-muted-foreground text-sm" data-testid="attribution-nodata">
+            {t('noClickhouse')}
+          </p>
+        ) : rows.length === 0 ? (
+          <p className="text-muted-foreground text-sm">{t('attribution.empty')}</p>
+        ) : (
+          <div className="grid gap-3" data-testid="attribution-results">
+            <p className="text-muted-foreground text-xs">
+              {t('attribution.converters', { count: attribution.data?.converters ?? 0 })}
+            </p>
+            <ul className="grid gap-2">
+              {rows.map((row) => (
+                <li key={row.campaignId} className="grid gap-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">{row.name}</span>
+                    <span className="text-muted-foreground tabular-nums">
+                      {row.credit.toFixed(1)}
+                    </span>
+                  </div>
+                  <div className="bg-muted h-3 overflow-hidden rounded">
+                    <div
+                      className="bg-primary h-full rounded"
+                      style={{ width: max > 0 ? `${(row.credit / max) * 100}%` : '0%' }}
+                      aria-hidden
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function InsightsView() {
   const t = useTranslations('insights');
   const workspaceId = useActiveWorkspaceId();
@@ -220,6 +351,7 @@ export function InsightsView() {
       </div>
       <FunnelReport workspaceId={workspaceId} />
       <RetentionReport workspaceId={workspaceId} />
+      <AttributionReport workspaceId={workspaceId} />
     </div>
   );
 }
