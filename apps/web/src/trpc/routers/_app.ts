@@ -11,6 +11,7 @@ import { crmRouter } from './crm';
 import { emailTemplateRouter } from './email-template';
 import { formRouter } from './form';
 import { journeyRouter } from './journey';
+import { schedulingRouter } from './scheduling';
 import { scoringRouter } from './scoring';
 import { segmentRouter } from './segment';
 import { ssoRouter } from './sso';
@@ -34,6 +35,7 @@ export const appRouter = router({
   copilot: copilotRouter,
   form: formRouter,
   scoring: scoringRouter,
+  scheduling: schedulingRouter,
   crm: crmRouter,
   billing: billingRouter,
   sso: ssoRouter,

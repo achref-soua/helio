@@ -100,6 +100,16 @@ export {
   unwrapOr,
 } from './result';
 export {
+  type AvailabilityRule,
+  availabilityRuleSchema,
+  availabilitySchema,
+  availableSlots,
+  DEFAULT_AVAILABILITY,
+  isValidTimeZone,
+  type SlotQuery,
+  zonedWallTimeToUtc,
+} from './scheduling';
+export {
   activeFromPatch,
   activeFromScimUser,
   displayNameFromScimUser,

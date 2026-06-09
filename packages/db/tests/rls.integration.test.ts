@@ -231,6 +231,45 @@ describe('row-level security tenant isolation', () => {
     expect(await tenantA.webhookEndpoint.count()).toBe(1);
   });
 
+  it('scheduler booking pages and meetings are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const pageId = newId('bpg');
+    await tenantA.bookingPage.create({
+      data: { id: pageId, organizationId: orgA.id, workspaceId: workspaceA, title: 'Intro call' },
+    });
+    await tenantA.meeting.create({
+      data: {
+        id: newId('mtg'),
+        organizationId: orgA.id,
+        workspaceId: workspaceA,
+        bookingPageId: pageId,
+        startAt: new Date('2026-06-09T15:00:00Z'),
+        durationMinutes: 30,
+        inviteeEmail: 'invitee@example.com',
+      },
+    });
+
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.bookingPage.count()).toBe(0);
+    expect(await tenantB.meeting.count()).toBe(0);
+    expect(await tenantB.bookingPage.findUnique({ where: { id: pageId } })).toBeNull();
+    await expect(
+      tenantB.meeting.create({
+        data: {
+          id: newId('mtg'),
+          organizationId: orgA.id,
+          workspaceId: workspaceA,
+          bookingPageId: pageId,
+          startAt: new Date('2026-06-10T15:00:00Z'),
+          durationMinutes: 30,
+          inviteeEmail: 'smuggled@example.com',
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.meeting.count()).toBe(1);
+  });
+
   it('subscriptions are tenant-isolated', async () => {
     await forTenant(app, orgA.id).subscription.create({
       data: { id: newId('sub'), organizationId: orgA.id, plan: 'PRO' },

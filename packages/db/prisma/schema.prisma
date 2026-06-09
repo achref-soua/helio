@@ -51,6 +51,8 @@ model Organization {
   scimToken         ScimToken?
   gatewayApiKeys    GatewayApiKey[]
   webhookEndpoints  WebhookEndpoint[]
+  bookingPages      BookingPage[]
+  meetings          Meeting[]
 
   @@map("organization")
 }
@@ -102,6 +104,8 @@ model Workspace {
   pipelines         Pipeline[]
   deals             Deal[]
   tasks             Task[]
+  bookingPages      BookingPage[]
+  meetings          Meeting[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -175,6 +179,7 @@ model Contact {
   pushSubscriptions PushSubscription[]
   deals             Deal[]
   tasks             Task[]
+  meetings          Meeting[]
 
   @@unique([workspaceId, email])
   @@index([organizationId])
@@ -879,4 +884,71 @@ model WebhookEndpoint {
 
   @@index([organizationId])
   @@map("webhook_endpoint")
+}
+
+/// A public booking page (one per slug per workspace). Invitees pick an open
+/// slot computed from `availability` minus already-booked meetings. Workspace
+/// scoped and isolated by the standard RLS policy; the public page reads it
+/// through the admin client by slug (the slug is the capability).
+model BookingPage {
+  id              String   @id
+  organizationId  String   @map("organization_id")
+  workspaceId     String   @map("workspace_id")
+  title           String
+  description     String?
+  durationMinutes Int      @default(30) @map("duration_minutes")
+  /// IANA timezone the availability is expressed in (e.g. America/New_York).
+  timezone        String   @default("UTC")
+  /// Weekly availability: array of { weekday: 0-6 (Sun=0), start, end } with
+  /// start/end as minutes from midnight in `timezone`. See @helio/core.
+  availability    Json     @default("[]")
+  /// Minimum gap enforced after each meeting, in minutes.
+  bufferMinutes   Int      @default(0) @map("buffer_minutes")
+  /// The hosting member's auth user id; a booked meeting creates a task for it.
+  ownerId         String?  @map("owner_id")
+  enabled         Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  meetings     Meeting[]
+
+  @@index([organizationId])
+  @@index([workspaceId])
+  @@map("booking_page")
+}
+
+enum MeetingStatus {
+  BOOKED
+  CANCELED
+
+  @@map("meeting_status")
+}
+
+/// A booked meeting on a booking page. `startAt` is an absolute UTC instant;
+/// the unique (bookingPageId, startAt) makes double-booking impossible even
+/// under a race. Optionally linked to the contact created from the invitee.
+model Meeting {
+  id              String        @id
+  organizationId  String        @map("organization_id")
+  workspaceId     String        @map("workspace_id")
+  bookingPageId   String        @map("booking_page_id")
+  startAt         DateTime      @map("start_at")
+  durationMinutes Int           @map("duration_minutes")
+  inviteeEmail    String        @map("invitee_email")
+  inviteeName     String?       @map("invitee_name")
+  contactId       String?       @map("contact_id")
+  status          MeetingStatus @default(BOOKED)
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  bookingPage  BookingPage  @relation(fields: [bookingPageId], references: [id], onDelete: Cascade)
+  contact      Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@unique([bookingPageId, startAt])
+  @@index([organizationId])
+  @@index([workspaceId, startAt])
+  @@map("meeting")
 }

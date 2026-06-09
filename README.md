@@ -46,7 +46,7 @@ Marketing automation today forces a bad choice:
 - 🗺️ **Growth tooling** — landing-page builder, lead scoring, A/B testing, attribution, deliverability wizard
 - ✅ **AI copilot** — describe a segment, journey, or on-brand email in a sentence and get a working draft; predictive lead scoring & churn; send-time optimization; autonomous A/B winner selection — all grounded in your own org's data
 - ✅ **Agent-ready** — an MCP server exposes Helio's capabilities as tools, so external AI agents can drive campaigns programmatically
-- ✅ **CRM-lite** — pipelines with configurable stages and a deal board, plus a task list (calls, emails, meetings, to-dos) grouped by due date and linkable to contacts and deals; all tenant-isolated
+- ✅ **CRM-lite** — pipelines with configurable stages and a deal board, a task list (calls, emails, meetings, to-dos) grouped by due date, and a meeting scheduler with public booking pages (timezone-correct slots, server-validated, double-book-proof) that file meetings into the CRM; all tenant-isolated
 - ✅ **Migration & ingestion** — one-click importers that detect HubSpot/Mailchimp/Klaviyo exports (mapping who's unsubscribed), and a Segment/RudderStack-compatible HTTP Tracking API so existing instrumentation points straight at Helio
 - ✅ **Billing** — opt-in Stripe billing with plan-gated usage limits and a signature-verified webhook; self-hosted stays unlimited and unmetered
 - ✅ **Enterprise SSO & SCIM** — per-organization OIDC single sign-on (domain-routed, server-authoritative org binding) and SCIM 2.0 user provisioning; IdP client secrets and SCIM tokens are walled off from the tenant database role
@@ -177,18 +177,18 @@ Hot-path budgets (ingestion ≥ 5k events/s, API reads p95 < 150 ms) have a comm
 
 ## Roadmap
 
-| Milestone | Focus                                                                                                         |
-| --------- | ------------------------------------------------------------------------------------------------------------- |
-| **v0.1**  | Foundation: monorepo, CI/CD, multi-tenant auth & RBAC, design system, observability baseline                  |
-| **v0.2**  | Usable MVP: contacts & lists, event ingestion, segmentation, email sending & tracking, first journeys         |
-| **v0.3**  | Growth: full journey canvas, SMS & push, landing pages, lead scoring, A/B testing, attribution                |
-| **v0.4**  | AI: copilot, NL→segment, NL→journey, brand-voice generation, MCP server                                       |
-| **v0.5**  | AI, cont'd: predictive scoring & churn, send-time optimization, autonomous A/B winner selection               |
-| **v0.6**  | Platform: HubSpot/Mailchimp/Klaviyo importers, Segment-compatible ingestion, CRM-lite deal board              |
-| **v0.7**  | Platform: opt-in Stripe billing with plan-gated usage limits and a signature-verified webhook                 |
-| **v0.8**  | Platform: enterprise SSO & SCIM, generated REST SDKs (JS + Python), documentation site, richer demo seed      |
-| **v0.9**  | Platform: Kubernetes Helm chart, and production & managed-cloud deployment guides                             |
-| **v1.0**  | Launch: Shopify/Salesforce integrations, CRM meeting scheduler, load-test results, public demo, tagged v1.0.0 |
+| Milestone | Focus                                                                                                    |
+| --------- | -------------------------------------------------------------------------------------------------------- |
+| **v0.1**  | Foundation: monorepo, CI/CD, multi-tenant auth & RBAC, design system, observability baseline             |
+| **v0.2**  | Usable MVP: contacts & lists, event ingestion, segmentation, email sending & tracking, first journeys    |
+| **v0.3**  | Growth: full journey canvas, SMS & push, landing pages, lead scoring, A/B testing, attribution           |
+| **v0.4**  | AI: copilot, NL→segment, NL→journey, brand-voice generation, MCP server                                  |
+| **v0.5**  | AI, cont'd: predictive scoring & churn, send-time optimization, autonomous A/B winner selection          |
+| **v0.6**  | Platform: HubSpot/Mailchimp/Klaviyo importers, Segment-compatible ingestion, CRM-lite deal board         |
+| **v0.7**  | Platform: opt-in Stripe billing with plan-gated usage limits and a signature-verified webhook            |
+| **v0.8**  | Platform: enterprise SSO & SCIM, generated REST SDKs (JS + Python), documentation site, richer demo seed |
+| **v0.9**  | Platform: Kubernetes Helm chart, and production & managed-cloud deployment guides                        |
+| **v1.0**  | Launch: Shopify/Salesforce integrations, load-test results, public demo, tagged v1.0.0                   |
 
 ## Documentation
 
