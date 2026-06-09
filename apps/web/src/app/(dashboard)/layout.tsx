@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 
 import { AppShell } from '@/components/app-shell';
 import { BrandStyle } from '@/components/brand-style';
+import { TourGuide } from '@/components/tour-guide';
 import { auth } from '@/lib/auth';
 import { appDb } from '@/lib/db';
 
@@ -37,6 +38,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <AppShell brand={org ? { name: org.brandName ?? org.name, logoUrl: org.logo } : undefined}>
         {children}
       </AppShell>
+      <TourGuide />
     </>
   );
 }

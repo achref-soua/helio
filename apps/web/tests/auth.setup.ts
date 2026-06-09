@@ -40,6 +40,9 @@ setup('sign up and verify via Mailpit', async ({ page, request }) => {
   await page.goto(link!);
   await expect(page.getByText('Create your organization')).toBeVisible();
   await page.getByLabel('Organization name').fill('E2E Org');
+  // Dismiss the product tour before the dashboard mounts so it never overlays
+  // other specs; tour.spec re-enables it explicitly. Same origin as the app.
+  await page.evaluate(() => localStorage.setItem('helio.tour.v1.done', '1'));
   await page.getByRole('button', { name: 'Create organization' }).click();
   await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
 

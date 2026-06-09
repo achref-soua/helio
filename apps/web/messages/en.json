@@ -848,5 +848,37 @@
       "OPEN": "Open",
       "RESOLVED": "Resolved"
     }
+  },
+  "tour": {
+    "skip": "Skip",
+    "back": "Back",
+    "next": "Next",
+    "done": "Get started",
+    "steps": {
+      "welcome": {
+        "title": "Welcome to Helio",
+        "body": "A quick tour of what you can do here. It takes 30 seconds — skip anytime."
+      },
+      "contacts": {
+        "title": "Your customer data",
+        "body": "Import contacts, then slice them into live segments with the visual builder."
+      },
+      "journeys": {
+        "title": "Automate journeys",
+        "body": "Design multi-step journeys on the canvas — email, SMS, WhatsApp, push, waits, and branches — that run durably."
+      },
+      "copilot": {
+        "title": "Let AI help",
+        "body": "Describe a segment, journey, or on-brand email in a sentence and the copilot drafts it."
+      },
+      "crm": {
+        "title": "Close the loop",
+        "body": "Track deals, file tasks, book meetings, and watch opens and clicks land in analytics."
+      },
+      "support": {
+        "title": "We're here",
+        "body": "Hit the life-ring in the top bar anytime to report a bug or send feedback. Enjoy!"
+      }
+    }
   }
 }
