@@ -201,6 +201,12 @@ export {
   verifyShopifyHmac,
 } from './shopify';
 export {
+  guardAnalyticsQuery,
+  MAX_SQL_LENGTH,
+  MAX_SQL_ROWS,
+  type SqlGuardResult,
+} from './sql-guard';
+export {
   SUPPORT_KINDS,
   SUPPORT_STATUSES,
   type SupportKind,

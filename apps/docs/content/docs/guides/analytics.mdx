@@ -63,9 +63,30 @@ each person's first conversion, and distributes credit by the model you pick:
 Credit is summed across all converters and ranked by campaign, so you can see
 which campaigns actually drive conversions under each model.
 
+## SQL explorer
+
+For anything the canned reports don't cover, the **SQL explorer** runs ad-hoc
+read-only SQL over your events. It's deliberately fenced in, with defense in
+depth:
+
+- **Read-only** — the query must be a single `SELECT` (or `WITH … SELECT`); no
+  comments, no quoted identifiers, and ClickHouse runs it with `readonly=1`.
+- **Events only** — every `FROM`/`JOIN` target must be the `events` table or a
+  CTE you define, which blocks `system.*`, other databases, and table functions
+  (`remote`, `url`, `file`, `s3`, …). IO functions are blocked in any position.
+- **Auto-scoped** — `events` is rewritten to a CTE pre-filtered to your
+  workspace, so you only ever see your own rows. The workspace is also confirmed
+  to belong to your organization before the query runs.
+- **Capped** — results are limited to 1,000 rows with a 10-second execution
+  budget.
+
+So `SELECT event, count() FROM events GROUP BY event ORDER BY 2 DESC` just works,
+while `SELECT * FROM system.tables` or `DROP TABLE events` are refused. Editor
+role or above is required.
+
 ## Roadmap
 
-A/B statistical-significance views, deliverability analytics, and a SQL explorer
-over ClickHouse are on the [roadmap](https://github.com/achref-soua/helio#roadmap).
-The event pipeline that feeds them is already in place, so these are presentation
-layers over data Helio is collecting today.
+A/B statistical-significance views and deliverability analytics are on the
+[roadmap](https://github.com/achref-soua/helio#roadmap). The event pipeline that
+feeds them is already in place, so these are presentation layers over data Helio
+is collecting today.
