@@ -45,6 +45,7 @@ model Organization {
   ssoProviders      SsoProvider[]
   scimToken         ScimToken?
   gatewayApiKeys    GatewayApiKey[]
+  webhookEndpoints  WebhookEndpoint[]
 
   @@map("organization")
 }
@@ -851,4 +852,26 @@ model Task {
   @@index([organizationId])
   @@index([workspaceId, status, dueAt])
   @@map("task")
+}
+
+/// An outbound webhook subscription. Helio POSTs a signed JSON payload to
+/// `url` whenever one of the subscribed `events` occurs in the org.
+/// Org-scoped (like API keys) and isolated by the standard RLS policy.
+model WebhookEndpoint {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  url            String
+  description    String?
+  /// HMAC-SHA256 signing secret (whsec_…); revealed to the operator once.
+  secret         String
+  /// Subscribed event keys — see WEBHOOK_EVENTS in @helio/core.
+  events         String[]
+  enabled        Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("webhook_endpoint")
 }

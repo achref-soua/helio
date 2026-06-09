@@ -9,6 +9,7 @@ import { BillingPanel } from './billing-panel';
 import { MembersPanel } from './members-panel';
 import { ScimPanel } from './scim-panel';
 import { SsoPanel } from './sso-panel';
+import { WebhooksPanel } from './webhooks-panel';
 
 export default async function SettingsPage() {
   const requestHeaders = await headers();
@@ -51,6 +52,7 @@ export default async function SettingsPage() {
           <SsoPanel canManage />
           <ScimPanel canManage />
           <ApiKeysPanel canManage />
+          <WebhooksPanel canManage />
         </>
       )}
     </div>

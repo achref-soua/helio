@@ -686,5 +686,37 @@
       "MEDIUM": "Medium",
       "HIGH": "High"
     }
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "subtitle": "POST signed JSON to your systems when events happen in this workspace.",
+    "createAction": "Add endpoint",
+    "createTitle": "New webhook endpoint",
+    "createSubtitle": "We sign every delivery with a per-endpoint secret (x-helio-signature).",
+    "url": "Payload URL",
+    "description": "Description",
+    "events": "Events",
+    "working": "Saving…",
+    "createSubmit": "Create endpoint",
+    "empty": "No webhook endpoints yet.",
+    "pickEvent": "Choose at least one event to send.",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "testOk": "Test delivered — endpoint answered {status}",
+    "testFailed": "Test failed: {detail}",
+    "testLabel": "Send a test event to {url}",
+    "removeLabel": "Delete the endpoint {url}",
+    "secretTitle": "Signing secret",
+    "secretSubtitle": "Copy it now — it is shown once. Verify deliveries with it against the x-helio-signature header.",
+    "copy": "Copy",
+    "copied": "Copied to clipboard",
+    "done": "Done",
+    "genericError": "Something went wrong. Please try again.",
+    "columns": {
+      "endpoint": "Endpoint",
+      "events": "Events",
+      "status": "Status",
+      "actions": "Actions"
+    }
   }
 }

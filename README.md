@@ -51,7 +51,8 @@ Marketing automation today forces a bad choice:
 - ✅ **Billing** — opt-in Stripe billing with plan-gated usage limits and a signature-verified webhook; self-hosted stays unlimited and unmetered
 - ✅ **Enterprise SSO & SCIM** — per-organization OIDC single sign-on (domain-routed, server-authoritative org binding) and SCIM 2.0 user provisioning; IdP client secrets and SCIM tokens are walled off from the tenant database role
 - ✅ **SDKs & docs** — typed REST SDKs for JavaScript/TypeScript and Python, generated from the OpenAPI spec, plus a full documentation site (Fumadocs)
-- 🗺️ **Platform integrations** — outbound webhook subscriptions, ad-audience sync
+- ✅ **Outbound webhooks** — subscribe endpoints to lifecycle events (contacts, deals, tasks); each delivery is HMAC-signed with the endpoint's own secret over a timestamped scheme and sent on a durable, retrying workflow, with a one-click test ping
+- 🗺️ **Platform integrations** — Shopify & Salesforce, ad-audience sync
 
 ### The product in action
 

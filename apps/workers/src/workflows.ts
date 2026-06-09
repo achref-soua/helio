@@ -2,6 +2,7 @@ import { isInAbTestSample } from '@helio/core';
 import { ApplicationFailure, proxyActivities, sleep } from '@temporalio/workflow';
 
 import type { CampaignActivities } from './activities';
+import type { WebhookActivities, WebhookDeliveryInput } from './webhook-activities';
 
 export { journeyRunWorkflow } from './journey-workflows';
 
@@ -92,4 +93,24 @@ function rootMessage(error: unknown): string | null {
     current = current.cause;
   }
   return current instanceof Error ? current.message : null;
+}
+
+const webhookActivities = proxyActivities<WebhookActivities>({
+  startToCloseTimeout: '30 seconds',
+  // Back off across ~hours so a briefly-down endpoint still receives the
+  // event; Temporal keeps the attempt durable across worker restarts.
+  retry: {
+    maximumAttempts: 8,
+    initialInterval: '2 seconds',
+    backoffCoefficient: 2,
+    maximumInterval: '1 hour',
+  },
+});
+
+/**
+ * Durably deliver one webhook event to one endpoint. One workflow per
+ * (event, endpoint) keeps deliveries independent and individually retried.
+ */
+export async function webhookDeliveryWorkflow(input: WebhookDeliveryInput): Promise<void> {
+  await webhookActivities.deliverWebhookEvent(input);
 }
