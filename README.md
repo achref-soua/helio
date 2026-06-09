@@ -42,10 +42,11 @@ Marketing automation today forces a bad choice:
 - ✅ **Journeys** — React Flow canvas → validated DAG → one Temporal workflow per enrolled contact: event triggers from the live stream, durable waits (survives `kill -9` with the timer expired), live-data branches
 - ✅ **Analytics** — overview dashboard with engagement timeline and per-campaign opens/clicks from ClickHouse, degrading gracefully when the analytics stack is offline
 - ✅ **Hosted forms** — public signup pages that upsert contacts, idempotently and suppression-safely
-- ✅ **Multi-channel** — web push, SMS (Twilio), and WhatsApp (Cloud API) as journey send nodes alongside email, personalized with the same `{{token}}` tokens; in-app messages and on-site popups are next
+- ✅ **Multi-channel** — web push, SMS (Twilio), WhatsApp (Cloud API), and in-app messages as journey send nodes alongside email, personalized with the same `{{token}}` tokens
 - ✅ **Deliverability** — a wizard that generates a DKIM key pair per sending domain, shows the SPF/DKIM/DMARC records to publish, and verifies them by live DNS lookup; the DKIM private key is tenant-isolated
 - ✅ **Landing pages** — a block-based builder (heading, text, image, button, email-capture form; keyboard-reorderable) that publishes a white-labeled hosted page at `/p/<id>` and captures signups into the CDP
 - ✅ **On-site widgets** — banners and popups built in-app and shown on your own site via a one-line, zero-dependency embed (`/widget.js`) that pulls live widgets from a write-key-scoped, CORS-enabled endpoint
+- ✅ **In-app messages** — per-contact messages queued by a journey's _Send in-app_ step and drained by the tracking SDK (`helio.inApp()`), resolved by the visitor's identity and scoped to the write key's workspace
 - 🗺️ **Growth tooling** — multi-touch attribution (lead scoring and A/B testing are shipped)
 - ✅ **AI copilot** — describe a segment, journey, or on-brand email in a sentence and get a working draft; predictive lead scoring & churn; send-time optimization; autonomous A/B winner selection — all grounded in your own org's data
 - ✅ **Agent-ready** — an MCP server exposes Helio's capabilities as tools, so external AI agents can drive campaigns programmatically

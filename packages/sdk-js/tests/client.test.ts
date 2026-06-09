@@ -304,3 +304,93 @@ describe('HelioClient.subscribePush', () => {
     delete (navigator as { serviceWorker?: unknown }).serviceWorker;
   });
 });
+
+describe('HelioClient in-app messages', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    localStorage.clear();
+    fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const APP = 'https://app.test';
+
+  it('returns [] without an appHost or a known contact email', async () => {
+    const noHost = new HelioClient({ writeKey: 'wk', host: 'https://ingest.test' });
+    noHost.identify('user-1', { email: 'ada@example.com' });
+    expect(await noHost.inApp()).toEqual([]);
+
+    // Clear the email the first client stored (localStorage is shared in jsdom)
+    // so the second client genuinely has no contact email.
+    localStorage.clear();
+    const noEmail = new HelioClient({ writeKey: 'wk', host: 'https://ingest.test', appHost: APP });
+    noEmail.identify('user-1');
+    expect(await noEmail.inApp()).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('fetches the contact’s unseen messages by write key and email', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          messages: [
+            { deliveryId: 'iad_1', title: 'Hi', body: 'Welcome', ctaLabel: null, ctaUrl: null },
+          ],
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    const client = new HelioClient({
+      writeKey: 'wk_x',
+      host: 'https://ingest.test',
+      appHost: `${APP}/`,
+    });
+    client.identify('user-1', { email: 'Ada@Example.com' });
+
+    const messages = await client.inApp();
+    expect(messages).toEqual([
+      { deliveryId: 'iad_1', title: 'Hi', body: 'Welcome', ctaLabel: null, ctaUrl: null },
+    ]);
+    const url = new URL(String(fetchMock.mock.calls[0]![0]));
+    expect(url.origin + url.pathname).toBe(`${APP}/api/inapp`);
+    expect(url.searchParams.get('key')).toBe('wk_x');
+    expect(url.searchParams.get('email')).toBe('Ada@Example.com');
+  });
+
+  it('returns [] when the endpoint errors or rejects', async () => {
+    const client = new HelioClient({ writeKey: 'wk', host: 'https://ingest.test', appHost: APP });
+    client.identify('user-1', { email: 'ada@example.com' });
+
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 500 }));
+    expect(await client.inApp()).toEqual([]);
+    fetchMock.mockRejectedValueOnce(new Error('offline'));
+    expect(await client.inApp()).toEqual([]);
+  });
+
+  it('posts seen delivery ids, and no-ops when empty or unconfigured', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
+    const client = new HelioClient({ writeKey: 'wk_s', host: 'https://ingest.test', appHost: APP });
+
+    await client.markInAppSeen([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await client.markInAppSeen(['iad_1', 'iad_2']);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${APP}/api/inapp`);
+    expect((init as RequestInit).method).toBe('POST');
+    expect(JSON.parse((init as RequestInit).body as string)).toEqual({
+      key: 'wk_s',
+      deliveryIds: ['iad_1', 'iad_2'],
+    });
+
+    const noHost = new HelioClient({ writeKey: 'wk', host: 'https://ingest.test' });
+    fetchMock.mockClear();
+    await noHost.markInAppSeen(['x']);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

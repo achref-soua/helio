@@ -57,6 +57,10 @@ export interface SendWhatsappData {
   body: string;
   [key: string]: unknown;
 }
+export interface SendInAppData {
+  messageId: string;
+  [key: string]: unknown;
+}
 
 export interface JourneySettings {
   quietHoursEnabled: boolean;
@@ -151,6 +155,13 @@ export function definitionToCanvas(definition: JourneyDefinition): {
       nodes.push({ id: node.id, type: 'send_sms', position, data: { body: node.body } });
     } else if (node.type === 'send_whatsapp') {
       nodes.push({ id: node.id, type: 'send_whatsapp', position, data: { body: node.body } });
+    } else if (node.type === 'send_in_app') {
+      nodes.push({
+        id: node.id,
+        type: 'send_in_app',
+        position,
+        data: { messageId: node.messageId },
+      });
     } else if (node.type === 'branch') {
       const condition = node.condition as { key?: string; operator?: string; value?: string };
       nodes.push({
@@ -270,6 +281,15 @@ export function canvasToDefinition(
       const data = node.data as SendWhatsappData;
       if (!data.body.trim()) issues.push('whatsapp: enter a message');
       definitionNodes.push({ id: node.id, type: 'send_whatsapp', body: data.body, position });
+    } else if (node.type === 'send_in_app') {
+      const data = node.data as SendInAppData;
+      if (!data.messageId.trim()) issues.push('in-app: pick a message');
+      definitionNodes.push({
+        id: node.id,
+        type: 'send_in_app',
+        messageId: data.messageId,
+        position,
+      });
     } else if (node.type === 'branch') {
       const data = node.data as BranchData;
       if (!data.attributeKey || !data.value) issues.push('branch: set attribute and value');

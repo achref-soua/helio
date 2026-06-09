@@ -4,6 +4,7 @@ import { Button } from '@helio/ui/components/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@helio/ui/components/sheet';
 import { cn } from '@helio/ui/lib/utils';
 import {
+  AppWindow,
   CalendarClock,
   FileText,
   Handshake,
@@ -40,6 +41,7 @@ const NAV_ITEMS = [
   { key: 'forms', href: '/forms', icon: FileText },
   { key: 'landing', href: '/landing', icon: LayoutTemplate },
   { key: 'widgets', href: '/widgets', icon: MousePointerClick },
+  { key: 'inApp', href: '/in-app', icon: AppWindow },
   { key: 'journeys', href: '/journeys', icon: Workflow },
   { key: 'deals', href: '/deals', icon: Handshake },
   { key: 'tasks', href: '/tasks', icon: ListTodo },

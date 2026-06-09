@@ -20,9 +20,9 @@ export const config = {
   matcher: [
     // Everything except auth pages, auth/trpc APIs, health, static assets,
     // and the public surfaces: u/* (unsubscribe), f/* (hosted forms),
-    // m/* (booking pages), p/* (landing pages), and scim/* (bearer-
-    // authenticated provisioning) — these callers are not session-cookie
-    // holders by definition.
-    '/((?!login|signup|accept-invitation|api/auth|api/trpc|api/healthz|u/|f/|m/|p/|scim/|_next|favicon.ico).*)',
+    // m/* (booking pages), p/* (landing pages), scim/* (bearer-authenticated
+    // provisioning), and the write-key-scoped embed endpoints api/widgets and
+    // api/inapp — these callers are not session-cookie holders by definition.
+    '/((?!login|signup|accept-invitation|api/auth|api/trpc|api/healthz|api/widgets|api/inapp|u/|f/|m/|p/|scim/|_next|favicon.ico).*)',
   ],
 };

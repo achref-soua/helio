@@ -1,0 +1,63 @@
+---
+title: In-app messages
+description: Show targeted messages inside your own product to identified visitors, delivered from a journey.
+---
+
+In-app messages reach a signed-in visitor _inside your product_ — a trial nudge,
+a feature announcement, an upgrade prompt — without sending an email or a push.
+Unlike [on-site widgets](/docs/guides/widgets), which broadcast the same content
+to everyone, in-app messages are queued **per contact** by a journey and shown
+only to that person.
+
+## Compose
+
+Under **In-app**, create a message: an internal name, the title and body the
+visitor sees, and an optional call-to-action button. A message is **Live** by
+default; pause it to stop new deliveries without deleting it.
+
+## Deliver from a journey
+
+In-app messages are delivered by the journey engine, so they respect the same
+entry rules, waits, branches, and quiet hours as every other channel:
+
+1. Open a journey on the [canvas](/docs/guides/journeys) and add a **Send
+   in-app** step.
+2. Pick the message to deliver. When a contact reaches the step, Helio queues a
+   delivery for them.
+
+Only **Live** messages are queued; a paused message is skipped.
+
+## Display with the SDK
+
+Deliveries are drained by the [JavaScript SDK](/docs/api/sdks), which
+already knows who the visitor is once you've called `identify()` with their
+email. Fetch the visitor's unseen messages, render them however fits your UI,
+then report them seen so they're not shown again:
+
+```ts
+import { HelioClient } from '@helio/sdk-js';
+
+const helio = new HelioClient({
+  writeKey: 'wk_…',
+  host: 'https://ingest.example.com',
+  appHost: 'https://app.example.com', // your Helio app origin
+});
+
+// Email is required: contacts are keyed by email server-side.
+helio.identify('user-123', { email: 'ada@example.com' });
+
+const messages = await helio.inApp();
+for (const message of messages) {
+  showInYourUI(message); // { title, body, ctaLabel, ctaUrl }
+}
+await helio.markInAppSeen(messages.map((m) => m.deliveryId));
+```
+
+`inApp()` returns `[]` when no `appHost` is set, no contact email is known, or
+the request fails — it never throws, so it's safe to call on every page load.
+
+## Privacy & isolation
+
+The fetch endpoint is scoped by the workspace write key and resolves the contact
+by email, so a key only ever serves its own workspace's deliveries. Marking
+messages seen is likewise scoped to the key's workspace.

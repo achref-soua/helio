@@ -18,7 +18,8 @@
     "tasks": "Tasks",
     "scheduling": "Scheduling",
     "landing": "Landing pages",
-    "widgets": "Widgets"
+    "widgets": "Widgets",
+    "inApp": "In-app"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -551,7 +552,8 @@
       "capDaysSuffix": "days",
       "addSendPush": "Web push",
       "addSendSms": "SMS",
-      "addSendWhatsapp": "WhatsApp"
+      "addSendWhatsapp": "WhatsApp",
+      "addSendInApp": "In-app"
     },
     "nodes": {
       "trigger": "Trigger",
@@ -597,7 +599,10 @@
       "smsBodyPlaceholder": "Hi {{firstName}}, …",
       "sendWhatsapp": "Send WhatsApp",
       "whatsappBody": "WhatsApp message",
-      "whatsappBodyPlaceholder": "Hi {{firstName}}, …"
+      "whatsappBodyPlaceholder": "Hi {{firstName}}, …",
+      "sendInApp": "Send in-app",
+      "inAppMessage": "In-app message",
+      "pickInAppMessage": "Pick a message…"
     }
   },
   "forms": {
@@ -968,6 +973,30 @@
     "types": {
       "BANNER": "Banner",
       "POPUP": "Popup"
+    }
+  },
+  "inApp": {
+    "title": "In-app messages",
+    "subtitle": "Compose messages shown inside your product to identified visitors, delivered from a journey’s “Send in-app” step.",
+    "new": "New message",
+    "empty": "No in-app messages yet. Create one, then add a “Send in-app” step to a journey.",
+    "active": "Live",
+    "inactive": "Paused",
+    "saved": "Message saved",
+    "genericError": "Something went wrong",
+    "editLabel": "Edit {name}",
+    "removeLabel": "Delete {name}",
+    "deliveryHint": "Messages are queued per contact when a journey reaches a “Send in-app” step. The tracking SDK fetches and displays them for the signed-in visitor.",
+    "createTitle": "New in-app message",
+    "editTitle": "Edit in-app message",
+    "dialogHint": "Title and body are shown to the visitor. The optional call to action links somewhere in your product.",
+    "save": "Save",
+    "fields": {
+      "name": "Internal name",
+      "heading": "Title",
+      "body": "Body",
+      "ctaLabel": "Button label",
+      "ctaUrl": "Button URL"
     }
   }
 }
