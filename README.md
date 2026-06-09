@@ -11,7 +11,7 @@
 
 </div>
 
-> 🚧 **Status: AI-native, platform-building (v0.9).** The end-to-end loop works today: import contacts → build a segment → design an email → launch a campaign or an event-triggered journey → watch opens and clicks land in the dashboard. Journeys run on Temporal and survive `kill -9` mid-wait without double-sending. An org-scoped AI copilot turns a sentence into a segment, journey, or on-brand email; predictive scoring, send-time optimization, and autonomous A/B winner selection are live; an MCP server exposes it all to external agents. Migrate in from HubSpot/Mailchimp/Klaviyo, pipe events in Segment-style, and track deals on a CRM-lite board. Enterprise SSO & SCIM, typed REST SDKs for JS and Python, and a full documentation site round out the platform. Deploy it with Docker Compose or the Kubernetes Helm chart. The [roadmap](#roadmap) tracks what's next.
+> 🚧 **Status: AI-native, platform-building (v0.10).** The end-to-end loop works today: import contacts → build a segment → design an email → launch a campaign or an event-triggered journey → watch opens and clicks land in the dashboard. Journeys run on Temporal and survive `kill -9` mid-wait without double-sending. An org-scoped AI copilot turns a sentence into a segment, journey, or on-brand email; predictive scoring, send-time optimization, and autonomous A/B winner selection are live; an MCP server exposes it all to external agents. Migrate in from HubSpot/Mailchimp/Klaviyo, pipe events in Segment-style, and run a CRM-lite of deals, tasks, and a meeting scheduler. Sync Shopify customers and orders in, push contacts to Salesforce, fan lifecycle events out over signed webhooks, and white-label the whole thing per organization. Enterprise SSO & SCIM, typed REST SDKs for JS and Python, and a full documentation site round out the platform. Deploy it with Docker Compose or the Kubernetes Helm chart. The [roadmap](#roadmap) tracks what's next.
 
 <p align="center">
   <img src="docs/assets/journey-canvas.png" alt="Helio's journey canvas: a welcome series with a durable wait, a plan branch, and an A/B path" width="900" />
@@ -179,18 +179,19 @@ Hot-path budgets (ingestion ≥ 5k events/s, API reads p95 < 150 ms) have a comm
 
 ## Roadmap
 
-| Milestone | Focus                                                                                                    |
-| --------- | -------------------------------------------------------------------------------------------------------- |
-| **v0.1**  | Foundation: monorepo, CI/CD, multi-tenant auth & RBAC, design system, observability baseline             |
-| **v0.2**  | Usable MVP: contacts & lists, event ingestion, segmentation, email sending & tracking, first journeys    |
-| **v0.3**  | Growth: full journey canvas, SMS & push, landing pages, lead scoring, A/B testing, attribution           |
-| **v0.4**  | AI: copilot, NL→segment, NL→journey, brand-voice generation, MCP server                                  |
-| **v0.5**  | AI, cont'd: predictive scoring & churn, send-time optimization, autonomous A/B winner selection          |
-| **v0.6**  | Platform: HubSpot/Mailchimp/Klaviyo importers, Segment-compatible ingestion, CRM-lite deal board         |
-| **v0.7**  | Platform: opt-in Stripe billing with plan-gated usage limits and a signature-verified webhook            |
-| **v0.8**  | Platform: enterprise SSO & SCIM, generated REST SDKs (JS + Python), documentation site, richer demo seed |
-| **v0.9**  | Platform: Kubernetes Helm chart, and production & managed-cloud deployment guides                        |
-| **v1.0**  | Launch: load-test results, public demo, tagged v1.0.0                                                    |
+| Milestone | Focus                                                                                                                                                                        |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v0.1**  | Foundation: monorepo, CI/CD, multi-tenant auth & RBAC, design system, observability baseline                                                                                 |
+| **v0.2**  | Usable MVP: contacts & lists, event ingestion, segmentation, email sending & tracking, first journeys                                                                        |
+| **v0.3**  | Growth: full journey canvas, SMS & push, landing pages, lead scoring, A/B testing, attribution                                                                               |
+| **v0.4**  | AI: copilot, NL→segment, NL→journey, brand-voice generation, MCP server                                                                                                      |
+| **v0.5**  | AI, cont'd: predictive scoring & churn, send-time optimization, autonomous A/B winner selection                                                                              |
+| **v0.6**  | Platform: HubSpot/Mailchimp/Klaviyo importers, Segment-compatible ingestion, CRM-lite deal board                                                                             |
+| **v0.7**  | Platform: opt-in Stripe billing with plan-gated usage limits and a signature-verified webhook                                                                                |
+| **v0.8**  | Platform: enterprise SSO & SCIM, generated REST SDKs (JS + Python), documentation site, richer demo seed                                                                     |
+| **v0.9**  | Platform: Kubernetes Helm chart, and production & managed-cloud deployment guides                                                                                            |
+| **v0.10** | Platform: CRM tasks & meeting scheduler, outbound webhooks, white-labeling, Shopify & Salesforce                                                                             |
+| **v1.0**  | Launch: published load-test numbers (run the shipped k6 harness on reference hardware) and a hosted public demo (stand it up with the shipped Helm/Compose), then tag v1.0.0 |
 
 ## Documentation
 
