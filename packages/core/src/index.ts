@@ -229,3 +229,10 @@ export {
   type WebhookEvent,
   webhookEventSchema,
 } from './webhooks';
+export {
+  WIDGET_TYPES,
+  widgetEmbedSnippet,
+  type WidgetPayload,
+  type WidgetType,
+  widgetTypeSchema,
+} from './widgets';

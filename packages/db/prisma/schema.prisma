@@ -57,6 +57,7 @@ model Organization {
   supportTickets    SupportTicket[]
   sendingDomains    SendingDomain[]
   landingPages      LandingPage[]
+  widgets           Widget[]
 
   @@map("organization")
 }
@@ -113,6 +114,7 @@ model Workspace {
   integrations      Integration[]
   sendingDomains    SendingDomain[]
   landingPages      LandingPage[]
+  widgets           Widget[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -1090,4 +1092,36 @@ model LandingPage {
   @@index([organizationId])
   @@index([workspaceId])
   @@map("landing_page")
+}
+
+enum WidgetType {
+  BANNER
+  POPUP
+
+  @@map("widget_type")
+}
+
+/// An on-site widget (banner or popup) served to a visitor's browser by the
+/// public embed, keyed off the workspace write key. Workspace-scoped and
+/// isolated by the standard RLS policy.
+model Widget {
+  id             String     @id
+  organizationId String     @map("organization_id")
+  workspaceId    String     @map("workspace_id")
+  name           String
+  type           WidgetType @default(BANNER)
+  title          String
+  body           String
+  ctaLabel       String?    @map("cta_label")
+  ctaUrl         String?    @map("cta_url")
+  active         Boolean    @default(false)
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([workspaceId, active])
+  @@map("widget")
 }

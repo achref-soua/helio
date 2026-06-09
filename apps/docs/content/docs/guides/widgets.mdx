@@ -1,0 +1,32 @@
+---
+title: On-site widgets
+description: Show banners and popups on your own site with a one-line embed.
+---
+
+On-site widgets put a banner or popup on your website with a single script tag —
+no page changes beyond the embed.
+
+## Build
+
+Under **Widgets**, create a widget: pick a **banner** (pinned across the bottom)
+or a **popup** (floats in a corner), then write a heading, a message, and an
+optional call-to-action button. Toggle it **Live** when you're ready; only live
+widgets are served.
+
+## Embed
+
+Add the script once, anywhere in your site's HTML, with one of your
+[workspace write keys](/docs/guides/contacts):
+
+```html
+<script async src="https://<your-helio>/widget.js" data-write-key="wk_…"></script>
+```
+
+The embed fetches your live widgets from a write-key-scoped, CORS-enabled
+endpoint and renders them with zero dependencies — visitors can dismiss them,
+and only public widget content is ever exposed.
+
+<Callout>
+  Widgets are tenant-isolated: the endpoint resolves the workspace from the write key, so a key only
+  ever serves its own workspace's live widgets.
+</Callout>

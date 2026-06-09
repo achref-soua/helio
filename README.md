@@ -45,6 +45,7 @@ Marketing automation today forces a bad choice:
 - ✅ **Multi-channel** — web push, SMS (Twilio), and WhatsApp (Cloud API) as journey send nodes alongside email, personalized with the same `{{token}}` tokens; in-app messages and on-site popups are next
 - ✅ **Deliverability** — a wizard that generates a DKIM key pair per sending domain, shows the SPF/DKIM/DMARC records to publish, and verifies them by live DNS lookup; the DKIM private key is tenant-isolated
 - ✅ **Landing pages** — a block-based builder (heading, text, image, button, email-capture form; keyboard-reorderable) that publishes a white-labeled hosted page at `/p/<id>` and captures signups into the CDP
+- ✅ **On-site widgets** — banners and popups built in-app and shown on your own site via a one-line, zero-dependency embed (`/widget.js`) that pulls live widgets from a write-key-scoped, CORS-enabled endpoint
 - 🗺️ **Growth tooling** — multi-touch attribution (lead scoring and A/B testing are shipped)
 - ✅ **AI copilot** — describe a segment, journey, or on-brand email in a sentence and get a working draft; predictive lead scoring & churn; send-time optimization; autonomous A/B winner selection — all grounded in your own org's data
 - ✅ **Agent-ready** — an MCP server exposes Helio's capabilities as tools, so external AI agents can drive campaigns programmatically

@@ -20,6 +20,7 @@ import { segmentRouter } from './segment';
 import { ssoRouter } from './sso';
 import { supportRouter } from './support';
 import { webhookRouter } from './webhook';
+import { widgetRouter } from './widget';
 import { workspaceRouter } from './workspace';
 
 export const appRouter = router({
@@ -50,6 +51,7 @@ export const appRouter = router({
   integrations: integrationsRouter,
   support: supportRouter,
   deliverability: deliverabilityRouter,
+  widget: widgetRouter,
 });
 
 export type AppRouter = typeof appRouter;
