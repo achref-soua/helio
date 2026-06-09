@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "self-hosting",
+    "production",
     "configuration",
     "architecture",
     "concepts",
