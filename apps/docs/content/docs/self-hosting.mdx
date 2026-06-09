@@ -37,8 +37,16 @@ pnpm --filter @helio/web dev
 ```
 
 Open `http://localhost:3000`, sign up, and verify your email at Mailpit
-(`http://localhost:8025`). Onboarding creates your organization, and the seed
-provisions a demo workspace with contacts, a list, and a write key.
+(`http://localhost:8025`). Onboarding creates your organization, and `task db:seed`
+provisions a ready-to-explore demo workspace.
+
+<Callout type="info">
+  The demo seed (`task db:seed`, idempotent) fills the workspace with everything you need to see
+  Helio working: contacts with lead scores and AI predictions, static lists, three live segments,
+  two email templates, a draft campaign with a subject A/B test, an **active welcome journey**,
+  lead-scoring rules, a hosted form, and a CRM pipeline with deals — plus a fixed demo write key
+  (`wk_demo_0000000000000000000000000`) so the tracking snippets work immediately.
+</Callout>
 
 ## The full loop
 
