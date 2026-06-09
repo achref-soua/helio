@@ -7,6 +7,17 @@ export {
   type VariantStat,
 } from './ab-test';
 export {
+  type CohortRow,
+  type FunnelInput,
+  funnelInputSchema,
+  funnelReport,
+  type FunnelStep,
+  funnelStepCounts,
+  type RetentionInput,
+  retentionInputSchema,
+  retentionMatrix,
+} from './analytics';
+export {
   contactLimitFor,
   isValidPlan,
   type Plan,

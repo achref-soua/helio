@@ -19,7 +19,8 @@
     "scheduling": "Scheduling",
     "landing": "Landing pages",
     "widgets": "Widgets",
-    "inApp": "In-app"
+    "inApp": "In-app",
+    "insights": "Insights"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -997,6 +998,30 @@
       "body": "Body",
       "ctaLabel": "Button label",
       "ctaUrl": "Button URL"
+    }
+  },
+  "insights": {
+    "title": "Insights",
+    "subtitle": "Behavioral analytics over your event stream — conversion funnels and cohort retention.",
+    "run": "Run",
+    "noClickhouse": "Connect the analytics store (ClickHouse) to see this report. Start the full stack with the “full” Compose profile.",
+    "funnel": {
+      "title": "Conversion funnel",
+      "subtitle": "How many people complete each step, in order, within the window.",
+      "steps": "Steps (comma-separated event names)",
+      "stepsPlaceholder": "Viewed Pricing, Signed Up, Activated",
+      "window": "Window",
+      "days": "{days} days",
+      "hint": "Enter at least two event names, then run the funnel."
+    },
+    "retention": {
+      "title": "Cohort retention",
+      "subtitle": "Each weekly cohort and the share still active in later weeks.",
+      "weeks": "Weeks",
+      "weekCount": "{weeks} weeks",
+      "cohort": "Cohort",
+      "size": "People",
+      "empty": "No activity in this window yet."
     }
   }
 }

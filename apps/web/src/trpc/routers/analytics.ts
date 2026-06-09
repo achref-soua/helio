@@ -1,3 +1,10 @@
+import {
+  funnelInputSchema,
+  funnelReport,
+  funnelStepCounts,
+  retentionInputSchema,
+  retentionMatrix,
+} from '@helio/core';
 import { z } from 'zod';
 
 import { getClickHouse } from '@/lib/clickhouse';
@@ -8,6 +15,17 @@ interface DailyRow {
   day: string;
   type: string;
   count: string;
+}
+
+interface FunnelLevelRow {
+  level: string;
+  people: string;
+}
+
+interface RetentionCellRow {
+  cohort: string;
+  period: string;
+  people: string;
 }
 
 interface CampaignEngagementRow {
@@ -140,4 +158,82 @@ export const analyticsRouter = router({
         return { clickhouseUp: false, byCampaign: {} };
       }
     }),
+
+  /**
+   * Ordered-event funnel via ClickHouse `windowFunnel`: how many people
+   * completed each step, in sequence, within the conversion window. Person
+   * identity coalesces user_id then anonymous_id.
+   */
+  funnel: orgProcedure.input(funnelInputSchema).query(async ({ input }) => {
+    const stepParams = Object.fromEntries(input.steps.map((step, index) => [`s${index}`, step]));
+    const conditions = input.steps.map((_, index) => `event = {s${index}:String}`).join(', ');
+    const inList = input.steps.map((_, index) => `{s${index}:String}`).join(', ');
+    try {
+      const result = await getClickHouse().query({
+        query: `
+          SELECT level, count() AS people FROM (
+            SELECT windowFunnel({window:UInt32})(timestamp, ${conditions}) AS level
+            FROM events
+            WHERE workspace_id = {workspaceId:String}
+              AND event IN (${inList})
+              AND timestamp >= now() - INTERVAL {days:UInt16} DAY
+            GROUP BY if(user_id != '', user_id, anonymous_id)
+          )
+          WHERE level > 0
+          GROUP BY level ORDER BY level`,
+        query_params: {
+          workspaceId: input.workspaceId,
+          window: input.windowDays * 86_400,
+          days: input.windowDays,
+          ...stepParams,
+        },
+        format: 'JSONEachRow',
+      });
+      const rows = (await result.json()) as FunnelLevelRow[];
+      const levels = rows.map((row) => ({ level: Number(row.level), people: Number(row.people) }));
+      const reached = funnelStepCounts(levels, input.steps.length);
+      return { clickhouseUp: true, steps: funnelReport(input.steps, reached) };
+    } catch {
+      return { clickhouseUp: false, steps: funnelReport(input.steps, []) };
+    }
+  }),
+
+  /**
+   * Weekly cohort retention: group people by the week first seen, then the
+   * share still active at each later week. Distinct (person, week) first, so a
+   * busy week counts once.
+   */
+  retention: orgProcedure.input(retentionInputSchema).query(async ({ input }) => {
+    try {
+      const result = await getClickHouse().query({
+        query: `
+          SELECT toDate(first_week) AS cohort,
+                 dateDiff('week', first_week, active_week) AS period,
+                 count(DISTINCT person) AS people
+          FROM (
+            SELECT person, active_week, min(active_week) OVER (PARTITION BY person) AS first_week
+            FROM (
+              SELECT DISTINCT
+                if(user_id != '', user_id, anonymous_id) AS person,
+                toStartOfWeek(timestamp) AS active_week
+              FROM events
+              WHERE workspace_id = {workspaceId:String}
+                AND timestamp >= now() - INTERVAL {weeks:UInt16} WEEK
+            )
+          )
+          GROUP BY cohort, period ORDER BY cohort, period`,
+        query_params: { workspaceId: input.workspaceId, weeks: input.weeks },
+        format: 'JSONEachRow',
+      });
+      const rows = (await result.json()) as RetentionCellRow[];
+      const cells = rows.map((row) => ({
+        cohort: row.cohort,
+        period: Number(row.period),
+        people: Number(row.people),
+      }));
+      return { clickhouseUp: true, cohorts: retentionMatrix(cells, input.weeks) };
+    } catch {
+      return { clickhouseUp: false, cohorts: [] };
+    }
+  }),
 });

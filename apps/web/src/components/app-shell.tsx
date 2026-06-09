@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@helio/ui/compone
 import { cn } from '@helio/ui/lib/utils';
 import {
   AppWindow,
+  BarChart3,
   CalendarClock,
   FileText,
   Handshake,
@@ -43,6 +44,7 @@ const NAV_ITEMS = [
   { key: 'widgets', href: '/widgets', icon: MousePointerClick },
   { key: 'inApp', href: '/in-app', icon: AppWindow },
   { key: 'journeys', href: '/journeys', icon: Workflow },
+  { key: 'insights', href: '/insights', icon: BarChart3 },
   { key: 'deals', href: '/deals', icon: Handshake },
   { key: 'tasks', href: '/tasks', icon: ListTodo },
   { key: 'scheduling', href: '/scheduling', icon: CalendarClock },
