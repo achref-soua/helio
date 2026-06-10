@@ -4,8 +4,11 @@ import path from 'node:path';
 import process from 'node:process';
 
 import {
+  availabilitySchema,
+  DEFAULT_AVAILABILITY,
   emailDocumentSchema,
   journeyDefinitionSchema,
+  landingDocumentSchema,
   newId,
   segmentRuleSchema,
 } from '@helio/core';
@@ -336,6 +339,52 @@ async function main() {
     },
   });
 
+  const trialEnding = await prisma.emailTemplate.upsert({
+    where: { workspaceId_name: { workspaceId: workspace.id, name: 'Trial ending soon' } },
+    update: {},
+    create: {
+      id: newId('tpl'),
+      ...ws,
+      name: 'Trial ending soon',
+      subject: 'Your Acme trial ends in 3 days, {{firstName|there}}',
+      document: json(emailDocumentSchema, {
+        blocks: [
+          { id: 'b1', type: 'heading', text: 'Keep your automations running' },
+          {
+            id: 'b2',
+            type: 'paragraph',
+            text: 'Your trial wraps up this week. Upgrade now and everything you built — segments, journeys, templates — keeps working without a blip.',
+          },
+          { id: 'b3', type: 'button', label: 'Upgrade to Pro', url: 'https://example.com/upgrade' },
+          { id: 'b4', type: 'divider' },
+          { id: 'b5', type: 'paragraph', text: 'Questions? Just reply — we read everything.' },
+        ],
+      }),
+    },
+  });
+
+  const winBack = await prisma.emailTemplate.upsert({
+    where: { workspaceId_name: { workspaceId: workspace.id, name: 'Win-back — we miss you' } },
+    update: {},
+    create: {
+      id: newId('tpl'),
+      ...ws,
+      name: 'Win-back — we miss you',
+      subject: 'It has been a while, {{firstName|there}}',
+      document: json(emailDocumentSchema, {
+        blocks: [
+          { id: 'b1', type: 'heading', text: 'Your workspace is still here' },
+          {
+            id: 'b2',
+            type: 'paragraph',
+            text: 'A lot shipped since you last logged in. Pick up where you left off — your data never went anywhere.',
+          },
+          { id: 'b3', type: 'button', label: 'Come back in', url: 'https://example.com/app' },
+        ],
+      }),
+    },
+  });
+
   // ── Campaign (a draft the operator can review and send) ──────────────
   await prisma.campaign.upsert({
     where: { workspaceId_name: { workspaceId: workspace.id, name: 'Monthly product update' } },
@@ -349,6 +398,57 @@ async function main() {
       subjectB: 'Your Acme changelog for this month 🚀',
       segmentId: segmentByName.get('Engaged pro customers')?.id ?? null,
       status: 'DRAFT',
+    },
+  });
+
+  // A sent campaign with per-contact sends so the dashboard KPIs, campaign
+  // engagement cards, and attribution all have history to show.
+  const roundup = await prisma.campaign.upsert({
+    where: { workspaceId_name: { workspaceId: workspace.id, name: 'June feature roundup' } },
+    update: {},
+    create: {
+      id: newId('cmp'),
+      ...ws,
+      name: 'June feature roundup',
+      templateId: productUpdate.id,
+      segmentId: segmentByName.get('High intent')?.id ?? null,
+      status: 'SENT',
+      sentAt: new Date(predictedAt.getTime() - 5 * 86_400_000),
+    },
+  });
+  const sendable = contacts.filter((c) => c.status === 'ACTIVE');
+  for (const [index, contact] of sendable.entries()) {
+    // Deterministic ids keep re-runs from duplicating sends.
+    const id = `snd_demo_${index + 1}`;
+    await prisma.emailSend.upsert({
+      where: { id },
+      update: {},
+      create: {
+        id,
+        ...ws,
+        contactId: contact.id,
+        campaignId: roundup.id,
+        email: contact.email,
+        subject: 'New this month at Acme',
+        status: 'SENT',
+        sentAt: new Date(predictedAt.getTime() - ((index % 12) + 1) * 86_400_000),
+      },
+    });
+  }
+
+  // ── In-app message (referenced by the trial-conversion journey) ──────
+  const inAppUpgrade = await prisma.inAppMessage.upsert({
+    where: { id: 'iam_demo_upgrade' },
+    update: {},
+    create: {
+      id: 'iam_demo_upgrade',
+      ...ws,
+      name: 'Upgrade nudge',
+      title: 'Unlock every channel',
+      body: 'Your trial includes journeys, SMS, and the AI copilot — upgrade to keep them after day 14.',
+      ctaLabel: 'See plans',
+      ctaUrl: 'https://example.com/pricing',
+      active: true,
     },
   });
 
@@ -413,6 +513,115 @@ async function main() {
     },
   });
 
+  // A multi-channel journey — the canvas showpiece: email, an A/B split
+  // into SMS vs WhatsApp, and an in-app nudge, all in one flow.
+  await prisma.journey.upsert({
+    where: { workspaceId_name: { workspaceId: workspace.id, name: 'Trial conversion' } },
+    update: {},
+    create: {
+      id: newId('jny'),
+      ...ws,
+      name: 'Trial conversion',
+      status: 'ACTIVE',
+      definition: json(journeyDefinitionSchema, {
+        trigger: { type: 'event', event: 'Trial Started' },
+        startNodeId: 'heads_up',
+        quietHours: { start: '21:00', end: '08:00', timezone: 'UTC' },
+        frequencyCap: { maxEmails: 3, perDays: 7 },
+        nodes: [
+          {
+            id: 'heads_up',
+            type: 'send_email',
+            templateId: trialEnding.id,
+            optimizeSendTime: true,
+            position: { x: 40, y: 160 },
+          },
+          { id: 'soak', type: 'wait', seconds: 86_400, position: { x: 40, y: 320 } },
+          { id: 'split', type: 'ab_split', ratioA: 50, position: { x: 40, y: 480 } },
+          {
+            id: 'nudge_sms',
+            type: 'send_sms',
+            body: 'Hi {{firstName|there}} — your Acme trial ends in 3 days. Upgrade: https://example.com/upgrade',
+            position: { x: -240, y: 640 },
+          },
+          {
+            id: 'nudge_wa',
+            type: 'send_whatsapp',
+            body: 'Hi {{firstName|there}}! Quick heads-up: your Acme trial wraps up this week.',
+            position: { x: 320, y: 640 },
+          },
+          {
+            id: 'in_app',
+            type: 'send_in_app',
+            messageId: inAppUpgrade.id,
+            position: { x: 40, y: 800 },
+          },
+          { id: 'done', type: 'end', position: { x: 40, y: 960 } },
+        ],
+        edges: [
+          { from: 'heads_up', to: 'soak' },
+          { from: 'soak', to: 'split' },
+          { from: 'split', to: 'nudge_sms', label: 'a' },
+          { from: 'split', to: 'nudge_wa', label: 'b' },
+          { from: 'nudge_sms', to: 'in_app' },
+          { from: 'nudge_wa', to: 'in_app' },
+          { from: 'in_app', to: 'done' },
+        ],
+      }),
+    },
+  });
+
+  // A draft the operator can finish: branch + webhook handoff.
+  await prisma.journey.upsert({
+    where: { workspaceId_name: { workspaceId: workspace.id, name: 'Win-back inactive users' } },
+    update: {},
+    create: {
+      id: newId('jny'),
+      ...ws,
+      name: 'Win-back inactive users',
+      status: 'DRAFT',
+      definition: json(journeyDefinitionSchema, {
+        trigger: { type: 'event', event: 'Became Inactive' },
+        startNodeId: 'miss_you',
+        nodes: [
+          {
+            id: 'miss_you',
+            type: 'send_email',
+            templateId: winBack.id,
+            position: { x: 40, y: 160 },
+          },
+          { id: 'soak', type: 'wait', seconds: 3 * 86_400, position: { x: 40, y: 320 } },
+          {
+            id: 'still_free',
+            type: 'branch',
+            condition: {
+              kind: 'condition',
+              target: 'attribute',
+              key: 'plan',
+              operator: 'equals',
+              value: 'free',
+            },
+            position: { x: 40, y: 480 },
+          },
+          {
+            id: 'crm_handoff',
+            type: 'webhook',
+            url: 'https://example.com/hooks/sales-handoff',
+            position: { x: -240, y: 640 },
+          },
+          { id: 'done', type: 'end', position: { x: 40, y: 800 } },
+        ],
+        edges: [
+          { from: 'miss_you', to: 'soak' },
+          { from: 'soak', to: 'still_free' },
+          { from: 'still_free', to: 'crm_handoff', label: 'yes' },
+          { from: 'still_free', to: 'done', label: 'no' },
+          { from: 'crm_handoff', to: 'done' },
+        ],
+      }),
+    },
+  });
+
   // ── Lead-scoring rules (applied by the worker's event consumer) ──────
   const scoringRules: Array<{ event: string; points: number }> = [
     { event: 'Pricing Viewed', points: 10 },
@@ -427,12 +636,105 @@ async function main() {
     });
   }
 
-  // ── Hosted signup form ───────────────────────────────────────────────
+  // ── Hosted signup forms ──────────────────────────────────────────────
   await prisma.form.upsert({
     where: { workspaceId_name: { workspaceId: workspace.id, name: 'Newsletter' } },
     update: {},
     create: { id: newId('form'), ...ws, name: 'Newsletter', title: 'Join the Acme newsletter' },
   });
+  await prisma.form.upsert({
+    where: { workspaceId_name: { workspaceId: workspace.id, name: 'Beta waitlist' } },
+    update: {},
+    create: { id: newId('form'), ...ws, name: 'Beta waitlist', title: 'Get early access to Acme' },
+  });
+
+  // ── Landing page, on-site widget, and a booking page ─────────────────
+  await prisma.landingPage.upsert({
+    where: { id: 'lp_demo_launch' },
+    update: {},
+    create: {
+      id: 'lp_demo_launch',
+      ...ws,
+      title: 'Fall launch',
+      published: true,
+      blocks: json(landingDocumentSchema, [
+        { type: 'heading', text: 'Acme ships its biggest release yet' },
+        {
+          type: 'text',
+          text: 'Faster automations, a smarter copilot, and every channel in one place. Be first in line when it lands.',
+        },
+        { type: 'form', buttonLabel: 'Save my spot' },
+        { type: 'button', label: 'Read the announcement', href: 'https://example.com/blog' },
+      ]),
+    },
+  });
+
+  await prisma.widget.upsert({
+    where: { id: 'wdg_demo_launch' },
+    update: {},
+    create: {
+      id: 'wdg_demo_launch',
+      ...ws,
+      name: 'Fall launch banner',
+      type: 'BANNER',
+      title: 'The fall release is here',
+      body: 'New journeys, new channels, same price.',
+      ctaLabel: 'See what changed',
+      ctaUrl: 'https://example.com/changelog',
+      active: true,
+    },
+  });
+
+  const bookingPage = await prisma.bookingPage.upsert({
+    where: { id: 'bpg_demo_intro' },
+    update: {},
+    create: {
+      id: 'bpg_demo_intro',
+      ...ws,
+      title: 'Intro call',
+      description: 'Thirty minutes with the Acme team — bring your questions.',
+      durationMinutes: 30,
+      timezone: 'Europe/Paris',
+      availability: availabilitySchema.parse(DEFAULT_AVAILABILITY) as Prisma.InputJsonValue,
+      bufferMinutes: 0,
+      enabled: true,
+    },
+  });
+  // Two upcoming meetings, pinned to weekday mornings so they are always
+  // in the future and never collide with the unique (page, startAt).
+  const nextWeekday = (from: Date, daysAhead: number, utcHour: number): Date => {
+    const date = new Date(from);
+    date.setUTCDate(date.getUTCDate() + daysAhead);
+    while (date.getUTCDay() === 0 || date.getUTCDay() === 6) {
+      date.setUTCDate(date.getUTCDate() + 1);
+    }
+    date.setUTCHours(utcHour, 30, 0, 0);
+    return date;
+  };
+  // Distinct hours: weekend seeds advance both meetings to the same Monday,
+  // and the unique (page, startAt) must still hold.
+  const invitees = [
+    { n: 1, daysAhead: 1, utcHour: 8, email: 'sofia@datapipe.example', name: 'Sofia Marquez' },
+    { n: 2, daysAhead: 2, utcHour: 10, email: 'james@cloudnine.example', name: 'James Wu' },
+  ];
+  for (const invitee of invitees) {
+    const id = `mtg_demo_${invitee.n}`;
+    const startAt = nextWeekday(predictedAt, invitee.daysAhead, invitee.utcHour);
+    await prisma.meeting.upsert({
+      where: { id },
+      update: { startAt },
+      create: {
+        id,
+        ...ws,
+        bookingPageId: bookingPage.id,
+        startAt,
+        durationMinutes: 30,
+        inviteeEmail: invitee.email,
+        inviteeName: invitee.name,
+        status: 'BOOKED',
+      },
+    });
+  }
 
   // ── CRM: a default pipeline with stages and a few open/won deals ─────
   const pipeline = await prisma.pipeline.upsert({
@@ -599,8 +901,9 @@ async function main() {
 
   console.log(
     `Seeded demo data: ${org.slug}/${workspace.slug} (${org.id}, ${workspace.id})\n` +
-      `  ${contacts.length} contacts, ${segments.length} segments, 2 templates, ` +
-      `1 campaign, 1 journey, ${scoringRules.length} scoring rules\n` +
+      `  ${contacts.length} contacts, ${segments.length} segments, 4 templates, ` +
+      `2 campaigns (${sendable.length} sends), 3 journeys, ${scoringRules.length} scoring rules\n` +
+      `  2 forms, 1 landing page, 1 widget, 1 in-app message, 1 booking page (${invitees.length} meetings)\n` +
       `  CRM pipeline "${pipeline.name}" with ${stageDefs.length} stages, ${deals.length} deals, and ${demoTasks.length} tasks\n` +
       `  write key ${writeKey.key}`,
   );
