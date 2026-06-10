@@ -122,8 +122,12 @@ describe('tracking app', () => {
     ).toBe(false);
   });
 
-  it('healthz and readyz respond', async () => {
-    expect((await app.request('/healthz')).status).toBe(200);
+  it('healthz and readyz respond with hardening headers', async () => {
+    const health = await app.request('/healthz');
+    expect(health.status).toBe(200);
+    expect(health.headers.get('x-content-type-options')).toBe('nosniff');
+    // The pixel is embedded cross-origin by mail clients — CORP must stay off.
+    expect(health.headers.get('cross-origin-resource-policy')).toBeNull();
     expect((await app.request('/readyz')).status).toBe(200);
   });
 

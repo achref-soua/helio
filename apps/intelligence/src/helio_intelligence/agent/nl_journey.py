@@ -14,6 +14,7 @@ from typing import Any
 
 from ..llm import LLMProvider, SystemMessage, UserMessage
 from .journey_schema import validate_journey
+from .naming import suggest_name
 
 _SYSTEM_PROMPT = """You convert a marketer's request into a Helio journey \
 definition as JSON. Output ONLY the JSON object — no prose, no code fences.
@@ -80,9 +81,11 @@ class NlJourneyGenerator:
                 data = _extract_json(response.text)
                 journey = validate_journey(data)
                 _assert_known_templates(journey, valid_ids)
+                # exclude_none: optional fields the model left null (edge
+                # labels) must be absent — the zod schema rejects nulls.
                 return GeneratedJourney(
-                    definition=journey.model_dump(by_alias=True),
-                    name=_suggest_name(prompt),
+                    definition=journey.model_dump(by_alias=True, exclude_none=True),
+                    name=suggest_name(prompt, "New journey"),
                 )
             except (ValueError, json.JSONDecodeError) as error:
                 last_error = str(error)
@@ -99,9 +102,3 @@ def _assert_known_templates(journey: Any, valid_ids: set[str]) -> None:
     for node in journey.nodes:
         if node.type == "send_email" and node.templateId not in valid_ids:
             raise ValueError(f"templateId '{node.templateId}' is not an available template")
-
-
-def _suggest_name(prompt: str) -> str:
-    words = re.findall(r"[A-Za-z0-9]+", prompt)[:6]
-    name = " ".join(words).strip().title()
-    return name[:80] or "New journey"

@@ -27,11 +27,12 @@ and `DATABASE_ADMIN_URL` (schema owner) is a core part of the
 
 ## API gateway
 
-| Variable              | Default | Purpose                          |
-| --------------------- | ------- | -------------------------------- |
-| `API_PORT`            | `4000`  | Public REST gateway port.        |
-| `RATE_LIMIT_MAX`      | `100`   | Requests per window per API key. |
-| `RATE_LIMIT_WINDOW_S` | `60`    | Rate-limit window, seconds.      |
+| Variable              | Default | Purpose                                                                                     |
+| --------------------- | ------- | ------------------------------------------------------------------------------------------- |
+| `API_PORT`            | `4000`  | Public REST gateway port.                                                                   |
+| `RATE_LIMIT_MAX`      | `100`   | Requests per window per API key.                                                            |
+| `RATE_LIMIT_WINDOW_S` | `60`    | Rate-limit window, seconds.                                                                 |
+| `EMAIL_WEBHOOK_TOKEN` | —       | Enables `/webhooks/email/*` [suppression](/docs/guides/deliverability#bounces--complaints). |
 
 The gateway authenticates with [per-organization API keys](/docs/api/rest)
 minted in the dashboard — there is no gateway-wide secret.
@@ -122,6 +123,15 @@ price to a plan.
 | `APP_URL`                 | —        | Public origin of the dashboard (callbacks, email links). |
 | `MAIL_FROM`               | —        | Sender for transactional mail.                           |
 | `SMTP_HOST` / `SMTP_PORT` | —        | SMTP relay (Mailpit `localhost:1025` in dev).            |
+
+## Abuse protection
+
+| Variable                     | Default | Purpose                                                        |
+| ---------------------------- | ------- | -------------------------------------------------------------- |
+| `PUBLIC_RATE_LIMITS_ENABLED` | `true`  | Throttle the dashboard's public endpoints (forms, booking, …). |
+
+Budgets, keying, and the auth brute-force rules are documented in
+[Rate limits & abuse protection](/docs/security/rate-limits).
 
 ## Observability (optional profile)
 

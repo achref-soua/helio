@@ -1,5 +1,5 @@
 import { newId, shopifyContactForTopic, verifyShopifyHmac } from '@helio/core';
-import { type Prisma, type PrismaClient } from '@helio/db';
+import { forTenant, type Prisma, shopifyConnectionForWebhook, type TenantClient } from '@helio/db';
 import { Hono } from 'hono';
 
 import type { GatewayDeps, GatewayEnv } from '../types';
@@ -16,7 +16,7 @@ interface ShopifyConnection {
  * it can be unit-tested directly.
  */
 export async function handleShopifyWebhook(
-  prisma: PrismaClient,
+  prisma: TenantClient,
   connection: ShopifyConnection,
   topic: string,
   payload: unknown,
@@ -87,10 +87,9 @@ export function shopifyWebhookRoutes(deps: GatewayDeps) {
     const topic = c.req.header('x-shopify-topic');
     if (!shop || !topic) return c.json({ error: 'missing_headers' }, 400);
 
-    const integration = await deps.prisma.integration.findFirst({
-      where: { provider: 'SHOPIFY', externalId: shop, enabled: true },
-      select: { organizationId: true, workspaceId: true, secret: true },
-    });
+    // No tenant context exists yet — the shop domain is resolved through
+    // the SECURITY DEFINER webhook resolver (ADR-0017), never a raw read.
+    const integration = await shopifyConnectionForWebhook(deps.prisma, shop);
     if (!integration?.secret) return c.json({ error: 'unknown_shop' }, 404);
 
     const body = await c.req.text();
@@ -108,7 +107,12 @@ export function shopifyWebhookRoutes(deps: GatewayDeps) {
       return c.json({ error: 'invalid_json' }, 400);
     }
 
-    const result = await handleShopifyWebhook(deps.prisma, integration, topic, payload);
+    const result = await handleShopifyWebhook(
+      forTenant(deps.prisma, integration.organizationId),
+      integration,
+      topic,
+      payload,
+    );
     return c.json({ received: true, handled: result.handled }, 200);
   });
 

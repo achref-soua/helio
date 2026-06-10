@@ -18,10 +18,14 @@ export default function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Everything except auth pages, auth/trpc APIs, health, static assets,
+    // Everything except auth pages (two-factor runs mid-login on a partial
+    // cookie), auth/trpc APIs, health, static assets (including the
+    // metadata icon routes — browsers fetch favicons without credentials),
     // and the public surfaces: u/* (unsubscribe), f/* (hosted forms),
-    // m/* (booking pages), and scim/* (bearer-authenticated provisioning) —
-    // these callers are not session-cookie holders by definition.
-    '/((?!login|signup|accept-invitation|api/auth|api/trpc|api/healthz|u/|f/|m/|scim/|_next|favicon.ico).*)',
+    // m/* (booking pages), p/* (landing pages), scim/* (bearer-
+    // authenticated provisioning), and the write-key-scoped embed
+    // endpoints api/widgets and api/inapp — these callers are not
+    // session-cookie holders by definition.
+    '/((?!login|signup|two-factor|accept-invitation|api/auth|api/trpc|api/healthz|api/widgets|api/inapp|u/|f/|m/|p/|scim/|_next|favicon.ico|icon.svg|apple-icon.png).*)',
   ],
 };

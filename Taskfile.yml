@@ -60,6 +60,9 @@ tasks:
   verify:e2e:
     desc: 'End-to-end gate (requires: task up; WIPES the local database)'
     cmds:
+      # CI mode serves `next start`, which silently serves whatever build
+      # is on disk — build first so the gate always tests current code.
+      - pnpm turbo build --filter=@helio/web
       - cd apps/web && CI=1 pnpm test:e2e
 
   up:
@@ -92,6 +95,16 @@ tasks:
     desc: Regenerate docs/assets screenshots from a running app (BASE_URL overridable)
     cmds:
       - pnpm --filter @helio/web exec tsx scripts/screenshots.ts
+
+  demo:video:
+    desc: Record the captioned A-to-Z product demo video (app + Mailpit + ClickHouse + intelligence must be up)
+    cmds:
+      - pnpm --filter @helio/web exec tsx scripts/demo-video.ts
+
+  product:guide:
+    desc: Render the Helio product guide PDF (same prereqs as demo:video)
+    cmds:
+      - pnpm --filter @helio/web exec tsx scripts/product-guide.ts
 
   docs:
     desc: Run the documentation site (Fumadocs) at :3002

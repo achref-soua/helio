@@ -59,9 +59,11 @@ describe('ingest app', () => {
     ({ app, producer } = makeApp());
   });
 
-  it('healthz is public', async () => {
+  it('healthz is public and responses carry hardening headers', async () => {
     const response = await app.request('/healthz');
     expect(response.status).toBe(200);
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(response.headers.get('x-frame-options')).toBe('SAMEORIGIN');
   });
 
   it('readyz aggregates probes and reports degradation', async () => {

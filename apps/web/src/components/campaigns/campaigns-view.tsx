@@ -18,6 +18,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { ThemedSelect } from '@/components/themed-select';
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
 import { useTRPC } from '@/trpc/client';
 
@@ -27,16 +28,6 @@ const STATUS_VARIANT = {
   SENT: 'secondary',
   FAILED: 'destructive',
 } as const;
-
-/** Styled native select, mirroring the segment builder's. */
-function Select({ className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      className={`border-input bg-transparent dark:bg-input/30 h-9 rounded-md border px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] ${className ?? ''}`}
-      {...props}
-    />
-  );
-}
 
 export function CampaignsView() {
   const t = useTranslations('campaigns');
@@ -169,44 +160,39 @@ export function CampaignsView() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="campaign-template">{t('template')}</Label>
-                <Select
+                <ThemedSelect
                   id="campaign-template"
-                  value={templateId}
-                  onChange={(event) => setTemplateId(event.target.value)}
+                  value={templateId || undefined}
+                  onValueChange={setTemplateId}
                   required
-                >
-                  <option value="" disabled>
-                    {t('pickTemplate')}
-                  </option>
-                  {templatesQuery.data?.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.name}
-                    </option>
-                  ))}
-                </Select>
+                  className="w-full"
+                  placeholder={t('pickTemplate')}
+                  options={(templatesQuery.data ?? []).map((template) => ({
+                    value: template.id,
+                    label: template.name,
+                  }))}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="campaign-audience">{t('audience')}</Label>
-                <Select
+                <ThemedSelect
                   id="campaign-audience"
-                  value={audience}
-                  onChange={(event) => setAudience(event.target.value)}
+                  value={audience || undefined}
+                  onValueChange={setAudience}
                   required
-                >
-                  <option value="" disabled>
-                    {t('pickAudience')}
-                  </option>
-                  {segmentsQuery.data?.map((segment) => (
-                    <option key={segment.id} value={`segment:${segment.id}`}>
-                      {t('segmentPrefix', { name: segment.name })}
-                    </option>
-                  ))}
-                  {listsQuery.data?.map((list) => (
-                    <option key={list.id} value={`list:${list.id}`}>
-                      {t('listPrefix', { name: list.name })}
-                    </option>
-                  ))}
-                </Select>
+                  className="w-full"
+                  placeholder={t('pickAudience')}
+                  options={[
+                    ...(segmentsQuery.data ?? []).map((segment) => ({
+                      value: `segment:${segment.id}`,
+                      label: t('segmentPrefix', { name: segment.name }),
+                    })),
+                    ...(listsQuery.data ?? []).map((list) => ({
+                      value: `list:${list.id}`,
+                      label: t('listPrefix', { name: list.name }),
+                    })),
+                  ]}
+                />
               </div>
               <div className="grid gap-2 sm:col-span-3">
                 <Label htmlFor="campaign-subject-b">{t('subjectB')}</Label>

@@ -1,0 +1,34 @@
+---
+title: Landing pages
+description: Build hosted, block-based pages and capture signups straight into your CDP.
+---
+
+Build a hosted landing page from a handful of blocks, publish it, and collect
+signups — no separate site needed.
+
+## Build
+
+Under **Landing pages**, create a page and stack blocks:
+
+| Block       | For                                     |
+| ----------- | --------------------------------------- |
+| **Heading** | the hero and section titles             |
+| **Text**    | body copy                               |
+| **Image**   | a hero or inline image (by URL)         |
+| **Button**  | a call-to-action link                   |
+| **Form**    | an email capture that creates a contact |
+
+Reorder blocks with the up/down controls (keyboard-friendly, no drag needed)
+and edit each block inline. The blocks are validated on save, so a button or
+image with an incomplete URL won't publish.
+
+## Publish & capture
+
+Hit **Publish** to make the page live at `/p/<id>` — the public URL is
+white-labeled with your [org branding](/docs/guides/white-labeling). A visitor
+who submits the form is upserted as a contact in the page's workspace (the same
+suppression-safe rules as [hosted forms](/docs/guides/forms)), ready to
+[segment](/docs/guides/segments) and enroll in a [journey](/docs/guides/journeys).
+
+The page id is the capability — like hosted forms, no login is required to view
+a published page, and unpublished pages return a not-found.

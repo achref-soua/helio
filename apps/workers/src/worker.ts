@@ -11,8 +11,10 @@ import { SmtpEmailProvider } from './email-provider';
 import { env } from './env';
 import { createJourneyActivities } from './journey-activities';
 import { WebPushProvider } from './push-provider';
+import { TwilioSmsProvider } from './sms-provider';
 import { JourneyTriggerConsumer } from './trigger-consumer';
 import { createWebhookActivities } from './webhook-activities';
+import { CloudWhatsAppProvider } from './whatsapp-provider';
 
 const connection = await NativeConnection.connect({ address: env.TEMPORAL_ADDRESS });
 
@@ -59,18 +61,33 @@ const worker = await Worker.create({
             subject: env.VAPID_SUBJECT,
           })
         : undefined,
+      env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM
+        ? new TwilioSmsProvider({
+            accountSid: env.TWILIO_ACCOUNT_SID,
+            authToken: env.TWILIO_AUTH_TOKEN,
+            from: env.TWILIO_FROM,
+          })
+        : undefined,
+      env.WHATSAPP_PHONE_NUMBER_ID && env.WHATSAPP_ACCESS_TOKEN
+        ? new CloudWhatsAppProvider({
+            phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID,
+            accessToken: env.WHATSAPP_ACCESS_TOKEN,
+          })
+        : undefined,
     ),
     ...createWebhookActivities(),
   },
 });
 
+let triggers: JourneyTriggerConsumer | undefined;
+let clientConnection: Connection | undefined;
 if (env.JOURNEY_TRIGGERS_ENABLED) {
-  const clientConnection = await Connection.connect({ address: env.TEMPORAL_ADDRESS });
+  clientConnection = await Connection.connect({ address: env.TEMPORAL_ADDRESS });
   const temporal = new TemporalClient({
     connection: clientConnection,
     namespace: env.TEMPORAL_NAMESPACE,
   });
-  const triggers = new JourneyTriggerConsumer(
+  triggers = new JourneyTriggerConsumer(
     { prisma, temporal, logger: pino({ level: process.env.LOG_LEVEL ?? 'info' }) },
     {
       brokers: env.KAFKA_BROKERS.split(',').map((broker) => broker.trim()),
@@ -84,4 +101,15 @@ if (env.JOURNEY_TRIGGERS_ENABLED) {
 }
 
 console.log(`helio worker polling ${SENDS_TASK_QUEUE} @ ${env.TEMPORAL_ADDRESS}`);
+// Temporal's runtime owns SIGTERM/SIGINT: the worker stops polling, drains
+// in-flight activities, then run() resolves. What follows is the disposal
+// that used to be skipped — without it the trigger consumer kept the
+// process alive until the supervisor sent SIGKILL.
 await worker.run();
+console.log('worker drained, disposing');
+if (triggers) await triggers.stop().catch(() => undefined);
+if (clientConnection) await clientConnection.close().catch(() => undefined);
+await prisma.$disconnect().catch(() => undefined);
+await clickhouse.close().catch(() => undefined);
+await connection.close().catch(() => undefined);
+console.log('worker shut down cleanly');

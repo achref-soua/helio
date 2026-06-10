@@ -13,6 +13,9 @@ export const env = createEnv({
   STRIPE_WEBHOOK_SECRET: z.string().default(''),
   STRIPE_PRICE_PRO: z.string().default(''),
   STRIPE_PRICE_SCALE: z.string().default(''),
+  // Shared secret on the bounce/complaint webhook URL (?token=…). The
+  // endpoint is disabled (404) until set.
+  EMAIL_WEBHOOK_TOKEN: z.string().default(''),
 });
 
 export type Env = typeof env;

@@ -16,8 +16,21 @@ import {
   ReactFlowProvider,
   useEdgesState,
   useNodesState,
+  useReactFlow,
 } from '@xyflow/react';
-import { Bell, GitBranch, Mail, Percent, Square, Tag, Timer, Webhook } from 'lucide-react';
+import {
+  AppWindow,
+  Bell,
+  GitBranch,
+  Mail,
+  MessageCircle,
+  MessageSquare,
+  Percent,
+  Square,
+  Tag,
+  Timer,
+  Webhook,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -63,6 +76,7 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
   );
   const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
+  const { setCenter } = useReactFlow();
   const [name, setName] = useState(initialName);
   const [settings, setSettings] = useState<JourneySettings>(() =>
     initialDefinition ? settingsFromDefinition(initialDefinition) : DEFAULT_SETTINGS,
@@ -86,6 +100,9 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
       | 'update_trait'
       | 'webhook'
       | 'send_push'
+      | 'send_sms'
+      | 'send_whatsapp'
+      | 'send_in_app'
       | 'end',
   ) {
     const id = nextCanvasId(type);
@@ -109,8 +126,15 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
                   ? { url: 'https://' }
                   : type === 'send_push'
                     ? { title: '', body: '', url: '' }
-                    : {};
+                    : type === 'send_sms' || type === 'send_whatsapp'
+                      ? { body: '' }
+                      : type === 'send_in_app'
+                        ? { messageId: '' }
+                        : {};
     setNodes((current) => [...current, { id, type, position, data }]);
+    // Palette adds chain downward and quickly leave the visible canvas —
+    // pan to the new node so its fields (and their popups) stay on screen.
+    setCenter(position.x + 120, position.y + 60, { zoom: 1, duration: 300 });
     if (tailId) {
       const tailNode = nodes.find((node) => node.id === tailId);
       const sourceHandle =
@@ -192,6 +216,15 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
         </Button>
         <Button variant="outline" size="sm" onClick={() => addNode('send_push')}>
           <Bell aria-hidden /> {t('addSendPush')}
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => addNode('send_sms')}>
+          <MessageSquare aria-hidden /> {t('addSendSms')}
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => addNode('send_whatsapp')}>
+          <MessageCircle aria-hidden /> {t('addSendWhatsapp')}
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => addNode('send_in_app')}>
+          <AppWindow aria-hidden /> {t('addSendInApp')}
         </Button>
         <Button variant="outline" size="sm" onClick={() => addNode('end')}>
           <Square aria-hidden /> {t('addEnd')}

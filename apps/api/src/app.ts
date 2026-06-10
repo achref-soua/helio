@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { OpenAPIHono } from '@hono/zod-openapi';
+import { secureHeaders } from 'hono/secure-headers';
 
 import { apiKeyAuth } from './middleware/api-key';
 import { idempotency } from './middleware/idempotency';
@@ -9,6 +10,7 @@ import { notFoundResponse, problemResponse } from './middleware/problem';
 import { rateLimit } from './middleware/rate-limit';
 import { metricsRegistry } from './observability';
 import { contactRoutes } from './routes/contacts';
+import { emailWebhookRoutes } from './routes/email-webhook';
 import { listRoutes } from './routes/lists';
 import { shopifyWebhookRoutes } from './routes/shopify-webhook';
 import { stripeWebhookRoutes } from './routes/stripe-webhook';
@@ -31,6 +33,7 @@ export function createApp(deps: GatewayDeps) {
   });
 
   app.use('*', requestLogging);
+  app.use('*', secureHeaders());
 
   app.get('/healthz', (c) => c.json({ status: 'ok', service: 'api' }));
 
@@ -55,10 +58,11 @@ export function createApp(deps: GatewayDeps) {
     return c.json({ status: ready ? 'ok' : 'degraded', checks }, ready ? 200 : 503);
   });
 
-  // Provider webhooks authenticate by signature, not the bearer token, so
-  // they mount before the /v1 auth middleware.
+  // Provider webhooks authenticate by signature or shared token, not the
+  // bearer token, so they mount before the /v1 auth middleware.
   app.route('/', stripeWebhookRoutes(deps));
   app.route('/', shopifyWebhookRoutes(deps));
+  app.route('/', emailWebhookRoutes(deps));
 
   // Authenticated (per-org API key), rate-limited, idempotent API surface.
   app.use('/v1/*', apiKeyAuth(deps));

@@ -12,15 +12,14 @@ import { Label } from '@helio/ui/components/label';
 import { getTranslations } from 'next-intl/server';
 
 import { BrandStyle } from '@/components/brand-style';
+import { PoweredBy } from '@/components/powered-by';
+import { ThemedSelect } from '@/components/themed-select';
 import { authDb } from '@/lib/auth';
 
 import { bookMeeting } from './actions';
 
 const BOOKING_WINDOW_DAYS = 14;
 const KNOWN_ERRORS = ['unavailable', 'email', 'taken'] as const;
-
-const SELECT_CLASS =
-  'border-input bg-transparent dark:bg-input/30 h-9 rounded-md border px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
 
 /**
  * Public booking page. No auth: the page id is the capability. Slots are
@@ -104,9 +103,9 @@ export default async function BookingPage({
     error && (KNOWN_ERRORS as readonly string[]).includes(error) ? t(`error.${error}`) : null;
 
   return (
-    <main className="bg-muted/30 grid min-h-svh place-items-center p-6">
+    <main className="bg-muted/30 flex min-h-svh flex-col p-6">
       <BrandStyle color={brand?.brandColor} />
-      <div className="grid w-full max-w-md gap-4">
+      <div className="m-auto grid w-full max-w-md gap-4">
         {brand && (brand.brandName || brand.logo) && (
           <div className="flex items-center justify-center gap-2 font-semibold">
             {brand.logo && (
@@ -148,17 +147,20 @@ export default async function BookingPage({
                     <input type="hidden" name="pageId" value={page.id} />
                     <div className="grid gap-2">
                       <Label htmlFor="slot">{t('slot')}</Label>
-                      <select id="slot" name="slot" required className={SELECT_CLASS}>
-                        {[...groups.entries()].map(([day, daySlots]) => (
-                          <optgroup key={day} label={day}>
-                            {daySlots.map((slot) => (
-                              <option key={slot.toISOString()} value={slot.toISOString()}>
-                                {timeFmt?.format(slot)}
-                              </option>
-                            ))}
-                          </optgroup>
-                        ))}
-                      </select>
+                      <ThemedSelect
+                        id="slot"
+                        name="slot"
+                        required
+                        defaultValue={slots[0]?.toISOString()}
+                        className="w-full"
+                        groups={[...groups.entries()].map(([day, daySlots]) => ({
+                          label: day,
+                          options: daySlots.map((slot) => ({
+                            value: slot.toISOString(),
+                            label: timeFmt?.format(slot) ?? '',
+                          })),
+                        }))}
+                      />
                       <p className="text-muted-foreground text-xs">
                         {t('timezone', { tz: page.timezone })}
                       </p>
@@ -185,6 +187,7 @@ export default async function BookingPage({
           )}
         </Card>
       </div>
+      <PoweredBy whiteLabeled={Boolean(brand && (brand.brandName || brand.logo))} />
     </main>
   );
 }

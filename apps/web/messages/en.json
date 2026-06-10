@@ -16,7 +16,12 @@
     "deals": "Deals",
     "copilot": "Copilot",
     "tasks": "Tasks",
-    "scheduling": "Scheduling"
+    "scheduling": "Scheduling",
+    "landing": "Landing pages",
+    "widgets": "Widgets",
+    "inApp": "In-app",
+    "insights": "Insights",
+    "help": "Help"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -294,6 +299,15 @@
       "deleteAction": "Delete rule for {event}",
       "empty": "No scoring rules yet.",
       "manageAction": "Scoring rules"
+    },
+    "phone": "Phone",
+    "export": {
+      "action": "Export CSV",
+      "done": "Exported {count} contacts",
+      "truncated": "Export capped at 10,000 rows — narrow the filter for the rest",
+      "dataAction": "Export data (JSON)",
+      "dataDone": "Contact data bundle downloaded",
+      "failed": "Export failed"
     }
   },
   "segments": {
@@ -390,7 +404,7 @@
     "newTemplate": "New template",
     "createTitle": "Create a template",
     "editTitle": "Edit template",
-    "editorSubtitle": "Compose with blocks; personalize with {{tokens}}. The preview renders the real email.",
+    "editorSubtitle": "Compose with blocks; personalize with '{{'tokens'}}'. The preview renders the real email.",
     "name": "Name",
     "subject": "Subject",
     "createAction": "Create template",
@@ -409,7 +423,7 @@
       "moveUp": "Move up",
       "moveDown": "Move down",
       "text": "Text",
-      "textPlaceholder": "Write something… use {{firstName|there}} to personalize",
+      "textPlaceholder": "Write something… use '{{'firstName|there'}}' to personalize",
       "buttonLabel": "Button label",
       "url": "Link URL",
       "imageUrl": "Image URL",
@@ -417,7 +431,7 @@
       "preview": "Preview",
       "previewEmpty": "Add a block with content to see the rendered email.",
       "subjectPreview": "Subject: {subject}",
-      "tokensHint": "Personalization: {{firstName}}, {{lastName}}, {{email}}, {{attributes.plan}} — with fallbacks like {{firstName|there}}.",
+      "tokensHint": "Personalization: '{{'firstName'}}', '{{'lastName'}}', '{{'email'}}', '{{'attributes.plan'}}' — with fallbacks like '{{'firstName|there'}}'.",
       "blocks": {
         "heading": "Heading",
         "paragraph": "Paragraph",
@@ -546,7 +560,10 @@
       "capPer": "per",
       "capDays": "Cap window (days)",
       "capDaysSuffix": "days",
-      "addSendPush": "Web push"
+      "addSendPush": "Web push",
+      "addSendSms": "SMS",
+      "addSendWhatsapp": "WhatsApp",
+      "addSendInApp": "In-app"
     },
     "nodes": {
       "trigger": "Trigger",
@@ -586,7 +603,16 @@
       "pushBody": "Notification body",
       "pushBodyPlaceholder": "Short message",
       "pushUrl": "Click-through URL",
-      "pushUrlPlaceholder": "https:// (optional)"
+      "pushUrlPlaceholder": "https:// (optional)",
+      "sendSms": "Send SMS",
+      "smsBody": "SMS message",
+      "smsBodyPlaceholder": "Hi '{{'firstName'}}', …",
+      "sendWhatsapp": "Send WhatsApp",
+      "whatsappBody": "WhatsApp message",
+      "whatsappBodyPlaceholder": "Hi '{{'firstName'}}', …",
+      "sendInApp": "Send in-app",
+      "inAppMessage": "In-app message",
+      "pickInAppMessage": "Pick a message…"
     }
   },
   "forms": {
@@ -813,5 +839,321 @@
     "connectSfSubtitle": "New contacts sync to Salesforce as Leads. Paste your instance URL and an access token.",
     "instanceUrl": "Instance URL",
     "accessToken": "Access token"
+  },
+  "support": {
+    "open": "Report a bug or send feedback",
+    "title": "Report a bug or send feedback",
+    "subtitle": "Tell us what happened. We capture the page you're on for context.",
+    "kind": "Type",
+    "subject": "Subject",
+    "body": "Details",
+    "send": "Send",
+    "sending": "Sending…",
+    "sent": "Thanks — your report was sent",
+    "genericError": "Something went wrong. Please try again.",
+    "panelTitle": "Support inbox",
+    "panelSubtitle": "Bug reports and feedback filed by your team.",
+    "panelEmpty": "No reports yet.",
+    "resolved": "Marked resolved",
+    "resolveLabel": "Resolve {subject}",
+    "kinds": {
+      "BUG": "Bug",
+      "FEEDBACK": "Feedback",
+      "QUESTION": "Question"
+    },
+    "statuses": {
+      "OPEN": "Open",
+      "RESOLVED": "Resolved"
+    }
+  },
+  "tour": {
+    "skip": "Skip",
+    "back": "Back",
+    "next": "Next",
+    "done": "Get started",
+    "steps": {
+      "welcome": {
+        "title": "Welcome to Helio",
+        "body": "A quick tour of what you can do here. It takes 30 seconds — skip anytime."
+      },
+      "contacts": {
+        "title": "Your customer data",
+        "body": "Import contacts, then slice them into live segments with the visual builder."
+      },
+      "journeys": {
+        "title": "Automate journeys",
+        "body": "Design multi-step journeys on the canvas — email, SMS, WhatsApp, push, waits, and branches — that run durably."
+      },
+      "copilot": {
+        "title": "Let AI help",
+        "body": "Describe a segment, journey, or on-brand email in a sentence and the copilot drafts it."
+      },
+      "crm": {
+        "title": "Close the loop",
+        "body": "Track deals, file tasks, book meetings, and watch opens and clicks land in analytics."
+      },
+      "support": {
+        "title": "We're here",
+        "body": "Hit the life-ring in the top bar anytime to report a bug or send feedback. Enjoy!"
+      }
+    }
+  },
+  "deliverability": {
+    "title": "Email deliverability",
+    "subtitle": "Authenticate your sending domains so inboxes trust your mail.",
+    "addAction": "Add domain",
+    "addTitle": "Add a sending domain",
+    "addSubtitle": "We'll generate a DKIM key and show the records to publish.",
+    "domain": "Domain",
+    "spfInclude": "SPF include (your email provider)",
+    "add": "Generate records",
+    "adding": "Generating…",
+    "added": "Domain added — publish the records, then verify",
+    "empty": "No sending domains yet.",
+    "verify": "Verify",
+    "verified": "Domain verified",
+    "notVerified": "Not verified yet — still missing: {missing}",
+    "removeLabel": "Remove {domain}",
+    "genericError": "Something went wrong. Please try again.",
+    "status": {
+      "PENDING": "Pending",
+      "VERIFIED": "Verified"
+    }
+  },
+  "landing": {
+    "title": "Landing pages",
+    "subtitle": "Build hosted pages with a few blocks and capture signups.",
+    "new": "New page",
+    "untitled": "Untitled page",
+    "empty": "No landing pages yet. Create one to get started.",
+    "published": "Published",
+    "draft": "Draft",
+    "back": "Back",
+    "save": "Save",
+    "saved": "Saved",
+    "publish": "Publish",
+    "unpublish": "Unpublish",
+    "publishedToast": "Page published",
+    "unpublishedToast": "Page unpublished",
+    "invalidBlocks": "Check your blocks — image and button URLs must be complete.",
+    "genericError": "Something went wrong. Please try again.",
+    "pageTitle": "Page title",
+    "linkCopied": "Link copied",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "removeBlock": "Remove block",
+    "blocks": {
+      "heading": "Heading",
+      "text": "Text",
+      "image": "Image",
+      "button": "Button",
+      "form": "Form"
+    }
+  },
+  "hostedLanding": {
+    "notFound": "This page does not exist or is not published.",
+    "thanks": "Thanks — you're signed up.",
+    "emailPlaceholder": "you@example.com"
+  },
+  "widgets": {
+    "title": "On-site widgets",
+    "subtitle": "Show banners and popups on your own site with a one-line embed.",
+    "new": "New widget",
+    "empty": "No widgets yet. Create one and drop the embed on your site.",
+    "saved": "Widget saved",
+    "genericError": "Something went wrong. Please try again.",
+    "active": "Live",
+    "inactive": "Off",
+    "editLabel": "Edit {name}",
+    "removeLabel": "Delete {name}",
+    "embedTitle": "Embed",
+    "embedHint": "Add this once to your site, swapping in a workspace write key.",
+    "copySnippet": "Copy embed",
+    "snippetCopied": "Embed copied",
+    "newTitle": "New widget",
+    "editTitle": "Edit widget",
+    "dialogSubtitle": "Banners pin to the bottom; popups float in the corner.",
+    "name": "Name",
+    "type": "Type",
+    "messageTitle": "Heading",
+    "body": "Message",
+    "ctaLabel": "Button label",
+    "ctaUrl": "Button URL",
+    "save": "Save widget",
+    "types": {
+      "BANNER": "Banner",
+      "POPUP": "Popup"
+    }
+  },
+  "inApp": {
+    "title": "In-app messages",
+    "subtitle": "Compose messages shown inside your product to identified visitors, delivered from a journey’s “Send in-app” step.",
+    "new": "New message",
+    "empty": "No in-app messages yet. Create one, then add a “Send in-app” step to a journey.",
+    "active": "Live",
+    "inactive": "Paused",
+    "saved": "Message saved",
+    "genericError": "Something went wrong",
+    "editLabel": "Edit {name}",
+    "removeLabel": "Delete {name}",
+    "deliveryHint": "Messages are queued per contact when a journey reaches a “Send in-app” step. The tracking SDK fetches and displays them for the signed-in visitor.",
+    "createTitle": "New in-app message",
+    "editTitle": "Edit in-app message",
+    "dialogHint": "Title and body are shown to the visitor. The optional call to action links somewhere in your product.",
+    "save": "Save",
+    "fields": {
+      "name": "Internal name",
+      "heading": "Title",
+      "body": "Body",
+      "ctaLabel": "Button label",
+      "ctaUrl": "Button URL"
+    }
+  },
+  "insights": {
+    "title": "Insights",
+    "subtitle": "Behavioral analytics over your event stream — conversion funnels, cohort retention, multi-touch attribution, and an ad-hoc SQL explorer.",
+    "run": "Run",
+    "noClickhouse": "Connect the analytics store (ClickHouse) to see this report. Start the full stack with the “full” Compose profile.",
+    "funnel": {
+      "title": "Conversion funnel",
+      "subtitle": "How many people complete each step, in order, within the window.",
+      "steps": "Steps (comma-separated event names)",
+      "stepsPlaceholder": "Viewed Pricing, Signed Up, Activated",
+      "window": "Window",
+      "days": "{days} days",
+      "hint": "Enter at least two event names, then run the funnel."
+    },
+    "retention": {
+      "title": "Cohort retention",
+      "subtitle": "Each weekly cohort and the share still active in later weeks.",
+      "weeks": "Weeks",
+      "weekCount": "{weeks} weeks",
+      "cohort": "Cohort",
+      "size": "People",
+      "empty": "No activity in this window yet."
+    },
+    "attribution": {
+      "title": "Multi-touch attribution",
+      "subtitle": "Credit conversions to the campaigns that touched each person beforehand.",
+      "event": "Conversion event",
+      "eventPlaceholder": "Order Completed",
+      "model": "Model",
+      "models": {
+        "first": "First touch",
+        "last": "Last touch",
+        "linear": "Linear"
+      },
+      "hint": "Name the event that counts as a conversion, then run attribution.",
+      "empty": "No credited touches in this window yet.",
+      "converters": "{count} converters with a prior campaign touch"
+    },
+    "sql": {
+      "title": "SQL explorer",
+      "subtitle": "Run read-only SQL over your workspace’s events.",
+      "label": "SQL query",
+      "run": "Run query",
+      "running": "Running…",
+      "guardrails": "Read-only · events table only · auto-scoped to this workspace · capped at 1,000 rows",
+      "noRows": "The query returned no rows.",
+      "rowCount": "{count} rows"
+    }
+  },
+  "twoFactor": {
+    "title": "Two-factor authentication",
+    "enabledBadge": "Enabled",
+    "subtitle": "Protect your account with an authenticator app",
+    "body": "When enabled, signing in asks for a 6-digit code from your authenticator app in addition to your password. Backup codes cover a lost device.",
+    "enableAction": "Enable 2FA",
+    "disableAction": "Disable",
+    "enableTitle": "Enable two-factor authentication",
+    "disableTitle": "Disable two-factor authentication",
+    "passwordPrompt": "Confirm your password to continue.",
+    "password": "Password",
+    "continue": "Continue",
+    "scanTitle": "Scan the QR code",
+    "scanBody": "Scan with your authenticator app (or enter the URI manually), store the backup codes somewhere safe, then confirm a code. 2FA only turns on after a code verifies.",
+    "qrAlt": "TOTP enrollment QR code",
+    "backupCodes": "Backup codes",
+    "backupCodesBody": "Each code signs you in once if you lose your device. This is the only time they are shown.",
+    "codeLabel": "6-digit code",
+    "verifyAction": "Verify",
+    "enabled": "Two-factor authentication is on",
+    "disabled": "Two-factor authentication is off",
+    "badCode": "That code didn't verify",
+    "genericError": "Something went wrong",
+    "working": "Working…",
+    "challengeTitle": "Two-factor check",
+    "challengeBody": "Enter the 6-digit code from your authenticator app.",
+    "backupPrompt": "Enter one of your single-use backup codes.",
+    "backupCodeLabel": "Backup code",
+    "useBackupInstead": "Use a backup code instead",
+    "useTotpInstead": "Use your authenticator app instead",
+    "trustDevice": "Trust this device for 30 days"
+  },
+  "publicFooter": {
+    "poweredBy": "Powered by Helio"
+  },
+  "help": {
+    "open": "Help",
+    "takeTour": "Take the product tour",
+    "usageGuide": "Usage guide",
+    "documentation": "Documentation",
+    "guide": {
+      "title": "Usage guide",
+      "subtitle": "How to get things done in Helio, feature by feature. New here? The 30-second tour is the fastest start.",
+      "support": "Stuck or found a bug? Use the life buoy in the top bar — reports land in your support inbox under Settings.",
+      "sections": {
+        "contacts": {
+          "title": "Bring in your audience",
+          "body": "Import a CSV, capture signups from forms, or send events through the tracking SDK. Every person becomes one profile with traits, scores, and a full activity timeline.",
+          "cta": "Open contacts"
+        },
+        "segments": {
+          "title": "Slice it with live segments",
+          "body": "Build nested and/or rules over traits, behavior, scores, and AI predictions. Membership previews live as you edit and stays continuously up to date.",
+          "cta": "Build a segment"
+        },
+        "emails": {
+          "title": "Design on-brand emails",
+          "body": "Compose with blocks, personalize with '{{'tokens'}}', and preview exactly what each contact receives. Templates are shared by campaigns and journeys.",
+          "cta": "Create a template"
+        },
+        "campaigns": {
+          "title": "Send a campaign",
+          "body": "Pick a template and an audience, A/B test the subject line, then watch opens and clicks stream into the dashboard.",
+          "cta": "Launch a campaign"
+        },
+        "journeys": {
+          "title": "Automate journeys",
+          "body": "Drag a multi-step automation onto the canvas: emails, SMS, WhatsApp, push, in-app, waits, branches, and A/B splits. Journeys run durably — restarts never double-send.",
+          "cta": "Open the canvas"
+        },
+        "growth": {
+          "title": "Capture and convert",
+          "body": "Hosted forms, landing pages, on-site widgets, and in-app messages — each one feeds new contacts straight into segments and journeys.",
+          "cta": "Create a form"
+        },
+        "insights": {
+          "title": "Measure what works",
+          "body": "Funnels, cohort retention, multi-touch attribution, and a read-only SQL explorer over your event stream.",
+          "cta": "Explore insights"
+        },
+        "copilot": {
+          "title": "Let AI do the heavy lifting",
+          "body": "Describe a segment, journey, or email in plain English and the copilot drafts it from your own data — grounded, tenant-scoped, and editable before anything runs.",
+          "cta": "Ask the copilot"
+        },
+        "crm": {
+          "title": "Close the loop with CRM",
+          "body": "Track deals through pipeline stages, work tasks by due date, and share a booking link that turns meetings into contacts automatically.",
+          "cta": "View deals"
+        },
+        "settings": {
+          "title": "Run it your way",
+          "body": "Invite teammates, brand the workspace, mint scoped API keys, wire webhooks and integrations, and harden access with 2FA, SSO, and SCIM.",
+          "cta": "Open settings"
+        }
+      }
+    }
   }
 }

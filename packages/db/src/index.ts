@@ -27,4 +27,12 @@ export {
   JourneyRunStatus,
   JourneyStatus,
 } from './generated/prisma/enums';
+export { seedDemoWorkspace, type SeedSummary, type SeedTarget } from './seed-demo';
 export { forTenant, type TenantClient } from './tenant';
+export {
+  activeContactsByEmailForWebhook,
+  shopifyConnectionForWebhook,
+  type ShopifyWebhookConnection,
+  stripeOrganizationForWebhook,
+  type SuppressibleContact,
+} from './webhook-resolvers';

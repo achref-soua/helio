@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..llm import LLMProvider, SystemMessage, UserMessage
+from .naming import suggest_name
 from .segment_schema import validate_segment_rule
 
 _SYSTEM_PROMPT = """You convert a marketer's request into a Helio segment rule \
@@ -74,7 +75,10 @@ class NlSegmentGenerator:
             try:
                 data = _extract_json(response.text)
                 rule = validate_segment_rule(data)
-                return GeneratedSegment(rule=rule.model_dump(), name=_suggest_name(prompt))
+                return GeneratedSegment(
+                    rule=rule.model_dump(exclude_none=True),
+                    name=suggest_name(prompt, "New segment"),
+                )
             except (ValueError, json.JSONDecodeError) as error:
                 last_error = str(error)
                 # Feed the error back once for a self-repair attempt.
@@ -85,9 +89,3 @@ class NlSegmentGenerator:
                     )
                 )
         raise ValueError(f"could not produce a valid segment rule: {last_error}")
-
-
-def _suggest_name(prompt: str) -> str:
-    words = re.findall(r"[A-Za-z0-9]+", prompt)[:6]
-    name = " ".join(words).strip().title()
-    return name[:80] or "New segment"

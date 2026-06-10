@@ -7,6 +7,26 @@ export {
   type VariantStat,
 } from './ab-test';
 export {
+  type CohortRow,
+  type FunnelInput,
+  funnelInputSchema,
+  funnelReport,
+  type FunnelStep,
+  funnelStepCounts,
+  type RetentionInput,
+  retentionInputSchema,
+  retentionMatrix,
+} from './analytics';
+export {
+  aggregateAttribution,
+  attributeCredit,
+  ATTRIBUTION_MODELS,
+  type AttributionInput,
+  attributionInputSchema,
+  type AttributionModel,
+  type AttributionRow,
+} from './attribution';
+export {
   contactLimitFor,
   isValidPlan,
   type Plan,
@@ -28,6 +48,16 @@ export {
   type NormalizedContactRow,
   type NormalizeResult,
 } from './contacts';
+export { CONTACT_CSV_HEADER, type ContactCsvRow, contactsToCsv, csvCell, csvDocument } from './csv';
+export {
+  deliverabilityRecords,
+  dkimPasses,
+  dmarcPasses,
+  type DnsRecord,
+  isLikelyDomain,
+  type RecordOptions,
+  spfPasses,
+} from './deliverability';
 export {
   type EmailBlock,
   emailBlockSchema,
@@ -82,7 +112,21 @@ export {
   quietHoursSchema,
   sendTimeDelayMs,
 } from './journeys';
+export {
+  emptyLandingBlock,
+  LANDING_BLOCK_TYPES,
+  type LandingBlock,
+  landingBlockSchema,
+  type LandingBlockType,
+  type LandingDocument,
+  landingDocumentSchema,
+} from './landing';
 export { type PushNotification, type PushSubscriptionInput, pushSubscriptionSchema } from './push';
+export {
+  FixedWindowRateLimiter,
+  type RateLimitDecision,
+  type RateLimitOptions,
+} from './rate-limit';
 export { hasRole, INVITABLE_ROLES, isRole, type Role, ROLES } from './rbac';
 export {
   type Err,
@@ -163,6 +207,26 @@ export {
   verifyShopifyHmac,
 } from './shopify';
 export {
+  createShutdown,
+  registerShutdown,
+  type ShutdownOptions,
+  type ShutdownTask,
+} from './shutdown';
+export {
+  guardAnalyticsQuery,
+  MAX_SQL_LENGTH,
+  MAX_SQL_ROWS,
+  type SqlGuardResult,
+} from './sql-guard';
+export {
+  SUPPORT_KINDS,
+  SUPPORT_STATUSES,
+  type SupportKind,
+  supportKindSchema,
+  type SupportStatus,
+  supportStatusSchema,
+} from './support';
+export {
   compareTasks,
   groupTasksByBucket,
   isTaskOverdue,
@@ -203,3 +267,10 @@ export {
   type WebhookEvent,
   webhookEventSchema,
 } from './webhooks';
+export {
+  WIDGET_TYPES,
+  widgetEmbedSnippet,
+  type WidgetPayload,
+  type WidgetType,
+  widgetTypeSchema,
+} from './widgets';

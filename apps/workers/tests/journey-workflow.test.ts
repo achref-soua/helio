@@ -242,6 +242,75 @@ describe('journeyRunWorkflow v2 nodes', () => {
     expect(activities.sendJourneyEmail).toHaveBeenCalledTimes(1);
   });
 
+  it('texts the contact at a send_sms node', async () => {
+    const smsDefinition = {
+      trigger: { type: 'event', event: 'Signed Up' },
+      startNodeId: 'sms',
+      nodes: [
+        { id: 'sms', type: 'send_sms', body: 'Hi {{firstName}}' },
+        { id: 'fin', type: 'end' },
+      ],
+      edges: [{ from: 'sms', to: 'fin' }],
+    };
+    const sendJourneySms = vi.fn(async () => ({ sent: 1 }));
+    const activities = makeV2Activities({
+      loadJourney: vi.fn(async () => ({
+        organizationId: 'org',
+        workspaceId: 'ws',
+        definition: smsDefinition,
+      })),
+      sendJourneySms,
+    } as Partial<JourneyActivities>);
+    await runV2(activities);
+    expect(sendJourneySms).toHaveBeenCalledWith('contact_2', 'Hi {{firstName}}');
+  });
+
+  it('messages the contact at a send_whatsapp node', async () => {
+    const whatsappDefinition = {
+      trigger: { type: 'event', event: 'Signed Up' },
+      startNodeId: 'wa',
+      nodes: [
+        { id: 'wa', type: 'send_whatsapp', body: 'Hi {{firstName}}' },
+        { id: 'fin', type: 'end' },
+      ],
+      edges: [{ from: 'wa', to: 'fin' }],
+    };
+    const sendJourneyWhatsApp = vi.fn(async () => ({ sent: 1 }));
+    const activities = makeV2Activities({
+      loadJourney: vi.fn(async () => ({
+        organizationId: 'org',
+        workspaceId: 'ws',
+        definition: whatsappDefinition,
+      })),
+      sendJourneyWhatsApp,
+    } as Partial<JourneyActivities>);
+    await runV2(activities);
+    expect(sendJourneyWhatsApp).toHaveBeenCalledWith('contact_2', 'Hi {{firstName}}');
+  });
+
+  it('queues an in-app message at a send_in_app node', async () => {
+    const inAppDefinition = {
+      trigger: { type: 'event', event: 'Signed Up' },
+      startNodeId: 'ia',
+      nodes: [
+        { id: 'ia', type: 'send_in_app', messageId: 'iam_1' },
+        { id: 'fin', type: 'end' },
+      ],
+      edges: [{ from: 'ia', to: 'fin' }],
+    };
+    const sendJourneyInApp = vi.fn(async () => ({ queued: 1 }));
+    const activities = makeV2Activities({
+      loadJourney: vi.fn(async () => ({
+        organizationId: 'org',
+        workspaceId: 'ws',
+        definition: inAppDefinition,
+      })),
+      sendJourneyInApp,
+    } as Partial<JourneyActivities>);
+    await runV2(activities);
+    expect(sendJourneyInApp).toHaveBeenCalledWith('contact_2', 'iam_1');
+  });
+
   it('defers the send while quiet hours are active (time-skipped)', async () => {
     const activities = makeV2Activities({
       sendGate: vi.fn(async () => 6 * 60 * 60 * 1000), // six-hour quiet window

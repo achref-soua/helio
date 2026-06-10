@@ -4,14 +4,19 @@ import { Button } from '@helio/ui/components/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@helio/ui/components/sheet';
 import { cn } from '@helio/ui/lib/utils';
 import {
+  AppWindow,
+  BarChart3,
   CalendarClock,
+  CircleHelp,
   FileText,
   Handshake,
   LayoutDashboard,
+  LayoutTemplate,
   ListTodo,
   Mail,
   Megaphone,
   Menu,
+  MousePointerClick,
   Route,
   Settings,
   Sparkles,
@@ -24,6 +29,8 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { HelpMenu } from '@/components/help-menu';
+import { ReportDialog } from '@/components/report-dialog';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { UserMenu } from '@/components/user-menu';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
@@ -35,11 +42,16 @@ const NAV_ITEMS = [
   { key: 'emails', href: '/emails', icon: Mail },
   { key: 'campaigns', href: '/campaigns', icon: Megaphone },
   { key: 'forms', href: '/forms', icon: FileText },
+  { key: 'landing', href: '/landing', icon: LayoutTemplate },
+  { key: 'widgets', href: '/widgets', icon: MousePointerClick },
+  { key: 'inApp', href: '/in-app', icon: AppWindow },
   { key: 'journeys', href: '/journeys', icon: Workflow },
+  { key: 'insights', href: '/insights', icon: BarChart3 },
   { key: 'deals', href: '/deals', icon: Handshake },
   { key: 'tasks', href: '/tasks', icon: ListTodo },
   { key: 'scheduling', href: '/scheduling', icon: CalendarClock },
   { key: 'copilot', href: '/copilot', icon: Sparkles },
+  { key: 'help', href: '/help', icon: CircleHelp },
   { key: 'settings', href: '/settings', icon: Settings },
 ] as const;
 
@@ -122,6 +134,8 @@ export function AppShell({ children, brand }: { children: React.ReactNode; brand
           </Sheet>
           <div className="ml-auto flex items-center gap-1">
             <WorkspaceSwitcher />
+            <HelpMenu />
+            <ReportDialog />
             <ThemeToggle />
             <UserMenu />
           </div>

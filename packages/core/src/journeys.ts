@@ -72,6 +72,27 @@ export const journeyNodeSchema = z.discriminatedUnion('type', [
     url: z.string().trim().url().max(2048).optional(),
     position: positionSchema.optional(),
   }),
+  z.object({
+    id: nodeIdSchema,
+    type: z.literal('send_sms'),
+    /** SMS body; supports {{token}} personalization. Up to ~10 segments. */
+    body: z.string().trim().min(1).max(1600),
+    position: positionSchema.optional(),
+  }),
+  z.object({
+    id: nodeIdSchema,
+    type: z.literal('send_whatsapp'),
+    /** WhatsApp text body; supports {{token}} personalization. */
+    body: z.string().trim().min(1).max(1024),
+    position: positionSchema.optional(),
+  }),
+  z.object({
+    id: nodeIdSchema,
+    type: z.literal('send_in_app'),
+    /** The InAppMessage whose content is queued for the contact. */
+    messageId: z.string().trim().min(1).max(64),
+    position: positionSchema.optional(),
+  }),
   z.object({ id: nodeIdSchema, type: z.literal('end'), position: positionSchema.optional() }),
 ]);
 export type JourneyNode = z.infer<typeof journeyNodeSchema>;

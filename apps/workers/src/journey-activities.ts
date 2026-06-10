@@ -9,6 +9,7 @@ import {
   openPixelUrl,
   type QuietHours,
   quietHoursDelayMs,
+  renderTokens,
   type SegmentCondition,
   type SegmentRule,
   sendTimeDelayMs,
@@ -20,6 +21,8 @@ import { renderEmail } from '@helio/emails';
 import type { ActivityConfig } from './activities';
 import type { EmailProvider } from './email-provider';
 import type { PushProvider } from './push-provider';
+import type { SmsProvider } from './sms-provider';
+import type { WhatsAppProvider } from './whatsapp-provider';
 
 export interface LoadedJourney {
   organizationId: string;
@@ -37,6 +40,8 @@ export function createJourneyActivities(
   provider: EmailProvider,
   config: ActivityConfig,
   pushProvider?: PushProvider,
+  smsProvider?: SmsProvider,
+  whatsappProvider?: WhatsAppProvider,
 ) {
   return {
     async loadJourney(journeyId: string): Promise<LoadedJourney> {
@@ -230,6 +235,71 @@ export function createJourneyActivities(
         }
       }
       return { sent };
+    },
+
+    /**
+     * Text a contact via the SMS provider. Skips contacts that are
+     * suppressed, have no phone number, or when no provider is configured.
+     * The body supports {{token}} personalization.
+     */
+    async sendJourneySms(contactId: string, body: string): Promise<{ sent: number }> {
+      const contact = await prisma.contact.findUnique({ where: { id: contactId } });
+      if (!contact || contact.status !== 'ACTIVE' || !contact.phone || !smsProvider) {
+        return { sent: 0 };
+      }
+      const rendered = renderTokens(body, {
+        email: contact.email,
+        firstName: contact.firstName,
+        lastName: contact.lastName,
+        attributes: (contact.attributes ?? {}) as Record<string, unknown>,
+      });
+      const result = await smsProvider.send(contact.phone, rendered);
+      return { sent: result === 'sent' ? 1 : 0 };
+    },
+
+    /**
+     * Message a contact on WhatsApp. Same suppression and personalization
+     * rules as SMS; no-ops when the channel is unconfigured.
+     */
+    async sendJourneyWhatsApp(contactId: string, body: string): Promise<{ sent: number }> {
+      const contact = await prisma.contact.findUnique({ where: { id: contactId } });
+      if (!contact || contact.status !== 'ACTIVE' || !contact.phone || !whatsappProvider) {
+        return { sent: 0 };
+      }
+      const rendered = renderTokens(body, {
+        email: contact.email,
+        firstName: contact.firstName,
+        lastName: contact.lastName,
+        attributes: (contact.attributes ?? {}) as Record<string, unknown>,
+      });
+      const result = await whatsappProvider.send(contact.phone, rendered);
+      return { sent: result === 'sent' ? 1 : 0 };
+    },
+
+    /**
+     * Queue an in-app message for a contact. The tracking SDK fetches unseen
+     * deliveries for the current identity and renders them. No external
+     * provider: delivery is a row the SDK drains. No-ops when the contact is
+     * suppressed or the message is missing/paused.
+     */
+    async sendJourneyInApp(contactId: string, messageId: string): Promise<{ queued: number }> {
+      const contact = await prisma.contact.findUnique({ where: { id: contactId } });
+      if (!contact || contact.status !== 'ACTIVE') return { queued: 0 };
+      const message = await prisma.inAppMessage.findFirst({
+        where: { id: messageId, workspaceId: contact.workspaceId, active: true },
+        select: { id: true },
+      });
+      if (!message) return { queued: 0 };
+      await prisma.inAppDelivery.create({
+        data: {
+          id: newId('iad'),
+          organizationId: contact.organizationId,
+          workspaceId: contact.workspaceId,
+          messageId: message.id,
+          contactId,
+        },
+      });
+      return { queued: 1 };
     },
 
     async completeRun(runId: string): Promise<void> {

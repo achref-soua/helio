@@ -4,6 +4,7 @@ import { type AvailabilityRule, availableSlots, contactEmailSchema, newId } from
 import { redirect } from 'next/navigation';
 
 import { authDb } from '@/lib/auth';
+import { checkPublicRateLimit } from '@/lib/public-rate-limit';
 
 const BOOKING_WINDOW_DAYS = 14;
 
@@ -21,6 +22,9 @@ export async function bookMeeting(formData: FormData): Promise<void> {
   const name = String(formData.get('name') ?? '').trim();
 
   const back = (reason: string) => `/m/${encodeURIComponent(pageId)}?error=${reason}`;
+
+  const limit = await checkPublicRateLimit('booking');
+  if (!limit.allowed) redirect(back('unavailable'));
 
   const page = await authDb.bookingPage.findUnique({ where: { id: pageId } });
   if (!page || !page.enabled) redirect(back('unavailable'));

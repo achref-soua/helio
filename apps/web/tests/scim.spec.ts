@@ -15,7 +15,9 @@ test('mint a SCIM token and drive provisioning through /scim/v2', async ({ page,
   const token = (await page.getByTestId('scim-token').textContent())?.trim();
   expect(token).toMatch(/^scim_/);
   await page.getByRole('button', { name: 'Done' }).click();
-  await expect(page.getByTestId('scim-configured')).toBeVisible();
+  // The badge waits on a status refetch; a cold dev server compiling routes
+  // on demand can push that round-trip past the default expect timeout.
+  await expect(page.getByTestId('scim-configured')).toBeVisible({ timeout: 15_000 });
 
   const auth = { Authorization: `Bearer ${token}` };
 

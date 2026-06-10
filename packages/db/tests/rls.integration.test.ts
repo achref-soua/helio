@@ -302,6 +302,143 @@ describe('row-level security tenant isolation', () => {
     expect(await tenantA.integration.count()).toBe(1);
   });
 
+  it('support tickets are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const ticketId = newId('tkt');
+    await tenantA.supportTicket.create({
+      data: { id: ticketId, organizationId: orgA.id, subject: 'Broken', body: 'It broke' },
+    });
+
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.supportTicket.count()).toBe(0);
+    expect(await tenantB.supportTicket.findUnique({ where: { id: ticketId } })).toBeNull();
+    await expect(
+      tenantB.supportTicket.create({
+        data: { id: newId('tkt'), organizationId: orgA.id, subject: 'X', body: 'Y' },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.supportTicket.count()).toBe(1);
+  });
+
+  it('sending domains (and their DKIM private keys) are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const domainId = newId('dom');
+    await tenantA.sendingDomain.create({
+      data: {
+        id: domainId,
+        organizationId: orgA.id,
+        workspaceId: workspaceA,
+        domain: 'mail.a.example',
+        dkimPublicKey: 'PUB',
+        dkimPrivateKey: 'PRIV',
+      },
+    });
+
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.sendingDomain.count()).toBe(0);
+    expect(await tenantB.sendingDomain.findUnique({ where: { id: domainId } })).toBeNull();
+    await expect(
+      tenantB.sendingDomain.create({
+        data: {
+          id: newId('dom'),
+          organizationId: orgA.id,
+          workspaceId: workspaceA,
+          domain: 'smuggled.example',
+          dkimPublicKey: 'P',
+          dkimPrivateKey: 'P',
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.sendingDomain.count()).toBe(1);
+  });
+
+  it('landing pages are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const pageId = newId('lp');
+    await tenantA.landingPage.create({
+      data: { id: pageId, organizationId: orgA.id, workspaceId: workspaceA, title: 'Launch' },
+    });
+
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.landingPage.count()).toBe(0);
+    expect(await tenantB.landingPage.findUnique({ where: { id: pageId } })).toBeNull();
+    await expect(
+      tenantB.landingPage.create({
+        data: { id: newId('lp'), organizationId: orgA.id, workspaceId: workspaceA, title: 'X' },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.landingPage.count()).toBe(1);
+  });
+
+  it('on-site widgets are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const widgetId = newId('wgt');
+    await tenantA.widget.create({
+      data: {
+        id: widgetId,
+        organizationId: orgA.id,
+        workspaceId: workspaceA,
+        name: 'Sale',
+        title: '20% off',
+        body: 'Today only',
+      },
+    });
+
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.widget.count()).toBe(0);
+    expect(await tenantB.widget.findUnique({ where: { id: widgetId } })).toBeNull();
+    await expect(
+      tenantB.widget.create({
+        data: {
+          id: newId('wgt'),
+          organizationId: orgA.id,
+          workspaceId: workspaceA,
+          name: 'X',
+          title: 'X',
+          body: 'X',
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.widget.count()).toBe(1);
+  });
+
+  it('in-app messages are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const messageId = newId('iam');
+    await tenantA.inAppMessage.create({
+      data: {
+        id: messageId,
+        organizationId: orgA.id,
+        workspaceId: workspaceA,
+        name: 'Welcome',
+        title: 'Welcome aboard',
+        body: 'Glad you’re here',
+      },
+    });
+
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.inAppMessage.count()).toBe(0);
+    expect(await tenantB.inAppMessage.findUnique({ where: { id: messageId } })).toBeNull();
+    await expect(
+      tenantB.inAppMessage.create({
+        data: {
+          id: newId('iam'),
+          organizationId: orgA.id,
+          workspaceId: workspaceA,
+          name: 'X',
+          title: 'X',
+          body: 'X',
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.inAppMessage.count()).toBe(1);
+  });
+
   it('subscriptions are tenant-isolated', async () => {
     await forTenant(app, orgA.id).subscription.create({
       data: { id: newId('sub'), organizationId: orgA.id, plan: 'PRO' },

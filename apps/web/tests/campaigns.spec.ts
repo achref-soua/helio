@@ -6,6 +6,8 @@ import { mintUnsubscribeToken } from '@helio/core';
 import { expect, test } from '@playwright/test';
 import { Client } from 'pg';
 
+import { pickOption } from './select';
+
 test.describe.configure({ mode: 'serial' });
 
 let unsubscribeContactId: string;
@@ -64,8 +66,8 @@ test('create a campaign from a template and a segment', async ({ page }) => {
   await page.goto('/campaigns');
   await page.getByRole('button', { name: 'New campaign' }).click();
   await page.getByLabel('Name').fill('Product launch');
-  await page.getByLabel('Template').selectOption({ label: 'Launch email' });
-  await page.getByLabel('Audience').selectOption({ label: 'Segment: Everyone active' });
+  await pickOption(page.getByLabel('Template'), 'Launch email');
+  await pickOption(page.getByLabel('Audience'), 'Segment: Everyone active');
   await page.getByRole('button', { name: 'Create campaign', exact: true }).click();
   await expect(page.getByText('Campaign created')).toBeVisible();
 
@@ -80,8 +82,8 @@ test('A/B campaigns carry the badge and variant subject', async ({ page }) => {
   await page.goto('/campaigns');
   await page.getByRole('button', { name: 'New campaign' }).click();
   await page.getByLabel('Name').fill('Subject duel');
-  await page.getByLabel('Template').selectOption({ label: 'Launch email' });
-  await page.getByLabel('Audience').selectOption({ label: 'Segment: Everyone active' });
+  await pickOption(page.getByLabel('Template'), 'Launch email');
+  await pickOption(page.getByLabel('Audience'), 'Segment: Everyone active');
   await page.getByLabel('Subject B (optional A/B test)').fill('The other subject');
   // The auto-winner toggle only appears once a Subject B exists.
   await expect(page.getByTestId('campaign-auto-winner')).toBeVisible();

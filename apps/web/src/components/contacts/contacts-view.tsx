@@ -33,7 +33,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { Gauge, ListPlus, MoreHorizontal, Plus, Sparkles, Upload } from 'lucide-react';
+import { Download, Gauge, ListPlus, MoreHorizontal, Plus, Sparkles, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useDeferredValue, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -96,6 +96,48 @@ export function ContactsView() {
   // queryKey() would stamp `type: 'query'` and miss the infinite table.
   const invalidateContacts = () => queryClient.invalidateQueries(trpc.contact.list.pathFilter());
   const invalidateLists = () => queryClient.invalidateQueries(trpc.contactList.list.pathFilter());
+
+  function downloadBlob(content: string, type: string, filename: string) {
+    const url = URL.createObjectURL(new Blob([content], { type }));
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function onExportCsv() {
+    try {
+      const result = await queryClient.fetchQuery(
+        trpc.contact.exportCsv.queryOptions({
+          workspaceId: workspaceId ?? '',
+          search: deferredSearch || undefined,
+          listId: listId ?? undefined,
+        }),
+      );
+      downloadBlob(result.csv, 'text/csv;charset=utf-8', 'helio-contacts.csv');
+      toast.success(t('export.done', { count: result.count }));
+      if (result.truncated) toast.info(t('export.truncated'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('export.failed'));
+    }
+  }
+
+  async function onExportData(contactId: string) {
+    try {
+      const bundle = await queryClient.fetchQuery(
+        trpc.contact.dataExport.queryOptions({ id: contactId }),
+      );
+      downloadBlob(
+        JSON.stringify(bundle, null, 2),
+        'application/json',
+        `helio-contact-${contactId}.json`,
+      );
+      toast.success(t('export.dataDone'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('export.failed'));
+    }
+  }
 
   const deleteContact = useMutation(trpc.contact.delete.mutationOptions());
   const addMembers = useMutation(trpc.contactList.addMembers.mutationOptions());
@@ -187,6 +229,12 @@ export function ContactsView() {
               <DropdownMenuItem onClick={() => setEditing(row.original)}>
                 {t('editAction')}
               </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onExportData(row.original.id)}
+                data-testid="export-contact-data"
+              >
+                {t('export.dataAction')}
+              </DropdownMenuItem>
               {listId && (
                 <DropdownMenuItem
                   onClick={async () => {
@@ -258,7 +306,7 @@ export function ContactsView() {
         <Badge variant="outline" data-testid="contacts-total">
           {t('total', { count: total })}
         </Badge>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -270,6 +318,9 @@ export function ContactsView() {
           </Button>
           <Button variant="outline" size="sm" onClick={() => setScoringOpen(true)}>
             <Gauge aria-hidden /> {t('scoring.manageAction')}
+          </Button>
+          <Button variant="outline" size="sm" onClick={onExportCsv} data-testid="export-contacts">
+            <Download aria-hidden /> {t('export.action')}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Upload aria-hidden /> {t('importAction')}

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
@@ -45,7 +46,18 @@ def create_scoring_router() -> APIRouter:
         request: RecomputeRequest,
         service: Annotated[ScoringService, Depends(get_scoring_service)],
     ) -> RecomputeResponse:
-        result = await service.recompute(request.organization_id, request.workspace_id)
+        try:
+            result = await service.recompute(request.organization_id, request.workspace_id)
+        except httpx.HTTPError as error:
+            # Configured-but-unreachable analytics store is an operational
+            # state, not a crash: tell the operator what to start.
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "the analytics store (ClickHouse) is unreachable — "
+                    "start the full stack (task up:full) and retry"
+                ),
+            ) from error
         return RecomputeResponse(
             scored=result.scored,
             conversion_method=result.conversion_method,

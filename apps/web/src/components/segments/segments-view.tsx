@@ -14,6 +14,7 @@ import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
 import { Skeleton } from '@helio/ui/components/skeleton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { TRPCClientError } from '@trpc/client';
 import { Plus, Trash2, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -93,6 +94,11 @@ export function SegmentsView() {
       { placeholderData: (previous) => previous },
     ),
     enabled: !!workspaceId && editorOpen && rule !== null,
+    // Preconditions (analytics store offline, set too large) are stable
+    // answers, not transient faults — retrying only delays the message.
+    retry: (failureCount, error) =>
+      failureCount < 2 &&
+      !(error instanceof TRPCClientError && error.data?.code === 'PRECONDITION_FAILED'),
   });
 
   const createSegment = useMutation(trpc.segment.create.mutationOptions());
@@ -208,14 +214,19 @@ export function SegmentsView() {
               <Users className="size-4" aria-hidden />
               {rule === null
                 ? t('previewIncomplete')
-                : previewQuery.data
-                  ? t('previewCount', { count: previewQuery.data.count })
-                  : t('previewLoading')}
-              {previewQuery.data && previewQuery.data.sample.length > 0 && rule !== null && (
-                <span className="truncate">
-                  — {previewQuery.data.sample.map((contact) => contact.email).join(', ')}
-                </span>
-              )}
+                : previewQuery.error
+                  ? previewQuery.error.message
+                  : previewQuery.data
+                    ? t('previewCount', { count: previewQuery.data.count })
+                    : t('previewLoading')}
+              {!previewQuery.error &&
+                previewQuery.data &&
+                previewQuery.data.sample.length > 0 &&
+                rule !== null && (
+                  <span className="truncate">
+                    — {previewQuery.data.sample.map((contact) => contact.email).join(', ')}
+                  </span>
+                )}
             </div>
 
             <div className="flex gap-2">

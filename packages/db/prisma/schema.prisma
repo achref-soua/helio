@@ -54,6 +54,12 @@ model Organization {
   bookingPages      BookingPage[]
   meetings          Meeting[]
   integrations      Integration[]
+  supportTickets    SupportTicket[]
+  sendingDomains    SendingDomain[]
+  landingPages      LandingPage[]
+  widgets           Widget[]
+  inAppMessages     InAppMessage[]
+  inAppDeliveries   InAppDelivery[]
 
   @@map("organization")
 }
@@ -108,6 +114,11 @@ model Workspace {
   bookingPages      BookingPage[]
   meetings          Meeting[]
   integrations      Integration[]
+  sendingDomains    SendingDomain[]
+  landingPages      LandingPage[]
+  widgets           Widget[]
+  inAppMessages     InAppMessage[]
+  inAppDeliveries   InAppDelivery[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -152,6 +163,8 @@ model Contact {
   organizationId        String        @map("organization_id")
   workspaceId           String        @map("workspace_id")
   email                 String
+  /// E.164 phone number for SMS/WhatsApp; null when unknown.
+  phone                 String?
   firstName             String?       @map("first_name")
   lastName              String?       @map("last_name")
   attributes            Json          @default("{}")
@@ -182,10 +195,13 @@ model Contact {
   deals             Deal[]
   tasks             Task[]
   meetings          Meeting[]
+  inAppDeliveries   InAppDelivery[]
 
   @@unique([workspaceId, email])
   @@index([organizationId])
   @@index([workspaceId, createdAt])
+  /// Bounce/complaint webhooks look an address up across all workspaces.
+  @@index([email])
   @@map("contact")
 }
 
@@ -611,6 +627,10 @@ model TwoFactor {
   secret      String
   backupCodes String @map("backup_codes")
   userId      String @map("user_id")
+  /// False between enrollment and the first successful TOTP verification —
+  /// Better-Auth 1.6 only activates 2FA once a code proves the enrollment.
+  /// Defaults true so any pre-1.6 row keeps working.
+  verified    Boolean @default(true)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -989,4 +1009,176 @@ model Integration {
   @@unique([provider, externalId])
   @@index([organizationId])
   @@map("integration")
+}
+
+enum SupportKind {
+  BUG
+  FEEDBACK
+  QUESTION
+
+  @@map("support_kind")
+}
+
+enum SupportStatus {
+  OPEN
+  RESOLVED
+
+  @@map("support_status")
+}
+
+/// A support / bug report filed from inside the app. Org-scoped and isolated
+/// by the standard RLS policy; admins triage and resolve them.
+model SupportTicket {
+  id             String        @id
+  organizationId String        @map("organization_id")
+  /// The reporting member's auth user id.
+  reporterId     String?       @map("reporter_id")
+  kind           SupportKind   @default(BUG)
+  subject        String
+  body           String
+  /// The page the report was filed from, captured for context.
+  url            String?
+  status         SupportStatus @default(OPEN)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status])
+  @@map("support_ticket")
+}
+
+enum DomainStatus {
+  PENDING
+  VERIFIED
+
+  @@map("domain_status")
+}
+
+/// A sending domain in the deliverability wizard. Helio generates the DKIM
+/// key pair on add; the operator publishes the SPF/DKIM/DMARC records and
+/// verifies them by DNS lookup. Workspace-scoped and RLS-isolated.
+model SendingDomain {
+  id             String       @id
+  organizationId String       @map("organization_id")
+  workspaceId    String       @map("workspace_id")
+  domain         String
+  dkimSelector   String       @default("helio") @map("dkim_selector")
+  /// Base64 DER of the DKIM public key (published in DNS).
+  dkimPublicKey  String       @map("dkim_public_key")
+  /// PEM private key used to sign outgoing mail; never leaves the server.
+  dkimPrivateKey String       @map("dkim_private_key")
+  /// SPF include for the sending provider (e.g. amazonses.com).
+  spfInclude     String?      @map("spf_include")
+  status         DomainStatus @default(PENDING)
+  verifiedAt     DateTime?    @map("verified_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, domain])
+  @@index([organizationId])
+  @@map("sending_domain")
+}
+
+/// A hosted, block-based landing page. Public at /p/<id> when published;
+/// a form block captures contacts into the page's workspace. Workspace-
+/// scoped and isolated by the standard RLS policy.
+model LandingPage {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  title          String
+  /// Ordered blocks — see @helio/core landingDocumentSchema.
+  blocks         Json     @default("[]")
+  published      Boolean  @default(false)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([workspaceId])
+  @@map("landing_page")
+}
+
+enum WidgetType {
+  BANNER
+  POPUP
+
+  @@map("widget_type")
+}
+
+/// An on-site widget (banner or popup) served to a visitor's browser by the
+/// public embed, keyed off the workspace write key. Workspace-scoped and
+/// isolated by the standard RLS policy.
+model Widget {
+  id             String     @id
+  organizationId String     @map("organization_id")
+  workspaceId    String     @map("workspace_id")
+  name           String
+  type           WidgetType @default(BANNER)
+  title          String
+  body           String
+  ctaLabel       String?    @map("cta_label")
+  ctaUrl         String?    @map("cta_url")
+  active         Boolean    @default(false)
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([workspaceId, active])
+  @@map("widget")
+}
+
+/// In-app message content shown inside the customer's own product to
+/// identified visitors. Journeys queue a per-contact InAppDelivery; the
+/// tracking SDK fetches unseen deliveries for the current identity.
+model InAppMessage {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  name           String
+  title          String
+  body           String
+  ctaLabel       String?  @map("cta_label")
+  ctaUrl         String?  @map("cta_url")
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  deliveries   InAppDelivery[]
+
+  @@index([organizationId])
+  @@index([workspaceId, active])
+  @@map("in_app_message")
+}
+
+/// One queued in-app message for one contact. Created when a journey hits a
+/// send_in_app node; cleared (seenAt set) when the SDK reports it displayed.
+model InAppDelivery {
+  id             String    @id
+  organizationId String    @map("organization_id")
+  workspaceId    String    @map("workspace_id")
+  messageId      String    @map("message_id")
+  contactId      String    @map("contact_id")
+  seenAt         DateTime? @map("seen_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  message      InAppMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  contact      Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([contactId, seenAt])
+  @@map("in_app_delivery")
 }

@@ -97,6 +97,18 @@ export async function journeyRunWorkflow(input: JourneyRunInput): Promise<{ step
           });
           currentId = nextNodeId(definition, node.id);
           break;
+        case 'send_sms':
+          await activities.sendJourneySms(input.contactId, node.body);
+          currentId = nextNodeId(definition, node.id);
+          break;
+        case 'send_whatsapp':
+          await activities.sendJourneyWhatsApp(input.contactId, node.body);
+          currentId = nextNodeId(definition, node.id);
+          break;
+        case 'send_in_app':
+          await activities.sendJourneyInApp(input.contactId, node.messageId);
+          currentId = nextNodeId(definition, node.id);
+          break;
         case 'end':
           currentId = null;
           break;

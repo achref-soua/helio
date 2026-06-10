@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { newId, verifyClickTarget } from '@helio/core';
 import { Hono } from 'hono';
+import { secureHeaders } from 'hono/secure-headers';
 import { pino } from 'pino';
 
 import { metricsRegistry, pixelServed, redirectsServed, trackingRejected } from './observability';
@@ -62,6 +63,10 @@ export function createApp(deps: TrackingDeps) {
       'request',
     );
   });
+
+  // The open pixel is embedded cross-origin by mail clients, so this
+  // service must not send Cross-Origin-Resource-Policy: same-origin.
+  app.use('*', secureHeaders({ crossOriginResourcePolicy: false }));
 
   app.get('/healthz', (c) => c.json({ status: 'ok', service: 'tracking' }));
 

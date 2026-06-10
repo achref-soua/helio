@@ -9,23 +9,27 @@ import type { GatewayDeps, RedisLike } from '../src/types';
 const SECRET = 'whsec_test';
 const PRICE_PRO = 'price_pro_123';
 
-/** A Prisma stub capturing subscription upserts and a findFirst result. */
-function fakePrisma(existingByCustomer: { organizationId: string } | null = null) {
+/** A Prisma stub capturing subscription upserts and the resolver lookup. */
+function fakePrisma(orgByCustomer: string | null = null) {
   const upserts: Array<{
     where: unknown;
     create: Record<string, unknown>;
     update: Record<string, unknown>;
   }> = [];
-  const prisma = {
+  const prisma: Record<string, unknown> = {
+    // The customer→org lookup runs through the SECURITY DEFINER webhook
+    // resolver, i.e. raw SQL (ADR-0017).
+    $queryRaw: vi.fn().mockResolvedValue([{ organizationId: orgByCustomer }]),
     subscription: {
-      findFirst: vi.fn().mockResolvedValue(existingByCustomer),
       upsert: vi.fn(async (args: (typeof upserts)[number]) => {
         upserts.push(args);
         return {};
       }),
     },
-  } as never;
-  return { prisma, upserts };
+  };
+  // forTenant() extends the client; the stub hands back itself.
+  prisma.$extends = () => prisma;
+  return { prisma: prisma as never, upserts };
 }
 
 const priceToPlan = { [PRICE_PRO]: 'PRO' as const };
@@ -57,7 +61,7 @@ describe('handleStripeEvent', () => {
   });
 
   it('resolves the org by Stripe customer when metadata is absent', async () => {
-    const { prisma, upserts } = fakePrisma({ organizationId: 'org_byCustomer' });
+    const { prisma, upserts } = fakePrisma('org_byCustomer');
     const result = await handleStripeEvent(
       prisma,
       {

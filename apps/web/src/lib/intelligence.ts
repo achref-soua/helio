@@ -26,9 +26,17 @@ async function call<T>(path: string, body: unknown): Promise<T> {
     });
   }
   if (response.status === 503) {
+    // The service says exactly what is missing (key, database, analytics
+    // store); show that instead of a one-size-fits-all guess.
+    const detail = await response
+      .json()
+      .then((b: { detail?: string }) => b.detail)
+      .catch(() => undefined);
     throw new TRPCError({
       code: 'PRECONDITION_FAILED',
-      message: 'The AI copilot is not configured — set INTEL_LLM_API_KEY and INTEL_DATABASE_URL.',
+      message: detail
+        ? `The AI service is not ready: ${detail}.`
+        : 'The AI copilot is not configured — set INTEL_LLM_API_KEY and INTEL_DATABASE_URL.',
     });
   }
   if (response.status === 422) {

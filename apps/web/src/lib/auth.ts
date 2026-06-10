@@ -27,6 +27,22 @@ export const auth = betterAuth({
   baseURL: env.APP_URL,
   secret: env.BETTER_AUTH_SECRET,
   database: prismaAdapter(prisma, { provider: 'postgresql' }),
+  // Brute-force damping on the auth surface (active in production, like the
+  // rest of Better-Auth's limiter; in-memory, so per replica). The global
+  // budget stays roomy for session/organization chatter behind a corporate
+  // NAT; the credential endpoints — the actual guessing targets — get tight
+  // ones.
+  rateLimit: {
+    window: 60,
+    max: 120,
+    customRules: {
+      '/sign-in/email': { window: 60, max: 10 },
+      '/sign-up/email': { window: 60, max: 10 },
+      '/forget-password': { window: 300, max: 5 },
+      '/two-factor/verify-totp': { window: 60, max: 10 },
+      '/two-factor/verify-backup-code': { window: 60, max: 10 },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,

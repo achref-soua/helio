@@ -9,12 +9,26 @@ export interface HelioClientOptions {
   writeKey: string;
   /** Ingestion origin, e.g. https://ingest.example.com */
   host: string;
+  /**
+   * Helio app origin, e.g. https://app.example.com — only needed to fetch
+   * in-app messages with inApp(). Defaults to empty (in-app disabled).
+   */
+  appHost?: string;
   /** Flush when this many events are queued. Default 20. */
   flushAt?: number;
   /** Flush at least this often while events are queued (ms). Default 5000. */
   flushIntervalMs?: number;
   /** Queue hard cap; oldest events drop beyond it. Default 1000. */
   maxQueueSize?: number;
+}
+
+/** One in-app message returned by inApp(), keyed by its delivery id. */
+export interface InAppMessage {
+  deliveryId: string;
+  title: string;
+  body: string;
+  ctaLabel: string | null;
+  ctaUrl: string | null;
 }
 
 interface QueuedEvent {
@@ -35,6 +49,7 @@ export const SDK_VERSION = '0.1.0';
 
 const ANONYMOUS_ID_KEY = 'helio_anonymous_id';
 const USER_ID_KEY = 'helio_user_id';
+const CONTACT_EMAIL_KEY = 'helio_contact_email';
 
 function hasWindow(): boolean {
   return typeof window !== 'undefined' && typeof document !== 'undefined';
@@ -91,6 +106,7 @@ export class HelioClient {
       maxQueueSize: 1_000,
       ...options,
       host: options.host.replace(/\/+$/, ''),
+      appHost: (options.appHost ?? '').replace(/\/+$/, ''),
     };
 
     if (hasWindow()) {
@@ -125,7 +141,17 @@ export class HelioClient {
 
   identify(userId: string, traits?: Record<string, unknown>): void {
     this.storage.setItem(USER_ID_KEY, userId);
+    // Remember the email so in-app messages can resolve the contact, which is
+    // keyed by email server-side.
+    if (typeof traits?.email === 'string' && traits.email) {
+      this.storage.setItem(CONTACT_EMAIL_KEY, traits.email);
+    }
     this.enqueue({ type: 'identify', userId, traits });
+  }
+
+  /** The identified contact's email, when identify() carried one. */
+  contactEmail(): string | null {
+    return this.storage.getItem(CONTACT_EMAIL_KEY);
   }
 
   page(name?: string, properties?: Record<string, unknown>): void {
@@ -135,6 +161,40 @@ export class HelioClient {
   /** Forget identity (logout) without losing the device's anonymous id. */
   reset(): void {
     this.storage.removeItem(USER_ID_KEY);
+    this.storage.removeItem(CONTACT_EMAIL_KEY);
+  }
+
+  /**
+   * Fetch the identified contact's unseen in-app messages. Returns [] when
+   * no appHost is configured, no contact email is known, or the request
+   * fails — callers render whatever comes back and report them seen.
+   */
+  async inApp(): Promise<InAppMessage[]> {
+    const email = this.contactEmail();
+    if (!this.options.appHost || !email) return [];
+    try {
+      const params = new URLSearchParams({ key: this.options.writeKey, email });
+      const response = await fetch(`${this.options.appHost}/api/inapp?${params.toString()}`);
+      if (!response.ok) return [];
+      const data = (await response.json()) as { messages?: InAppMessage[] };
+      return data.messages ?? [];
+    } catch {
+      return [];
+    }
+  }
+
+  /** Report in-app messages as displayed so they are not served again. */
+  async markInAppSeen(deliveryIds: string[]): Promise<void> {
+    if (!this.options.appHost || deliveryIds.length === 0) return;
+    try {
+      await fetch(`${this.options.appHost}/api/inapp`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ key: this.options.writeKey, deliveryIds }),
+      });
+    } catch {
+      /* best effort; they will be re-served next poll */
+    }
   }
 
   /**

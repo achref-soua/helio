@@ -60,6 +60,7 @@ export function ContactDialog({
         await create.mutateAsync({
           workspaceId,
           email: String(form.get('email')),
+          phone: String(form.get('phone') ?? '').trim() || undefined,
           ...fields,
           attributes: {},
         });
@@ -101,6 +102,12 @@ export function ContactDialog({
               <Input id="contact-last" name="lastName" defaultValue={editing?.lastName ?? ''} />
             </div>
           </div>
+          {!editing && (
+            <div className="grid gap-2">
+              <Label htmlFor="contact-phone">{t('phone')}</Label>
+              <Input id="contact-phone" name="phone" type="tel" placeholder="+15555550100" />
+            </div>
+          )}
           <DialogFooter>
             <Button type="submit" disabled={pending}>
               {pending ? t('working') : editing ? t('saveAction') : t('createAction')}

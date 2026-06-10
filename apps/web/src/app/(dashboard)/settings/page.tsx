@@ -7,10 +7,13 @@ import { auth } from '@/lib/auth';
 import { ApiKeysPanel } from './api-keys-panel';
 import { BillingPanel } from './billing-panel';
 import { BrandingPanel } from './branding-panel';
+import { DeliverabilityPanel } from './deliverability-panel';
 import { IntegrationsPanel } from './integrations-panel';
 import { MembersPanel } from './members-panel';
 import { ScimPanel } from './scim-panel';
+import { SecurityPanel } from './security-panel';
 import { SsoPanel } from './sso-panel';
+import { SupportPanel } from './support-panel';
 import { WebhooksPanel } from './webhooks-panel';
 
 export default async function SettingsPage() {
@@ -27,7 +30,10 @@ export default async function SettingsPage() {
   const me = organization.members.find((member) => member.userId === session.user.id);
 
   return (
-    <div className="grid max-w-3xl gap-6">
+    // grid-cols-1 pins the track to minmax(0,1fr): without it the track
+    // sizes to the widest card's min-content and narrow phones scroll
+    // sideways.
+    <div className="grid max-w-3xl grid-cols-1 gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground text-sm">{t('subtitle', { org: organization.name })}</p>
@@ -48,6 +54,7 @@ export default async function SettingsPage() {
           }))}
         canManage={me?.role === 'owner' || me?.role === 'admin'}
       />
+      <SecurityPanel />
       <BillingPanel />
       {(me?.role === 'owner' || me?.role === 'admin') && (
         <>
@@ -57,6 +64,8 @@ export default async function SettingsPage() {
           <WebhooksPanel canManage />
           <IntegrationsPanel canManage />
           <BrandingPanel canManage />
+          <DeliverabilityPanel canManage />
+          <SupportPanel canManage />
         </>
       )}
     </div>

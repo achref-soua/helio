@@ -8,15 +8,20 @@ import { contactRouter } from './contact';
 import { contactListRouter } from './contact-list';
 import { copilotRouter } from './copilot';
 import { crmRouter } from './crm';
+import { deliverabilityRouter } from './deliverability';
 import { emailTemplateRouter } from './email-template';
 import { formRouter } from './form';
+import { inAppMessageRouter } from './inAppMessage';
 import { integrationsRouter } from './integrations';
 import { journeyRouter } from './journey';
+import { landingRouter } from './landing';
 import { schedulingRouter } from './scheduling';
 import { scoringRouter } from './scoring';
 import { segmentRouter } from './segment';
 import { ssoRouter } from './sso';
+import { supportRouter } from './support';
 import { webhookRouter } from './webhook';
+import { widgetRouter } from './widget';
 import { workspaceRouter } from './workspace';
 
 export const appRouter = router({
@@ -35,6 +40,7 @@ export const appRouter = router({
   analytics: analyticsRouter,
   copilot: copilotRouter,
   form: formRouter,
+  landing: landingRouter,
   scoring: scoringRouter,
   scheduling: schedulingRouter,
   crm: crmRouter,
@@ -44,6 +50,10 @@ export const appRouter = router({
   webhook: webhookRouter,
   branding: brandingRouter,
   integrations: integrationsRouter,
+  support: supportRouter,
+  deliverability: deliverabilityRouter,
+  widget: widgetRouter,
+  inAppMessage: inAppMessageRouter,
 });
 
 export type AppRouter = typeof appRouter;

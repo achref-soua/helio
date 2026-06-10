@@ -1,5 +1,6 @@
 /* eslint-disable no-console -- process entrypoint logs its bind address */
 import { KafkaEventProducer } from '@helio/bus';
+import { registerShutdown } from '@helio/core';
 import { createPrismaClient } from '@helio/db';
 import { serve } from '@hono/node-server';
 
@@ -27,6 +28,23 @@ const app = createApp({
   },
 });
 
-serve({ fetch: app.fetch, port: env.TRACKING_PORT }, (info) => {
+const server = serve({ fetch: app.fetch, port: env.TRACKING_PORT }, (info) => {
   console.log(`helio tracking listening on :${info.port}`);
+});
+
+// Stop intake, flush the engagement-event producer, release Postgres.
+registerShutdown({
+  log: console.log,
+  tasks: [
+    {
+      name: 'http',
+      run: () =>
+        new Promise<void>((resolve) => {
+          server.close(() => resolve());
+          if ('closeIdleConnections' in server) server.closeIdleConnections();
+        }),
+    },
+    { name: 'producer', run: () => producer.disconnect() },
+    { name: 'postgres', run: () => prisma.$disconnect() },
+  ],
 });

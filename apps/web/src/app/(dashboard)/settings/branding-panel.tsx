@@ -10,6 +10,7 @@ import {
 } from '@helio/ui/components/card';
 import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
+import { Skeleton } from '@helio/ui/components/skeleton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Palette } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -72,61 +73,72 @@ export function BrandingPanel({ canManage }: { canManage: boolean }) {
         <CardDescription>{t('subtitle')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={onSave} className="grid max-w-md gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="brand-name">{t('name')}</Label>
-            <Input
-              id="brand-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder={branding.data?.name ?? 'Helio'}
-              maxLength={60}
-              disabled={!canManage}
-              data-testid="brand-name"
-            />
+        {canManage && branding.isPending ? (
+          // Render the form only after its seed data arrives: a form that
+          // appears early invites typing that the late seed would clobber
+          // (worst case silently saving null over the user's new name).
+          <div className="grid max-w-md gap-4" data-testid="branding-loading">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-2/3" />
+            <Skeleton className="h-9 w-full" />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="brand-color">{t('color')}</Label>
-            <div className="flex items-center gap-3">
-              <input
-                id="brand-color"
-                type="color"
-                value={color || DEFAULT_ACCENT}
-                onChange={(event) => setColor(event.target.value)}
+        ) : (
+          <form onSubmit={onSave} className="grid max-w-md gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="brand-name">{t('name')}</Label>
+              <Input
+                id="brand-name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder={branding.data?.name ?? 'Helio'}
+                maxLength={60}
                 disabled={!canManage}
-                className="h-9 w-14 cursor-pointer rounded-md border bg-transparent"
-                data-testid="brand-color"
-                aria-label={t('color')}
+                data-testid="brand-name"
               />
-              <code className="text-muted-foreground text-xs">{color || t('default')}</code>
-              {color && canManage && (
-                <Button type="button" variant="ghost" size="sm" onClick={() => setColor('')}>
-                  {t('reset')}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="brand-color">{t('color')}</Label>
+              <div className="flex items-center gap-3">
+                <input
+                  id="brand-color"
+                  type="color"
+                  value={color || DEFAULT_ACCENT}
+                  onChange={(event) => setColor(event.target.value)}
+                  disabled={!canManage}
+                  className="h-9 w-14 cursor-pointer rounded-md border bg-transparent"
+                  data-testid="brand-color"
+                  aria-label={t('color')}
+                />
+                <code className="text-muted-foreground text-xs">{color || t('default')}</code>
+                {color && canManage && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setColor('')}>
+                    {t('reset')}
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="brand-logo">{t('logo')}</Label>
+              <Input
+                id="brand-logo"
+                type="url"
+                value={logo}
+                onChange={(event) => setLogo(event.target.value)}
+                placeholder="https://cdn.example.com/logo.png"
+                maxLength={2000}
+                disabled={!canManage}
+                data-testid="brand-logo"
+              />
+            </div>
+            {canManage && (
+              <div>
+                <Button type="submit" disabled={update.isPending} data-testid="brand-save">
+                  {update.isPending ? t('saving') : t('save')}
                 </Button>
-              )}
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="brand-logo">{t('logo')}</Label>
-            <Input
-              id="brand-logo"
-              type="url"
-              value={logo}
-              onChange={(event) => setLogo(event.target.value)}
-              placeholder="https://cdn.example.com/logo.png"
-              maxLength={2000}
-              disabled={!canManage}
-              data-testid="brand-logo"
-            />
-          </div>
-          {canManage && (
-            <div>
-              <Button type="submit" disabled={update.isPending} data-testid="brand-save">
-                {update.isPending ? t('saving') : t('save')}
-              </Button>
-            </div>
-          )}
-        </form>
+              </div>
+            )}
+          </form>
+        )}
       </CardContent>
     </Card>
   );

@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from helio_intelligence.agent.email_schema import validate_email_document
 from helio_intelligence.agent.journey_schema import validate_journey
+from helio_intelligence.agent.naming import suggest_name
 from helio_intelligence.agent.nl_email import NlEmailGenerator
 from helio_intelligence.agent.nl_journey import NlJourneyGenerator
 from helio_intelligence.agent.nl_segment import NlSegmentGenerator
@@ -262,3 +263,30 @@ def test_generation_endpoints_503_until_configured() -> None:
         json={"organization_id": "o", "workspace_id": "w", "prompt": "x"},
     )
     assert email.status_code == 503
+
+
+async def test_nl_journey_dump_omits_null_edge_labels() -> None:
+    # Models routinely emit "label": null on plain edges; the canonical
+    # zod schema treats label as optional-but-never-null, so the dumped
+    # definition must omit the key entirely (regression: tRPC 500).
+    drafted = {
+        **VALID_JOURNEY,
+        "edges": [
+            {"from": "n1", "to": "n2", "label": None},
+            {"from": "n2", "to": "n3", "label": None},
+        ],
+    }
+    provider = FakeProvider([LLMResponse(text=json.dumps(drafted))])
+    journey = await NlJourneyGenerator(provider).generate(
+        "welcome then wait", [{"id": "tpl_welcome", "name": "Welcome"}]
+    )
+    assert all("label" not in edge for edge in journey.definition["edges"])
+
+
+def test_suggest_name_trims_trailing_filler() -> None:
+    assert (
+        suggest_name("contacts on the pro plan with a lead score of 50", "New segment")
+        == "Contacts On The Pro Plan"
+    )
+    assert suggest_name("", "New segment") == "New segment"
+    assert suggest_name("with the and of", "New journey") == "New journey"

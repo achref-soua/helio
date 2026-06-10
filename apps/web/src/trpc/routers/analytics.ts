@@ -1,13 +1,41 @@
+import {
+  aggregateAttribution,
+  attributionInputSchema,
+  funnelInputSchema,
+  funnelReport,
+  funnelStepCounts,
+  guardAnalyticsQuery,
+  MAX_SQL_ROWS,
+  retentionInputSchema,
+  retentionMatrix,
+} from '@helio/core';
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 import { getClickHouse } from '@/lib/clickhouse';
 
-import { orgProcedure, router } from '../init';
+import { orgProcedure, requireRole, router } from '../init';
 
 interface DailyRow {
   day: string;
   type: string;
   count: string;
+}
+
+interface FunnelLevelRow {
+  level: string;
+  people: string;
+}
+
+interface RetentionCellRow {
+  cohort: string;
+  period: string;
+  people: string;
+}
+
+interface AttributionConverterRow {
+  person: string;
+  campaigns: string[];
 }
 
 interface CampaignEngagementRow {
@@ -138,6 +166,205 @@ export const analyticsRouter = router({
         return { clickhouseUp: true, byCampaign };
       } catch {
         return { clickhouseUp: false, byCampaign: {} };
+      }
+    }),
+
+  /**
+   * Ordered-event funnel via ClickHouse `windowFunnel`: how many people
+   * completed each step, in sequence, within the conversion window. Person
+   * identity coalesces user_id then anonymous_id.
+   */
+  funnel: orgProcedure.input(funnelInputSchema).query(async ({ input }) => {
+    const stepParams = Object.fromEntries(input.steps.map((step, index) => [`s${index}`, step]));
+    const conditions = input.steps.map((_, index) => `event = {s${index}:String}`).join(', ');
+    const inList = input.steps.map((_, index) => `{s${index}:String}`).join(', ');
+    try {
+      const result = await getClickHouse().query({
+        query: `
+          SELECT level, count() AS people FROM (
+            -- toDateTime: windowFunnel rejects the column's DateTime64(3)
+            -- ("must be Unsigned Number, Date, DateTime"); second-level
+            -- precision is plenty for step ordering.
+            SELECT windowFunnel({window:UInt32})(toDateTime(timestamp), ${conditions}) AS level
+            FROM events
+            WHERE workspace_id = {workspaceId:String}
+              AND event IN (${inList})
+              AND timestamp >= now() - INTERVAL {days:UInt16} DAY
+            GROUP BY if(user_id != '', user_id, anonymous_id)
+          )
+          WHERE level > 0
+          GROUP BY level ORDER BY level`,
+        query_params: {
+          workspaceId: input.workspaceId,
+          window: input.windowDays * 86_400,
+          days: input.windowDays,
+          ...stepParams,
+        },
+        format: 'JSONEachRow',
+      });
+      const rows = (await result.json()) as FunnelLevelRow[];
+      const levels = rows.map((row) => ({ level: Number(row.level), people: Number(row.people) }));
+      const reached = funnelStepCounts(levels, input.steps.length);
+      return { clickhouseUp: true, steps: funnelReport(input.steps, reached) };
+    } catch {
+      return { clickhouseUp: false, steps: funnelReport(input.steps, []) };
+    }
+  }),
+
+  /**
+   * Weekly cohort retention: group people by the week first seen, then the
+   * share still active at each later week. Distinct (person, week) first, so a
+   * busy week counts once.
+   */
+  retention: orgProcedure.input(retentionInputSchema).query(async ({ input }) => {
+    try {
+      const result = await getClickHouse().query({
+        query: `
+          SELECT toDate(first_week) AS cohort,
+                 dateDiff('week', first_week, active_week) AS period,
+                 count(DISTINCT person) AS people
+          FROM (
+            SELECT person, active_week, min(active_week) OVER (PARTITION BY person) AS first_week
+            FROM (
+              SELECT DISTINCT
+                if(user_id != '', user_id, anonymous_id) AS person,
+                toStartOfWeek(timestamp) AS active_week
+              FROM events
+              WHERE workspace_id = {workspaceId:String}
+                AND timestamp >= now() - INTERVAL {weeks:UInt16} WEEK
+            )
+          )
+          GROUP BY cohort, period ORDER BY cohort, period`,
+        query_params: { workspaceId: input.workspaceId, weeks: input.weeks },
+        format: 'JSONEachRow',
+      });
+      const rows = (await result.json()) as RetentionCellRow[];
+      const cells = rows.map((row) => ({
+        cohort: row.cohort,
+        period: Number(row.period),
+        people: Number(row.people),
+      }));
+      return { clickhouseUp: true, cohorts: retentionMatrix(cells, input.weeks) };
+    } catch {
+      return { clickhouseUp: false, cohorts: [] };
+    }
+  }),
+
+  /**
+   * Multi-touch attribution: for everyone who fired the conversion event,
+   * assemble the campaign touches that preceded their first conversion, then
+   * distribute credit by the chosen model. Campaign names are joined from
+   * Postgres; unknown ids (deleted campaigns) keep their id as the label.
+   */
+  attribution: orgProcedure.input(attributionInputSchema).query(async ({ ctx, input }) => {
+    // Isolate the ClickHouse read so a PG enrichment error isn't reported as
+    // "no analytics store"; null means ClickHouse is unavailable.
+    const converterRows = await (async (): Promise<AttributionConverterRow[] | null> => {
+      try {
+        const result = await getClickHouse().query({
+          query: `
+            WITH converters AS (
+              SELECT person, min(timestamp) AS conv_time FROM (
+                SELECT if(user_id != '', user_id, anonymous_id) AS person, timestamp
+                FROM events
+                WHERE workspace_id = {workspaceId:String} AND event = {conv:String}
+                  AND timestamp >= now() - INTERVAL {days:UInt16} DAY
+              ) GROUP BY person
+            )
+            SELECT touches.person AS person,
+                   arrayMap(t -> t.2, arraySort(t -> t.1,
+                     groupArray((touches.timestamp, touches.campaign)))) AS campaigns
+            FROM (
+              SELECT if(user_id != '', user_id, anonymous_id) AS person, timestamp,
+                     JSONExtractString(properties, 'campaignId') AS campaign
+              FROM events
+              WHERE workspace_id = {workspaceId:String}
+                AND timestamp >= now() - INTERVAL {days:UInt16} DAY
+                AND JSONExtractString(properties, 'campaignId') != ''
+            ) AS touches
+            INNER JOIN converters ON touches.person = converters.person
+            WHERE touches.timestamp <= converters.conv_time
+            GROUP BY touches.person`,
+          query_params: {
+            workspaceId: input.workspaceId,
+            conv: input.conversionEvent,
+            days: input.windowDays,
+          },
+          format: 'JSONEachRow',
+        });
+        return (await result.json()) as AttributionConverterRow[];
+      } catch {
+        return null;
+      }
+    })();
+
+    if (!converterRows) return { clickhouseUp: false, converters: 0, rows: [] };
+    const rows = aggregateAttribution(
+      converterRows.map((row) => row.campaigns ?? []),
+      input.model,
+    );
+
+    const campaigns = await ctx.tenantDb.campaign.findMany({
+      where: { id: { in: rows.map((row) => row.campaignId) } },
+      select: { id: true, name: true },
+    });
+    const names = new Map(campaigns.map((campaign) => [campaign.id, campaign.name]));
+    return {
+      clickhouseUp: true,
+      converters: converterRows.length,
+      rows: rows.map((row) => ({ ...row, name: names.get(row.campaignId) ?? row.campaignId })),
+    };
+  }),
+
+  /**
+   * Ad-hoc read-only SQL over the workspace's events. `guardAnalyticsQuery`
+   * enforces a single SELECT against the events table only and rewrites it to
+   * a workspace-scoped CTE; ClickHouse then runs it read-only with row/time
+   * caps. The workspace is confirmed to belong to the org first (the CTE param
+   * is trusted, but ClickHouse has no RLS — so it must be a workspace we own).
+   */
+  runSql: orgProcedure
+    .input(z.object({ workspaceId: z.string().min(1), sql: z.string().min(1).max(5000) }))
+    .mutation(async ({ ctx, input }) => {
+      requireRole(ctx.memberRole, 'editor');
+      const workspace = await ctx.tenantDb.workspace.findUnique({
+        where: { id: input.workspaceId },
+        select: { id: true },
+      });
+      if (!workspace) throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
+
+      const guard = guardAnalyticsQuery(input.sql);
+      if (!guard.ok) return { ok: false as const, error: guard.error, columns: [], rows: [] };
+
+      try {
+        const result = await getClickHouse().query({
+          query: guard.sql,
+          query_params: { workspaceId: input.workspaceId },
+          format: 'JSON',
+          clickhouse_settings: {
+            readonly: '1',
+            max_execution_time: 10,
+            max_result_rows: String(MAX_SQL_ROWS),
+            result_overflow_mode: 'break',
+          },
+        });
+        const body = (await result.json()) as {
+          meta: Array<{ name: string }>;
+          data: Array<Record<string, unknown>>;
+        };
+        return {
+          ok: true as const,
+          error: null,
+          columns: body.meta.map((column) => column.name),
+          rows: body.data,
+        };
+      } catch (error) {
+        return {
+          ok: false as const,
+          error: error instanceof Error ? error.message : 'Query failed',
+          columns: [],
+          rows: [],
+        };
       }
     }),
 });

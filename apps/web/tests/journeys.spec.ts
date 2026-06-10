@@ -5,6 +5,8 @@ import { loadEnvFile } from 'node:process';
 import { expect, test } from '@playwright/test';
 import { Client } from 'pg';
 
+import { pickOption } from './select';
+
 test.describe.configure({ mode: 'serial' });
 
 test.beforeAll(async () => {
@@ -45,10 +47,7 @@ test('build a journey on the canvas and save it', async ({ page }) => {
 
   // Palette buttons append and auto-wire from the open end.
   await page.getByRole('button', { name: 'Send email', exact: true }).click();
-  await page
-    .getByTestId('node-send')
-    .getByLabel('Template')
-    .selectOption({ label: 'Welcome mail' });
+  await pickOption(page.getByTestId('node-send').getByLabel('Template'), 'Welcome mail');
   await page.getByRole('button', { name: 'Wait', exact: true }).click();
   await page.getByTestId('node-wait').getByLabel('Wait duration (hours)').fill('48');
   await page.getByRole('button', { name: 'End', exact: true }).click();
@@ -81,9 +80,8 @@ test('reopen the saved journey and verify the graph restores', async ({ page }) 
   await page.getByRole('button', { name: 'Welcome series', exact: true }).click();
   await expect(page.getByTestId('journey-canvas')).toBeVisible();
   await expect(page.getByLabel('Trigger event')).toHaveValue('Signed Up');
-  await expect(page.getByTestId('node-send').getByLabel('Template')).toHaveValue(
-    'tpl_e2e_journeys',
-  );
+  // The themed select's trigger shows the chosen template's name.
+  await expect(page.getByTestId('node-send').getByLabel('Template')).toHaveText('Welcome mail');
   await expect(page.getByTestId('node-wait').getByLabel('Wait duration (hours)')).toHaveValue('48');
   await expect(page.getByTestId('journey-issues')).toHaveCount(0);
 });

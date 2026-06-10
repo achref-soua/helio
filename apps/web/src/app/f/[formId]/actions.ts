@@ -4,6 +4,7 @@ import { contactEmailSchema, newId } from '@helio/core';
 import { redirect } from 'next/navigation';
 
 import { authDb } from '@/lib/auth';
+import { checkPublicRateLimit } from '@/lib/public-rate-limit';
 
 /**
  * Public form submission: upsert the contact into the form's workspace.
@@ -13,6 +14,11 @@ import { authDb } from '@/lib/auth';
  */
 export async function submitForm(formData: FormData): Promise<void> {
   const formId = String(formData.get('formId') ?? '');
+  // A throttled submission gets the same thank-you page as an invalid
+  // email: the form never reveals what it accepted.
+  const limit = await checkPublicRateLimit('form');
+  if (!limit.allowed) redirect(`/f/${encodeURIComponent(formId)}?ok=1`);
+
   const parsedEmail = contactEmailSchema.safeParse(String(formData.get('email') ?? ''));
   const firstName = String(formData.get('firstName') ?? '').trim();
 

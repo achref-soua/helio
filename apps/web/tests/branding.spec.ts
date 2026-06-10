@@ -17,9 +17,10 @@ test('set a brand name, see the wordmark update, then reset', async ({ page }) =
   // The sidebar wordmark (the link to /) now shows the brand name.
   await expect(page.locator('aside').getByRole('link', { name: brand })).toBeVisible();
 
-  // Reset so the org is left as found (the wordmark falls back to the product).
+  // Reset so the org is left as found — with no brand name the wordmark
+  // falls back to the organization's own name, not the product's.
   await panel.getByTestId('brand-name').fill('');
   await panel.getByTestId('brand-save').click();
   await expect(page.getByText('Branding updated')).toBeVisible();
-  await expect(page.locator('aside').getByRole('link', { name: 'Helio' })).toBeVisible();
+  await expect(page.locator('aside').getByRole('link', { name: 'E2E Org' })).toBeVisible();
 });

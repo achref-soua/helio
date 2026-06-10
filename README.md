@@ -4,20 +4,27 @@
 
 **The open-source growth platform** — unify customer data, segment anyone, orchestrate journeys across every channel, and let AI do the heavy lifting. Self-host it, own your data, pay nothing per contact.
 
-[![CI](https://github.com/achref-soua/helio/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/achref-soua/helio/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/achref-soua/helio?include_prereleases)](https://github.com/achref-soua/helio/releases)
 [![Stars](https://img.shields.io/github/stars/achref-soua/helio?style=social)](https://github.com/achref-soua/helio/stargazers)
 
 </div>
 
-> 🚧 **Status: AI-native, platform-building (v0.10).** The end-to-end loop works today: import contacts → build a segment → design an email → launch a campaign or an event-triggered journey → watch opens and clicks land in the dashboard. Journeys run on Temporal and survive `kill -9` mid-wait without double-sending. An org-scoped AI copilot turns a sentence into a segment, journey, or on-brand email; predictive scoring, send-time optimization, and autonomous A/B winner selection are live; an MCP server exposes it all to external agents. Migrate in from HubSpot/Mailchimp/Klaviyo, pipe events in Segment-style, and run a CRM-lite of deals, tasks, and a meeting scheduler. Sync Shopify customers and orders in, push contacts to Salesforce, fan lifecycle events out over signed webhooks, and white-label the whole thing per organization. Enterprise SSO & SCIM, typed REST SDKs for JS and Python, and a full documentation site round out the platform. Deploy it with Docker Compose or the Kubernetes Helm chart. The [roadmap](#roadmap) tracks what's next.
+> ☀️ **v1.0.0 — the first stable release.** The end-to-end loop works today: import contacts → build a segment → design an email → launch a campaign or an event-triggered journey → watch opens and clicks land in the dashboard. Journeys run on Temporal and survive `kill -9` mid-wait without double-sending. An org-scoped AI copilot turns a sentence into a segment, journey, or on-brand email; predictive scoring, send-time optimization, and autonomous A/B winner selection are live; an MCP server exposes it all to external agents. Migrate in from HubSpot/Mailchimp/Klaviyo, pipe events in Segment-style, and run a CRM-lite of deals, tasks, and a meeting scheduler. Sync Shopify customers and orders in, push contacts to Salesforce, fan lifecycle events out over signed webhooks, and white-label the whole thing per organization. Enterprise SSO & SCIM, typed REST SDKs for JS and Python, and a full documentation site round out the platform. Deploy it with Docker Compose or the Kubernetes Helm chart. The [roadmap](#roadmap) tracks what's next.
 
 <p align="center">
-  <img src="docs/assets/journey-canvas.png" alt="Helio's journey canvas: a welcome series with a durable wait, a plan branch, and an A/B path" width="900" />
+  <a href="https://github.com/achref-soua/helio/releases/download/v1.0.0/helio-demo.mp4">
+    <img src="docs/assets/demo.gif" alt="Helio in action: the multi-channel journey canvas, then the AI copilot answering from workspace data and drafting a journey from a sentence" width="900" />
+  </a>
 </p>
 
-<p align="center"><sub>The journey canvas — every run executes durably on Temporal and survives worker crashes mid-wait. All screenshots regenerate from a live app via <code>task screenshots</code>.</sub></p>
+<p align="center">
+  <a href="https://github.com/achref-soua/helio/releases/download/v1.0.0/helio-demo.mp4"><b>▶&nbsp;Watch the full demo (3:47, MP4)</b></a>
+  &nbsp;·&nbsp;
+  <a href="docs/helio-product-guide.pdf"><b>📘&nbsp;Read the product guide (PDF)</b></a>
+</p>
+
+<p align="center"><sub>The journey canvas and the AI copilot, captured from a live instance. The film and the guide regenerate from the real product via <code>task demo:video</code> and <code>task product:guide</code>.</sub></p>
 
 ## Why Helio
 
@@ -41,9 +48,13 @@ Marketing automation today forces a bad choice:
 - ✅ **Campaigns** — template + segment/list audiences delivered durably on Temporal: per-recipient send rows make retries double-send-proof; suppression honored at enumeration and per send
 - ✅ **Journeys** — React Flow canvas → validated DAG → one Temporal workflow per enrolled contact: event triggers from the live stream, durable waits (survives `kill -9` with the timer expired), live-data branches
 - ✅ **Analytics** — overview dashboard with engagement timeline and per-campaign opens/clicks from ClickHouse, degrading gracefully when the analytics stack is offline
+- ✅ **Insights** — an event-stream funnel (ordered steps, conversion + drop-off via ClickHouse `windowFunnel`), a weekly cohort-retention grid, multi-touch attribution (first/last/linear credit to the campaigns that touched each converter), and a fenced read-only **SQL explorer** (single SELECT, events-table-only, auto-scoped to the workspace, row/time-capped) — with the shaping and SQL-guard logic unit-tested in `@helio/core`
 - ✅ **Hosted forms** — public signup pages that upsert contacts, idempotently and suppression-safely
-- 🗺️ **Multi-channel** — SMS, WhatsApp, web push, in-app messages, popups
-- 🗺️ **Growth tooling** — landing-page builder, lead scoring, A/B testing, attribution, deliverability wizard
+- ✅ **Multi-channel** — web push, SMS (Twilio), WhatsApp (Cloud API), and in-app messages as journey send nodes alongside email, personalized with the same `{{token}}` tokens
+- ✅ **Deliverability** — a wizard that generates a DKIM key pair per sending domain, shows the SPF/DKIM/DMARC records to publish, and verifies them by live DNS lookup; the DKIM private key is tenant-isolated
+- ✅ **Landing pages** — a block-based builder (heading, text, image, button, email-capture form; keyboard-reorderable) that publishes a white-labeled hosted page at `/p/<id>` and captures signups into the CDP
+- ✅ **On-site widgets** — banners and popups built in-app and shown on your own site via a one-line, zero-dependency embed (`/widget.js`) that pulls live widgets from a write-key-scoped, CORS-enabled endpoint
+- ✅ **In-app messages** — per-contact messages queued by a journey's _Send in-app_ step and drained by the tracking SDK (`helio.inApp()`), resolved by the visitor's identity and scoped to the write key's workspace
 - ✅ **AI copilot** — describe a segment, journey, or on-brand email in a sentence and get a working draft; predictive lead scoring & churn; send-time optimization; autonomous A/B winner selection — all grounded in your own org's data
 - ✅ **Agent-ready** — an MCP server exposes Helio's capabilities as tools, so external AI agents can drive campaigns programmatically
 - ✅ **CRM-lite** — pipelines with configurable stages and a deal board, a task list (calls, emails, meetings, to-dos) grouped by due date, and a meeting scheduler with public booking pages (timezone-correct slots, server-validated, double-book-proof) that file meetings into the CRM; all tenant-isolated
@@ -53,6 +64,8 @@ Marketing automation today forces a bad choice:
 - ✅ **SDKs & docs** — typed REST SDKs for JavaScript/TypeScript and Python, generated from the OpenAPI spec, plus a full documentation site (Fumadocs)
 - ✅ **Outbound webhooks** — subscribe endpoints to lifecycle events (contacts, deals, tasks); each delivery is HMAC-signed with the endpoint's own secret over a timestamped scheme and sent on a durable, retrying workflow, with a one-click test ping
 - ✅ **White-labeling** — per-organization display name, accent color, and logo applied across the dashboard shell and hosted pages; the accent drives the primary token with an auto-picked legible foreground, validated hex-only so it can't inject markup
+- ✅ **In-app support** — a report-a-bug / feedback widget in every page header (captures the current route for context) and an admin support inbox to triage and resolve; tenant-isolated
+- ✅ **Onboarding tour** — a dependency-free product tour that greets new operators and points them at contacts, journeys, the AI copilot, and the CRM; shown once, dismissible
 - ✅ **Shopify** — connect a store and stream `customers/create|update` and `orders/create` into the CDP; every webhook is HMAC-verified, the shop domain resolves the org, and buyers gain `shopify_*` traits you can segment on
 - ✅ **Salesforce** — connect an org and new Helio contacts push to Salesforce as Leads via the REST API; best-effort so a Salesforce hiccup never blocks the contact write
 - 🗺️ **Platform integrations** — ad-audience sync
@@ -195,6 +208,7 @@ Hot-path budgets (ingestion ≥ 5k events/s, API reads p95 < 150 ms) have a comm
 
 ## Documentation
 
+- 📘 **[Product guide (PDF)](docs/helio-product-guide.pdf)** — the whole story in 17 pages: why Helio, a screenshot tour, installation and org setup, migrating from HubSpot/Mailchimp/Klaviyo, the usage guide, and how to contribute. Written for technical and non-technical readers alike.
 - 📖 **[Documentation site](apps/docs)** (Fumadocs) — concepts, self-hosting, configuration, every feature guide, the REST API, SDKs, the MCP server, and migration guides. Run it locally with `task docs` (→ `localhost:3002`).
 - [Architecture (C4) & trust boundaries](docs/architecture.md) · [Decision log (ADRs)](docs/adr) · [Threat model](docs/threat-model.md)
 - [Local-dev runbook](docs/runbooks/local-dev.md) · [SSO & SCIM setup](docs/sso.md) · [REST API guide](docs/api.md) · [API spec (OpenAPI 3.1)](apps/api/openapi.json)
