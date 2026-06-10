@@ -182,7 +182,10 @@ export const analyticsRouter = router({
       const result = await getClickHouse().query({
         query: `
           SELECT level, count() AS people FROM (
-            SELECT windowFunnel({window:UInt32})(timestamp, ${conditions}) AS level
+            -- toDateTime: windowFunnel rejects the column's DateTime64(3)
+            -- ("must be Unsigned Number, Date, DateTime"); second-level
+            -- precision is plenty for step ordering.
+            SELECT windowFunnel({window:UInt32})(toDateTime(timestamp), ${conditions}) AS level
             FROM events
             WHERE workspace_id = {workspaceId:String}
               AND event IN (${inList})
