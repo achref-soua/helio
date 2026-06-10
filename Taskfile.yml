@@ -101,6 +101,11 @@ tasks:
     cmds:
       - pnpm --filter @helio/web exec tsx scripts/demo-video.ts
 
+  product:guide:
+    desc: Render the Helio product guide PDF (same prereqs as demo:video)
+    cmds:
+      - pnpm --filter @helio/web exec tsx scripts/product-guide.ts
+
   docs:
     desc: Run the documentation site (Fumadocs) at :3002
     cmds:
