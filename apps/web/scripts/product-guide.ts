@@ -35,7 +35,6 @@ const OUT_FILE =
 const ACCENT = '#f59e0b';
 const INK = '#1c1917';
 const REPO = 'https://github.com/achref-soua/helio';
-const CONTACT = 'achref.soua@outlook.com';
 
 // ── screenshots ────────────────────────────────────────────────────────
 
@@ -203,7 +202,7 @@ function buildHtml(): string {
   orchestrate journeys across every channel, and let AI do the heavy lifting.
   Self-hosted, on your own servers.</div>
   <div class="meta">Product guide<span class="sep">•</span>v1.0.0<span class="sep">•</span>${date}</div>
-  <div class="foot">Achref Soua · ${CONTACT} · ${REPO.replace('https://', '')}</div>
+  <div class="foot">Achref Soua · ${REPO.replace('https://', '')}</div>
 </div></div>
 
 <!-- ════════ contents ════════ -->
@@ -559,13 +558,18 @@ task up                     <span class="c"># or: docker compose --profile full 
   feature ideas, or "how would I move my team onto this?".</p>
   <table>
     <tr><td style="width:27%"><b>Author</b></td><td>Achref Soua</td></tr>
-    <tr><td><b>Email</b></td><td>${CONTACT}</td></tr>
     <tr><td><b>Repository</b></td><td>${REPO}</td></tr>
     <tr><td><b>Issues &amp; ideas</b></td><td>${REPO}/issues</td></tr>
   </table>
-  <p style="margin-top:26px;color:#78716c">Helio v1.0.0 · AGPL-3.0 · generated ${date} from a
-  live, seeded instance — every screenshot in this guide is the real product.</p>
+  <p style="margin-top:26px;color:#78716c">Helio v1.0.0 · AGPL-3.0 — every screenshot in this
+  guide is the real product.</p>
 </div>
+
+<!-- ════════ closing ════════ -->
+<div class="cover" style="page-break-after:auto"><div class="cover-inner">
+  ${SUN(72)}
+  <h1>Helio</h1>
+</div></div>
 
 </body></html>`;
 }
