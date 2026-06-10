@@ -60,6 +60,9 @@ test('owner invites a teammate who joins as viewer', async ({ page, browser, req
   await memberPage.goto(inviteLink);
   await expect(memberPage.getByText("You're invited")).toBeVisible();
   await memberPage.getByRole('button', { name: 'Accept invitation' }).click();
+  // A first-time member lands in the product tour (modal — it hides the
+  // page from the accessibility tree); skip it the way a real user would.
+  await memberPage.getByTestId('tour-skip').click();
   await expect(memberPage.getByRole('heading', { name: 'Overview' })).toBeVisible();
 
   // Scoped to the org: settings shows both members; the viewer cannot manage.
