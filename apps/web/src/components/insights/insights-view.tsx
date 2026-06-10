@@ -5,18 +5,15 @@ import { Card, CardContent } from '@helio/ui/components/card';
 import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
 import { Skeleton } from '@helio/ui/components/skeleton';
-import { cn } from '@helio/ui/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart3, Target, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { SqlExplorer } from '@/components/insights/sql-explorer';
+import { ThemedSelect } from '@/components/themed-select';
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
 import { useTRPC } from '@/trpc/client';
-
-const FIELD_CLASS =
-  'border-input bg-transparent dark:bg-input/30 h-9 rounded-md border px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
 
 const pct = (value: number) => `${Math.round(value * 100)}%`;
 
@@ -70,18 +67,15 @@ function FunnelReport({ workspaceId }: { workspaceId: string }) {
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="funnel-window">{t('funnel.window')}</Label>
-            <select
+            <ThemedSelect
               id="funnel-window"
-              value={windowDays}
-              onChange={(event) => setWindowDays(Number(event.target.value))}
-              className={FIELD_CLASS}
-            >
-              {[7, 14, 30, 60, 90].map((days) => (
-                <option key={days} value={days}>
-                  {t('funnel.days', { days })}
-                </option>
-              ))}
-            </select>
+              value={String(windowDays)}
+              onValueChange={(days) => setWindowDays(Number(days))}
+              options={[7, 14, 30, 60, 90].map((days) => ({
+                value: String(days),
+                label: t('funnel.days', { days }),
+              }))}
+            />
           </div>
           <Button type="submit" data-testid="funnel-run">
             {t('run')}
@@ -137,19 +131,16 @@ function RetentionReport({ workspaceId }: { workspaceId: string }) {
         <div className="flex items-center gap-2">
           <Users className="text-primary size-5" aria-hidden />
           <h2 className="text-lg font-semibold">{t('retention.title')}</h2>
-          <select
-            value={weeks}
-            onChange={(event) => setWeeks(Number(event.target.value))}
-            className={cn(FIELD_CLASS, 'ml-auto')}
+          <ThemedSelect
+            value={String(weeks)}
+            onValueChange={(value) => setWeeks(Number(value))}
+            className="ml-auto"
             aria-label={t('retention.weeks')}
-            data-testid="retention-weeks"
-          >
-            {[4, 8, 12, 26].map((value) => (
-              <option key={value} value={value}>
-                {t('retention.weekCount', { weeks: value })}
-              </option>
-            ))}
-          </select>
+            options={[4, 8, 12, 26].map((value) => ({
+              value: String(value),
+              label: t('retention.weekCount', { weeks: value }),
+            }))}
+          />
         </div>
         <p className="text-muted-foreground -mt-2 text-sm">{t('retention.subtitle')}</p>
 
@@ -262,35 +253,27 @@ function AttributionReport({ workspaceId }: { workspaceId: string }) {
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="attr-model">{t('attribution.model')}</Label>
-            <select
+            <ThemedSelect
               id="attr-model"
               value={model}
-              onChange={(event) =>
-                setModel(event.target.value as (typeof ATTRIBUTION_MODELS)[number])
-              }
-              className={FIELD_CLASS}
-            >
-              {ATTRIBUTION_MODELS.map((value) => (
-                <option key={value} value={value}>
-                  {t(`attribution.models.${value}`)}
-                </option>
-              ))}
-            </select>
+              onValueChange={(value) => setModel(value as (typeof ATTRIBUTION_MODELS)[number])}
+              options={ATTRIBUTION_MODELS.map((value) => ({
+                value,
+                label: t(`attribution.models.${value}`),
+              }))}
+            />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="attr-window">{t('funnel.window')}</Label>
-            <select
+            <ThemedSelect
               id="attr-window"
-              value={windowDays}
-              onChange={(event) => setWindowDays(Number(event.target.value))}
-              className={FIELD_CLASS}
-            >
-              {[7, 14, 30, 60, 90].map((days) => (
-                <option key={days} value={days}>
-                  {t('funnel.days', { days })}
-                </option>
-              ))}
-            </select>
+              value={String(windowDays)}
+              onValueChange={(days) => setWindowDays(Number(days))}
+              options={[7, 14, 30, 60, 90].map((days) => ({
+                value: String(days),
+                label: t('funnel.days', { days }),
+              }))}
+            />
           </div>
           <Button type="submit" data-testid="attribution-run">
             {t('run')}

@@ -15,13 +15,13 @@ import {
 import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
 import { Skeleton } from '@helio/ui/components/skeleton';
-import { cn } from '@helio/ui/lib/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MousePointerClick, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { ThemedSelect } from '@/components/themed-select';
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
 import { useTRPC } from '@/trpc/client';
 
@@ -229,18 +229,16 @@ export function WidgetsView() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="widget-type">{t('type')}</Label>
-                <select
+                <ThemedSelect
                   id="widget-type"
                   name="type"
                   defaultValue={editing?.type ?? 'BANNER'}
-                  className={cn(FIELD_CLASS, 'h-9')}
-                >
-                  {WIDGET_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {t(`types.${type}`)}
-                    </option>
-                  ))}
-                </select>
+                  className="w-full"
+                  options={WIDGET_TYPES.map((type) => ({
+                    value: type,
+                    label: t(`types.${type}`),
+                  }))}
+                />
               </div>
             </div>
             <div className="grid gap-2">

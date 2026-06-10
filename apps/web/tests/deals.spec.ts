@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { pickOption } from './select';
+
 // CRM-lite deal board: create a pipeline, add a deal, move it across
 // stages, and delete it — all keyboard-accessible (no drag dependency).
 
@@ -31,12 +33,12 @@ test('create a pipeline, add a deal, move it to Won, then delete it', async ({ p
   await expect(card).toContainText('$2,500.00');
 
   // Move it to Won via the per-card stage select; the select reflects it.
-  await card.getByLabel('Move Acme renewal to another stage').selectOption({ label: 'Won' });
+  await pickOption(card.getByLabel('Move Acme renewal to another stage'), 'Won');
   const movedSelect = page
     .getByTestId('deal-card')
     .filter({ hasText: 'Acme renewal' })
     .getByLabel('Move Acme renewal to another stage');
-  await expect(movedSelect.locator('option:checked')).toHaveText('Won');
+  await expect(movedSelect).toHaveText('Won');
 
   // Delete it.
   await page

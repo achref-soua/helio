@@ -13,6 +13,8 @@ import { cn } from '@helio/ui/lib/utils';
 import { Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { ThemedSelect } from '@/components/themed-select';
+
 /**
  * Draft tree the builder edits: conditions may be incomplete while the
  * user types. toSegmentRule() converts a draft into the strict rule
@@ -169,20 +171,6 @@ function conditionToRule(condition: DraftCondition): unknown {
   return { kind: 'condition', target, operator, value: iso.toISOString() };
 }
 
-/** Styled native select — keyboard- and screen-reader-friendly. */
-function Select({ className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      className={cn(
-        'border-input bg-transparent dark:bg-input/30 h-9 rounded-md border px-2 text-sm shadow-xs outline-none',
-        'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
 function mutateTree(
   group: DraftGroup,
   targetId: string,
@@ -220,15 +208,16 @@ export function RuleGroupEditor({
       className={cn('grid gap-2 rounded-md border p-3', depth > 0 && 'bg-muted/30')}
     >
       <div className="flex items-center gap-2">
-        <Select
+        <ThemedSelect
           aria-label={t('groupOp')}
           value={group.op}
-          onChange={(event) => onChange({ ...group, op: event.target.value as 'and' | 'or' })}
+          onValueChange={(op) => onChange({ ...group, op: op as 'and' | 'or' })}
           className="w-28"
-        >
-          <option value="and">{t('matchAll')}</option>
-          <option value="or">{t('matchAny')}</option>
-        </Select>
+          options={[
+            { value: 'and', label: t('matchAll') },
+            { value: 'or', label: t('matchAny') },
+          ]}
+        />
         <span className="text-muted-foreground text-sm">{t('ofTheFollowing')}</span>
       </div>
 
@@ -315,11 +304,10 @@ function ConditionEditor({
 
   return (
     <div className="flex flex-wrap items-center gap-2" data-testid="condition-row">
-      <Select
+      <ThemedSelect
         aria-label={t('target')}
         value={condition.target === 'field' ? `field:${condition.field}` : condition.target}
-        onChange={(event) => {
-          const selected = event.target.value;
+        onValueChange={(selected) => {
           if (selected.startsWith('field:')) {
             onChange({
               ...condition,
@@ -332,38 +320,36 @@ function ConditionEditor({
           }
         }}
         className="w-40"
-      >
-        {CONTACT_FIELDS.map((field) => (
-          <option key={field} value={`field:${field}`}>
-            {t(`fields.${field}`)}
-          </option>
-        ))}
-        <option value="attribute">{t('fields.attribute')}</option>
-        <option value="status">{t('fields.status')}</option>
-        <option value="created_at">{t('fields.createdAt')}</option>
-        <option value="event">{t('fields.event')}</option>
-        <option value="score">{t('fields.score')}</option>
-        <option value="prediction">{t('fields.prediction')}</option>
-      </Select>
+        options={[
+          ...CONTACT_FIELDS.map((field) => ({
+            value: `field:${field}`,
+            label: t(`fields.${field}`),
+          })),
+          { value: 'attribute', label: t('fields.attribute') },
+          { value: 'status', label: t('fields.status') },
+          { value: 'created_at', label: t('fields.createdAt') },
+          { value: 'event', label: t('fields.event') },
+          { value: 'score', label: t('fields.score') },
+          { value: 'prediction', label: t('fields.prediction') },
+        ]}
+      />
 
       {condition.target === 'prediction' && (
-        <Select
+        <ThemedSelect
           aria-label={t('predictionMetric')}
           value={condition.predictionMetric}
-          onChange={(event) =>
+          onValueChange={(metric) =>
             onChange({
               ...condition,
-              predictionMetric: event.target.value as DraftCondition['predictionMetric'],
+              predictionMetric: metric as DraftCondition['predictionMetric'],
             })
           }
           className="w-44"
-        >
-          {PREDICTION_METRICS.map((metric) => (
-            <option key={metric} value={metric}>
-              {t(`metrics.${metric}`)}
-            </option>
-          ))}
-        </Select>
+          options={PREDICTION_METRICS.map((metric) => ({
+            value: metric,
+            label: t(`metrics.${metric}`),
+          }))}
+        />
       )}
 
       {isEvent && (
@@ -386,18 +372,16 @@ function ConditionEditor({
         />
       )}
 
-      <Select
+      <ThemedSelect
         aria-label={t('operator')}
         value={condition.operator}
-        onChange={(event) => onChange({ ...condition, operator: event.target.value })}
+        onValueChange={(operator) => onChange({ ...condition, operator })}
         className="w-40"
-      >
-        {operators.map((operator) => (
-          <option key={operator} value={operator}>
-            {t(`operators.${operator}`)}
-          </option>
-        ))}
-      </Select>
+        options={operators.map((operator) => ({
+          value: operator,
+          label: t(`operators.${operator}`),
+        }))}
+      />
 
       {isEvent && condition.operator !== 'never' && (
         <Input
@@ -454,18 +438,16 @@ function ConditionEditor({
         condition.target !== 'prediction' &&
         !VALUELESS.has(condition.operator) &&
         (condition.target === 'status' ? (
-          <Select
+          <ThemedSelect
             aria-label={t('value')}
             value={condition.value}
-            onChange={(event) => onChange({ ...condition, value: event.target.value })}
+            onValueChange={(value) => onChange({ ...condition, value })}
             className="w-40"
-          >
-            {CONTACT_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {t(`statuses.${status}`)}
-              </option>
-            ))}
-          </Select>
+            options={CONTACT_STATUSES.map((status) => ({
+              value: status,
+              label: t(`statuses.${status}`),
+            }))}
+          />
         ) : condition.target === 'created_at' ? (
           condition.operator === 'in_last_days' ? (
             <Input

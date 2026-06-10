@@ -41,6 +41,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { ThemedSelect } from '@/components/themed-select';
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
 import { useTRPC } from '@/trpc/client';
 
@@ -59,20 +60,6 @@ const PRIORITY_TONE: Record<TaskPriority, 'destructive' | 'secondary' | 'outline
 
 function formatDue(due: Date): string {
   return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(due);
-}
-
-/** A keyboard- and screen-reader-friendly native select. */
-function Select({ className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      className={cn(
-        'border-input bg-transparent dark:bg-input/30 h-9 rounded-md border px-2 text-sm shadow-xs outline-none',
-        'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
-        className,
-      )}
-      {...props}
-    />
-  );
 }
 
 export function TasksView() {
@@ -299,31 +286,29 @@ export function TasksView() {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="task-type">{t('taskType')}</Label>
-                <Select
+                <ThemedSelect
                   id="task-type"
                   value={type}
-                  onChange={(event) => setType(event.target.value as TaskType)}
-                >
-                  {TASK_TYPES.map((value) => (
-                    <option key={value} value={value}>
-                      {t(`type.${value}`)}
-                    </option>
-                  ))}
-                </Select>
+                  onValueChange={(value) => setType(value as TaskType)}
+                  className="w-full"
+                  options={TASK_TYPES.map((value) => ({
+                    value,
+                    label: t(`type.${value}`),
+                  }))}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="task-priority">{t('taskPriority')}</Label>
-                <Select
+                <ThemedSelect
                   id="task-priority"
                   value={priority}
-                  onChange={(event) => setPriority(event.target.value as TaskPriority)}
-                >
-                  {TASK_PRIORITIES.map((value) => (
-                    <option key={value} value={value}>
-                      {t(`priority.${value}`)}
-                    </option>
-                  ))}
-                </Select>
+                  onValueChange={(value) => setPriority(value as TaskPriority)}
+                  className="w-full"
+                  options={TASK_PRIORITIES.map((value) => ({
+                    value,
+                    label: t(`priority.${value}`),
+                  }))}
+                />
               </div>
             </div>
             <div className="grid gap-2">

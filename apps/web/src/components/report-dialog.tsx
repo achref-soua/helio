@@ -13,13 +13,13 @@ import {
 } from '@helio/ui/components/dialog';
 import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
-import { cn } from '@helio/ui/lib/utils';
 import { useMutation } from '@tanstack/react-query';
 import { LifeBuoy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { ThemedSelect } from '@/components/themed-select';
 import { useTRPC } from '@/trpc/client';
 
 const FIELD_CLASS =
@@ -64,13 +64,16 @@ export function ReportDialog() {
         <form onSubmit={onSubmit} className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="report-kind">{t('kind')}</Label>
-            <select id="report-kind" name="kind" className={cn(FIELD_CLASS, 'h-9')}>
-              {SUPPORT_KINDS.map((kind) => (
-                <option key={kind} value={kind}>
-                  {t(`kinds.${kind}`)}
-                </option>
-              ))}
-            </select>
+            <ThemedSelect
+              id="report-kind"
+              name="kind"
+              defaultValue={SUPPORT_KINDS[0]}
+              className="w-full"
+              options={SUPPORT_KINDS.map((kind) => ({
+                value: kind,
+                label: t(`kinds.${kind}`),
+              }))}
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="report-subject">{t('subject')}</Label>

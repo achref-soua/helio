@@ -22,9 +22,8 @@ test('configure a booking page, book a meeting, then cancel it', async ({ page }
   // Book the first available slot as an invitee.
   await page.goto(path!);
   await expect(page.getByTestId('booking-form')).toBeVisible();
-  const slot = page.locator('#slot');
-  const firstValue = await slot.locator('option').first().getAttribute('value');
-  await slot.selectOption(firstValue!);
+  await page.locator('#slot').click();
+  await page.getByRole('option').first().click();
   await page.getByLabel('Your email').fill('invitee@example.com');
   await page.getByRole('button', { name: 'Book meeting' }).click();
   await expect(page.getByText("You're booked")).toBeVisible();

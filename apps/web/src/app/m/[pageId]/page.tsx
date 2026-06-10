@@ -13,15 +13,13 @@ import { getTranslations } from 'next-intl/server';
 
 import { BrandStyle } from '@/components/brand-style';
 import { PoweredBy } from '@/components/powered-by';
+import { ThemedSelect } from '@/components/themed-select';
 import { authDb } from '@/lib/auth';
 
 import { bookMeeting } from './actions';
 
 const BOOKING_WINDOW_DAYS = 14;
 const KNOWN_ERRORS = ['unavailable', 'email', 'taken'] as const;
-
-const SELECT_CLASS =
-  'border-input bg-transparent dark:bg-input/30 h-9 rounded-md border px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
 
 /**
  * Public booking page. No auth: the page id is the capability. Slots are
@@ -149,17 +147,20 @@ export default async function BookingPage({
                     <input type="hidden" name="pageId" value={page.id} />
                     <div className="grid gap-2">
                       <Label htmlFor="slot">{t('slot')}</Label>
-                      <select id="slot" name="slot" required className={SELECT_CLASS}>
-                        {[...groups.entries()].map(([day, daySlots]) => (
-                          <optgroup key={day} label={day}>
-                            {daySlots.map((slot) => (
-                              <option key={slot.toISOString()} value={slot.toISOString()}>
-                                {timeFmt?.format(slot)}
-                              </option>
-                            ))}
-                          </optgroup>
-                        ))}
-                      </select>
+                      <ThemedSelect
+                        id="slot"
+                        name="slot"
+                        required
+                        defaultValue={slots[0]?.toISOString()}
+                        className="w-full"
+                        groups={[...groups.entries()].map(([day, daySlots]) => ({
+                          label: day,
+                          options: daySlots.map((slot) => ({
+                            value: slot.toISOString(),
+                            label: timeFmt?.format(slot) ?? '',
+                          })),
+                        }))}
+                      />
                       <p className="text-muted-foreground text-xs">
                         {t('timezone', { tz: page.timezone })}
                       </p>
