@@ -96,6 +96,11 @@ tasks:
     cmds:
       - pnpm --filter @helio/web exec tsx scripts/screenshots.ts
 
+  demo:video:
+    desc: Record the captioned A-to-Z product demo video (app + Mailpit + ClickHouse + intelligence must be up)
+    cmds:
+      - pnpm --filter @helio/web exec tsx scripts/demo-video.ts
+
   docs:
     desc: Run the documentation site (Fumadocs) at :3002
     cmds:

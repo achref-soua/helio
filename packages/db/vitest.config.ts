@@ -6,7 +6,8 @@ export default createVitestConfig({
     testTimeout: 120_000,
     hookTimeout: 180_000,
     coverage: {
-      exclude: ['src/generated/**', 'prisma/**'],
+      // seed-demo is operator tooling, exercised by running the seed itself.
+      exclude: ['src/generated/**', 'src/seed-demo.ts', 'prisma/**'],
     },
   },
 });
