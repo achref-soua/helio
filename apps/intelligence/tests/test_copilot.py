@@ -31,6 +31,14 @@ class FakeRepo:
         self.calls.append(("search", org, ws))
         return [{"email": "ada@a.com", "score": 80}]
 
+    async def count_contacts(self, org: str, ws: str) -> int:
+        self.calls.append(("count", org, ws))
+        return 6
+
+    async def count_contacts_by_attribute(self, org: str, ws: str, key: str, value: str) -> int:
+        self.calls.append((f"count:{key}={value}", org, ws))
+        return 4
+
     async def list_segments(self, org: str, ws: str) -> list[dict[str, Any]]:
         self.calls.append(("segments", org, ws))
         return [{"name": "Pros", "description": "pro plan"}]
@@ -52,7 +60,8 @@ def test_tool_specs_are_read_only_and_named() -> None:
     names = {spec.name for spec in copilot_tool_specs()}
     assert "get_workspace_summary" in names
     assert "search_contacts" in names
-    assert len(names) == 7
+    assert "count_contacts" in names
+    assert len(names) == 8
 
 
 async def test_dispatcher_injects_scope_not_model_args() -> None:
@@ -62,6 +71,18 @@ async def test_dispatcher_injects_scope_not_model_args() -> None:
     result = await dispatcher.dispatch("search_contacts", {"query": "ada", "limit": 5})
     assert "ada@a.com" in result
     assert repo.calls[-1] == ("search", "org_a", "ws_a")
+
+
+async def test_dispatcher_counts_contacts_with_optional_filter() -> None:
+    repo = FakeRepo()
+    dispatcher = ToolDispatcher(repo, SCOPE)  # type: ignore[arg-type]
+    filtered = await dispatcher.dispatch("count_contacts", {"key": "plan", "value": "pro"})
+    assert '"count": 4' in filtered
+    assert repo.calls[-1] == ("count:plan=pro", "org_a", "ws_a")
+    total = await dispatcher.dispatch("count_contacts", {})
+    assert '"count": 6' in total
+    assert '"filter": null' in total
+    assert repo.calls[-1] == ("count", "org_a", "ws_a")
 
 
 async def test_dispatcher_reports_unknown_and_failing_tools() -> None:
