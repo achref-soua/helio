@@ -1048,5 +1048,37 @@
       "noRows": "The query returned no rows.",
       "rowCount": "{count} rows"
     }
+  },
+  "twoFactor": {
+    "title": "Two-factor authentication",
+    "enabledBadge": "Enabled",
+    "subtitle": "Protect your account with an authenticator app",
+    "body": "When enabled, signing in asks for a 6-digit code from your authenticator app in addition to your password. Backup codes cover a lost device.",
+    "enableAction": "Enable 2FA",
+    "disableAction": "Disable",
+    "enableTitle": "Enable two-factor authentication",
+    "disableTitle": "Disable two-factor authentication",
+    "passwordPrompt": "Confirm your password to continue.",
+    "password": "Password",
+    "continue": "Continue",
+    "scanTitle": "Scan the QR code",
+    "scanBody": "Scan with your authenticator app (or enter the URI manually), store the backup codes somewhere safe, then confirm a code. 2FA only turns on after a code verifies.",
+    "qrAlt": "TOTP enrollment QR code",
+    "backupCodes": "Backup codes",
+    "backupCodesBody": "Each code signs you in once if you lose your device. This is the only time they are shown.",
+    "codeLabel": "6-digit code",
+    "verifyAction": "Verify",
+    "enabled": "Two-factor authentication is on",
+    "disabled": "Two-factor authentication is off",
+    "badCode": "That code didn't verify",
+    "genericError": "Something went wrong",
+    "working": "Working…",
+    "challengeTitle": "Two-factor check",
+    "challengeBody": "Enter the 6-digit code from your authenticator app.",
+    "backupPrompt": "Enter one of your single-use backup codes.",
+    "backupCodeLabel": "Backup code",
+    "useBackupInstead": "Use a backup code instead",
+    "useTotpInstead": "Use your authenticator app instead",
+    "trustDevice": "Trust this device for 30 days"
   }
 }

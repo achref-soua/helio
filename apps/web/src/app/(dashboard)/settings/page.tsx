@@ -11,6 +11,7 @@ import { DeliverabilityPanel } from './deliverability-panel';
 import { IntegrationsPanel } from './integrations-panel';
 import { MembersPanel } from './members-panel';
 import { ScimPanel } from './scim-panel';
+import { SecurityPanel } from './security-panel';
 import { SsoPanel } from './sso-panel';
 import { SupportPanel } from './support-panel';
 import { WebhooksPanel } from './webhooks-panel';
@@ -50,6 +51,7 @@ export default async function SettingsPage() {
           }))}
         canManage={me?.role === 'owner' || me?.role === 'admin'}
       />
+      <SecurityPanel />
       <BillingPanel />
       {(me?.role === 'owner' || me?.role === 'admin') && (
         <>
