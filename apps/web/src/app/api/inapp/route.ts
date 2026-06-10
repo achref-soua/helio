@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { authDb } from '@/lib/auth';
+import { checkPublicRateLimit, rateLimitedResponse } from '@/lib/public-rate-limit';
 
 // Polled cross-origin by the tracking SDK for the identified visitor. Returns
 // only that contact's unseen, live in-app messages, scoped to the write key's
@@ -35,6 +36,9 @@ async function workspaceForKey(key: string | null): Promise<string | null> {
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
+  const limit = await checkPublicRateLimit('inappRead', params.get('key') ?? '');
+  if (!limit.allowed) return rateLimitedResponse(limit, CORS);
+
   const empty = NextResponse.json({ messages: [] }, { headers: CORS });
 
   const email = params.get('email')?.trim().toLowerCase();
@@ -67,6 +71,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const limit = await checkPublicRateLimit('inappWrite');
+  if (!limit.allowed) return rateLimitedResponse(limit, CORS);
+
   const body = (await request.json().catch(() => null)) as {
     key?: string;
     deliveryIds?: unknown;

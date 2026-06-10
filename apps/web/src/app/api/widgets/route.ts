@@ -2,6 +2,7 @@ import { type WidgetPayload } from '@helio/core';
 import { NextResponse } from 'next/server';
 
 import { authDb } from '@/lib/auth';
+import { checkPublicRateLimit, rateLimitedResponse } from '@/lib/public-rate-limit';
 
 // The embed loads cross-origin from the customer's site; only active widgets
 // (public content) are returned, scoped to the write key's workspace.
@@ -17,6 +18,9 @@ export function OPTIONS() {
 
 export async function GET(request: Request) {
   const key = new URL(request.url).searchParams.get('key');
+  const limit = await checkPublicRateLimit('widgets', key ?? '');
+  if (!limit.allowed) return rateLimitedResponse(limit, CORS);
+
   const empty = NextResponse.json({ widgets: [] }, { headers: CORS });
   if (!key) return empty;
 

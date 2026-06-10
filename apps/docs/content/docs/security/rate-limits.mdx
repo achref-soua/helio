@@ -1,0 +1,60 @@
+---
+title: Rate limits & abuse protection
+description: Where Helio throttles callers — shared budgets on the API gateway and ingestion, per-replica budgets on the dashboard's public endpoints, and brute-force damping on auth.
+---
+
+Helio rate-limits every surface an anonymous or semi-trusted caller can
+reach. Throttled requests answer **429** with `Retry-After`,
+`RateLimit-Limit`, and `RateLimit-Remaining` headers.
+
+## Shared budgets (Redis)
+
+The API gateway and the ingestion service count requests in Redis, so every
+replica draws from the same budget:
+
+| Surface              | Keyed by                 | Default budget | Tune with                        |
+| -------------------- | ------------------------ | -------------- | -------------------------------- |
+| REST gateway (`/v1`) | API key (fallback: IP)   | 100 / 60 s     | `RATE_LIMIT_MAX/WINDOW_S`        |
+| Event ingestion      | Write key (fallback: IP) | 600 / 60 s     | `INGEST_RATE_LIMIT_MAX/WINDOW_S` |
+
+## Dashboard public endpoints (per replica)
+
+The dashboard's public, unauthenticated endpoints use an in-process fixed
+window keyed by client IP (plus the write key where one applies, so tenants
+behind one IP never share a budget). Budgets are per replica: scaling the
+web deployment to N replicas multiplies the effective ceiling by N, which is
+fine for abuse damping.
+
+| Surface                            | Budget per IP / minute |
+| ---------------------------------- | ---------------------- |
+| Widget config (`/api/widgets`)     | 120 (per IP + key)     |
+| In-app message poll (`/api/inapp`) | 240 read / 60 write    |
+| Hosted form submissions            | 30                     |
+| Public meeting booking             | 30                     |
+| SCIM provisioning (`/scim/v2`)     | 240                    |
+
+Set `PUBLIC_RATE_LIMITS_ENABLED=false` to disable these during load tests.
+
+The **unsubscribe endpoints are deliberately exempt**: they are
+HMAC-token-authed (unguessable, and an invalid token does no database work),
+and one-click unsubscribe must always land — throttling it would be a
+compliance bug, not a protection.
+
+## Auth brute-force damping
+
+Better-Auth's limiter is active in production with tight budgets on the
+credential endpoints (per IP, per replica):
+
+| Endpoint                                    | Budget     |
+| ------------------------------------------- | ---------- |
+| `/sign-in/email`, `/sign-up/email`          | 10 / 60 s  |
+| `/forget-password`                          | 5 / 300 s  |
+| Two-factor verification (TOTP, backup code) | 10 / 60 s  |
+| Everything else under `/api/auth`           | 120 / 60 s |
+
+## Trusting the client IP
+
+All IP-keyed budgets read the first hop of `X-Forwarded-For`. That header is
+only meaningful when a fronting proxy **overwrites** it — terminate TLS at a
+proxy or ingress that does (the bundled Compose and Helm setups assume
+this), and never expose the Node services directly to the internet.

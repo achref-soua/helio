@@ -1,6 +1,7 @@
 import { SCIM_CONTENT_TYPE, scimError } from '@helio/core';
 
 import { env } from '@/lib/env';
+import { checkPublicRateLimit } from '@/lib/public-rate-limit';
 import { resolveScimOrg } from '@/lib/scim';
 
 /** Base URL of the SCIM service provider, e.g. https://app/scim/v2. */
@@ -34,6 +35,15 @@ export async function withScimOrg(
   request: Request,
   handler: (organizationId: string) => Promise<Response>,
 ): Promise<Response> {
+  // Throttle before touching the token table so a token-guessing flood
+  // never reaches the database. IdPs honor 429 + Retry-After (RFC 7644).
+  const limit = await checkPublicRateLimit('scim');
+  if (!limit.allowed) {
+    return scimJson(scimError(429, 'Too many requests; retry later.'), 429, {
+      'retry-after': String(limit.retryAfterSeconds),
+    });
+  }
+
   const organizationId = await resolveScimOrg(request);
   if (!organizationId) {
     return scimErrorResponse(401, 'Missing or invalid SCIM bearer token.');
