@@ -33,3 +33,16 @@ test('healthz reports ok', async ({ request }) => {
   expect(response.status()).toBe(200);
   expect(await response.json()).toMatchObject({ status: 'ok' });
 });
+
+test('site icons are served without a session', async ({ browser }) => {
+  // Browsers fetch favicons credential-less; the auth proxy must not
+  // bounce them to /login.
+  const anonymous = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+  const svg = await anonymous.request.get('/icon.svg');
+  expect(svg.status()).toBe(200);
+  expect(svg.headers()['content-type']).toContain('image/svg+xml');
+  const apple = await anonymous.request.get('/apple-icon.png');
+  expect(apple.status()).toBe(200);
+  expect(apple.headers()['content-type']).toContain('image/png');
+  await anonymous.close();
+});
