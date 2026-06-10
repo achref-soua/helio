@@ -79,13 +79,15 @@ const worker = await Worker.create({
   },
 });
 
+let triggers: JourneyTriggerConsumer | undefined;
+let clientConnection: Connection | undefined;
 if (env.JOURNEY_TRIGGERS_ENABLED) {
-  const clientConnection = await Connection.connect({ address: env.TEMPORAL_ADDRESS });
+  clientConnection = await Connection.connect({ address: env.TEMPORAL_ADDRESS });
   const temporal = new TemporalClient({
     connection: clientConnection,
     namespace: env.TEMPORAL_NAMESPACE,
   });
-  const triggers = new JourneyTriggerConsumer(
+  triggers = new JourneyTriggerConsumer(
     { prisma, temporal, logger: pino({ level: process.env.LOG_LEVEL ?? 'info' }) },
     {
       brokers: env.KAFKA_BROKERS.split(',').map((broker) => broker.trim()),
@@ -99,4 +101,15 @@ if (env.JOURNEY_TRIGGERS_ENABLED) {
 }
 
 console.log(`helio worker polling ${SENDS_TASK_QUEUE} @ ${env.TEMPORAL_ADDRESS}`);
+// Temporal's runtime owns SIGTERM/SIGINT: the worker stops polling, drains
+// in-flight activities, then run() resolves. What follows is the disposal
+// that used to be skipped — without it the trigger consumer kept the
+// process alive until the supervisor sent SIGKILL.
 await worker.run();
+console.log('worker drained, disposing');
+if (triggers) await triggers.stop().catch(() => undefined);
+if (clientConnection) await clientConnection.close().catch(() => undefined);
+await prisma.$disconnect().catch(() => undefined);
+await clickhouse.close().catch(() => undefined);
+await connection.close().catch(() => undefined);
+console.log('worker shut down cleanly');
