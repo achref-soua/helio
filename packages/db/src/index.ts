@@ -29,7 +29,9 @@ export {
 } from './generated/prisma/enums';
 export { forTenant, type TenantClient } from './tenant';
 export {
+  activeContactsByEmailForWebhook,
   shopifyConnectionForWebhook,
   type ShopifyWebhookConnection,
   stripeOrganizationForWebhook,
+  type SuppressibleContact,
 } from './webhook-resolvers';

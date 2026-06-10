@@ -200,6 +200,8 @@ model Contact {
   @@unique([workspaceId, email])
   @@index([organizationId])
   @@index([workspaceId, createdAt])
+  /// Bounce/complaint webhooks look an address up across all workspaces.
+  @@index([email])
   @@map("contact")
 }
 
