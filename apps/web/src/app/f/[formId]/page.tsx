@@ -11,6 +11,7 @@ import { Label } from '@helio/ui/components/label';
 import { getTranslations } from 'next-intl/server';
 
 import { BrandStyle } from '@/components/brand-style';
+import { PoweredBy } from '@/components/powered-by';
 import { authDb } from '@/lib/auth';
 
 import { submitForm } from './actions';
@@ -48,9 +49,9 @@ export default async function HostedFormPage({
   const brand = form?.workspace.organization;
 
   return (
-    <main className="bg-muted/30 grid min-h-svh place-items-center p-6">
+    <main className="bg-muted/30 flex min-h-svh flex-col p-6">
       <BrandStyle color={brand?.brandColor} />
-      <div className="grid w-full max-w-md gap-4">
+      <div className="m-auto grid w-full max-w-md gap-4">
         {brand && (brand.brandName || brand.logo) && (
           <div className="flex items-center justify-center gap-2 font-semibold">
             {brand.logo && (
@@ -98,6 +99,7 @@ export default async function HostedFormPage({
           )}
         </Card>
       </div>
+      <PoweredBy whiteLabeled={Boolean(brand && (brand.brandName || brand.logo))} />
     </main>
   );
 }

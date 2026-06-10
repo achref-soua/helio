@@ -1088,5 +1088,8 @@
     "useBackupInstead": "Use a backup code instead",
     "useTotpInstead": "Use your authenticator app instead",
     "trustDevice": "Trust this device for 30 days"
+  },
+  "publicFooter": {
+    "poweredBy": "Powered by Helio"
   }
 }
