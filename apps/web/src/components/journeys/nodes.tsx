@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { ThemedSelect } from '@/components/themed-select';
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
 import { useTRPC } from '@/trpc/client';
 
@@ -45,16 +46,6 @@ function Header({ icon: Icon, label }: { icon: typeof Mail; label: string }) {
     <div className="text-muted-foreground mb-2 flex items-center gap-1.5 text-xs font-medium uppercase">
       <Icon className="size-3.5" aria-hidden /> {label}
     </div>
-  );
-}
-
-/** Styled native select consistent with the builders. */
-function Select({ className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      className={`border-input bg-transparent dark:bg-input/30 h-8 w-full rounded-md border px-2 text-sm outline-none ${className ?? ''}`}
-      {...props}
-    />
   );
 }
 
@@ -90,21 +81,18 @@ export function SendEmailNode({ id, data, selected }: NodeProps) {
   return (
     <div className={shell(selected)} data-testid="node-send">
       <Header icon={Mail} label={t('sendEmail')} />
-      <Select
+      <ThemedSelect
         aria-label={t('template')}
-        value={send.templateId}
-        onChange={(event) => updateNodeData(id, { templateId: event.target.value })}
-        className="nodrag"
-      >
-        <option value="" disabled>
-          {t('pickTemplate')}
-        </option>
-        {templates.data?.map((template) => (
-          <option key={template.id} value={template.id}>
-            {template.name}
-          </option>
-        ))}
-      </Select>
+        value={send.templateId || undefined}
+        onValueChange={(templateId) => updateNodeData(id, { templateId })}
+        className="nodrag w-full"
+        size="sm"
+        placeholder={t('pickTemplate')}
+        options={(templates.data ?? []).map((template) => ({
+          value: template.id,
+          label: template.name,
+        }))}
+      />
       <label className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
         <input
           type="checkbox"
@@ -161,15 +149,17 @@ export function BranchNode({ id, data, selected }: NodeProps) {
           className="nodrag h-8"
         />
         <div className="flex gap-1.5">
-          <Select
+          <ThemedSelect
             aria-label={t('branchOperator')}
             value={branch.operator}
-            onChange={(event) => updateNodeData(id, { operator: event.target.value })}
+            onValueChange={(operator) => updateNodeData(id, { operator })}
             className="nodrag w-28"
-          >
-            <option value="equals">{t('equals')}</option>
-            <option value="not_equals">{t('notEquals')}</option>
-          </Select>
+            size="sm"
+            options={[
+              { value: 'equals', label: t('equals') },
+              { value: 'not_equals', label: t('notEquals') },
+            ]}
+          />
           <Input
             aria-label={t('branchValue')}
             placeholder={t('branchValuePlaceholder')}
@@ -368,21 +358,18 @@ export function SendInAppNode({ id, data, selected }: NodeProps) {
   return (
     <div className={shell(selected)} data-testid="node-send-in-app">
       <Header icon={AppWindow} label={t('sendInApp')} />
-      <Select
+      <ThemedSelect
         aria-label={t('inAppMessage')}
-        value={inApp.messageId}
-        onChange={(event) => updateNodeData(id, { messageId: event.target.value })}
-        className="nodrag"
-      >
-        <option value="" disabled>
-          {t('pickInAppMessage')}
-        </option>
-        {messages.data?.map((message) => (
-          <option key={message.id} value={message.id}>
-            {message.name}
-          </option>
-        ))}
-      </Select>
+        value={inApp.messageId || undefined}
+        onValueChange={(messageId) => updateNodeData(id, { messageId })}
+        className="nodrag w-full"
+        size="sm"
+        placeholder={t('pickInAppMessage')}
+        options={(messages.data ?? []).map((message) => ({
+          value: message.id,
+          label: message.name,
+        }))}
+      />
       <Handle type="target" position={Position.Top} />
       <Handle type="source" position={Position.Bottom} />
     </div>

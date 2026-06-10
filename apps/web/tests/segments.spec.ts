@@ -5,6 +5,8 @@ import { loadEnvFile } from 'node:process';
 import { expect, test } from '@playwright/test';
 import { Client } from 'pg';
 
+import { pickOption } from './select';
+
 const CSV = Buffer.from(
   [
     'Email,First Name,plan',
@@ -49,9 +51,9 @@ test('build a segment with live preview and save it', async ({ page }) => {
 
   // Condition: attribute "plan" equals "pro".
   const row = editor.getByTestId('condition-row').first();
-  await row.getByLabel('Property').selectOption('attribute');
+  await pickOption(row.getByLabel('Property'), 'Attribute');
   await row.getByLabel('Attribute name').fill('plan');
-  await row.getByLabel('Operator').selectOption('equals');
+  await pickOption(row.getByLabel('Operator'), 'equals');
   await row.getByLabel('Value', { exact: true }).fill('pro');
   await expect(page.getByTestId('segment-preview')).toContainText('1 contact matches', {
     timeout: 15_000,
@@ -61,11 +63,11 @@ test('build a segment with live preview and save it', async ({ page }) => {
   // Widen with an OR group: plan equals trial.
   await editor.getByRole('button', { name: 'Add group' }).click();
   const nested = editor.getByTestId('condition-row').nth(1);
-  await nested.getByLabel('Property').selectOption('attribute');
+  await pickOption(nested.getByLabel('Property'), 'Attribute');
   await nested.getByLabel('Attribute name').fill('plan');
-  await nested.getByLabel('Operator').selectOption('equals');
+  await pickOption(nested.getByLabel('Operator'), 'equals');
   await nested.getByLabel('Value', { exact: true }).fill('trial');
-  await page.getByTestId('rule-root').getByLabel('Group operator').first().selectOption('or');
+  await pickOption(page.getByTestId('rule-root').getByLabel('Group operator').first(), 'Match any');
   await expect(page.getByTestId('segment-preview')).toContainText('2 contacts match');
 
   await page.getByRole('button', { name: 'Create segment', exact: true }).click();
@@ -84,9 +86,9 @@ test('behavioral conditions: builder fields and preview surface honestly', async
   await editor.getByLabel('Name').fill('Engaged lately');
 
   const row = editor.getByTestId('condition-row').first();
-  await row.getByLabel('Property').selectOption('event');
+  await pickOption(row.getByLabel('Property'), 'Did event');
   await row.getByLabel('Event name').fill('Email Opened');
-  await row.getByLabel('Operator').selectOption('at_least');
+  await pickOption(row.getByLabel('Operator'), 'at least');
   await row.getByLabel('Times').fill('2');
   await row.getByLabel('Window (days)').fill('14');
 
@@ -98,7 +100,7 @@ test('behavioral conditions: builder fields and preview surface honestly', async
   );
 
   // 'never' hides the count input.
-  await row.getByLabel('Operator').selectOption('never');
+  await pickOption(row.getByLabel('Operator'), 'never');
   await expect(row.getByLabel('Times')).toHaveCount(0);
   await page.getByRole('button', { name: 'Cancel' }).click();
 });

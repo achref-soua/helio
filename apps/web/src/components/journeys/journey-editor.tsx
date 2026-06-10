@@ -16,6 +16,7 @@ import {
   ReactFlowProvider,
   useEdgesState,
   useNodesState,
+  useReactFlow,
 } from '@xyflow/react';
 import {
   AppWindow,
@@ -75,6 +76,7 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
   );
   const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
+  const { setCenter } = useReactFlow();
   const [name, setName] = useState(initialName);
   const [settings, setSettings] = useState<JourneySettings>(() =>
     initialDefinition ? settingsFromDefinition(initialDefinition) : DEFAULT_SETTINGS,
@@ -130,6 +132,9 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
                         ? { messageId: '' }
                         : {};
     setNodes((current) => [...current, { id, type, position, data }]);
+    // Palette adds chain downward and quickly leave the visible canvas —
+    // pan to the new node so its fields (and their popups) stay on screen.
+    setCenter(position.x + 120, position.y + 60, { zoom: 1, duration: 300 });
     if (tailId) {
       const tailNode = nodes.find((node) => node.id === tailId);
       const sourceHandle =

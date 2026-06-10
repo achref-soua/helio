@@ -14,13 +14,13 @@ import {
 import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
 import { Skeleton } from '@helio/ui/components/skeleton';
-import { cn } from '@helio/ui/lib/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Handshake, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { ThemedSelect } from '@/components/themed-select';
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
 import { useTRPC } from '@/trpc/client';
 
@@ -36,20 +36,6 @@ function formatMoney(cents: number, currency: string): string {
   } catch {
     return `${(cents / 100).toFixed(2)} ${currency}`;
   }
-}
-
-/** A keyboard- and screen-reader-friendly native select. */
-function Select({ className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      className={cn(
-        'border-input bg-transparent dark:bg-input/30 h-8 rounded-md border px-2 text-xs shadow-xs outline-none',
-        'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
-        className,
-      )}
-      {...props}
-    />
-  );
 }
 
 export function DealsView() {
@@ -209,18 +195,17 @@ export function DealsView() {
                       </span>
                     )}
                     <div className="flex items-center gap-1">
-                      <Select
+                      <ThemedSelect
                         aria-label={t('moveTo', { title: deal.title })}
                         value={stage.id}
-                        onChange={(event) => onMove(deal.id, event.target.value)}
+                        onValueChange={(next) => onMove(deal.id, next)}
                         className="grow"
-                      >
-                        {board.stages.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.name}
-                          </option>
-                        ))}
-                      </Select>
+                        size="sm"
+                        options={board.stages.map((option) => ({
+                          value: option.id,
+                          label: option.name,
+                        }))}
+                      />
                       <Button
                         variant="ghost"
                         size="icon"
@@ -270,18 +255,16 @@ export function DealsView() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="deal-stage">{t('dealStage')}</Label>
-              <Select
+              <ThemedSelect
                 id="deal-stage"
-                className="h-9 text-sm"
-                value={stageId || board?.stages[0]?.id || ''}
-                onChange={(event) => setStageId(event.target.value)}
-              >
-                {board?.stages.map((stage) => (
-                  <option key={stage.id} value={stage.id}>
-                    {stage.name}
-                  </option>
-                ))}
-              </Select>
+                className="w-full"
+                value={stageId || board?.stages[0]?.id}
+                onValueChange={setStageId}
+                options={(board?.stages ?? []).map((stage) => ({
+                  value: stage.id,
+                  label: stage.name,
+                }))}
+              />
             </div>
             <DialogFooter>
               <Button type="submit" disabled={createDeal.isPending || !title.trim()}>

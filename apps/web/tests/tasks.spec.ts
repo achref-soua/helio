@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { pickOption } from './select';
+
 // CRM-lite tasks: create a task, see it listed, complete it, then delete it —
 // all keyboard-accessible (icon buttons carry explicit aria-labels).
 
@@ -15,7 +17,7 @@ test('create a task, complete it, then delete it', async ({ page }) => {
 
   await page.getByTestId('new-task').click();
   await page.getByLabel('Title').fill('Email the Q3 recap');
-  await page.getByLabel('Priority').selectOption({ label: 'High' });
+  await pickOption(page.getByLabel('Priority'), 'High');
   await page.getByRole('button', { name: 'Create task' }).click();
   await expect(page.getByText('Task created')).toBeVisible();
 
