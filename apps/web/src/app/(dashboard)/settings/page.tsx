@@ -30,7 +30,10 @@ export default async function SettingsPage() {
   const me = organization.members.find((member) => member.userId === session.user.id);
 
   return (
-    <div className="grid max-w-3xl gap-6">
+    // grid-cols-1 pins the track to minmax(0,1fr): without it the track
+    // sizes to the widest card's min-content and narrow phones scroll
+    // sideways.
+    <div className="grid max-w-3xl grid-cols-1 gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground text-sm">{t('subtitle', { org: organization.name })}</p>

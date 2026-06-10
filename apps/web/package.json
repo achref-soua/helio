@@ -48,6 +48,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@helio/config": "workspace:*",
     "@next/eslint-plugin-next": "^16.2.7",
     "@playwright/test": "^1.60.0",
