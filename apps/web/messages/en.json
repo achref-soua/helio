@@ -20,7 +20,8 @@
     "landing": "Landing pages",
     "widgets": "Widgets",
     "inApp": "In-app",
-    "insights": "Insights"
+    "insights": "Insights",
+    "help": "Help"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -1091,5 +1092,68 @@
   },
   "publicFooter": {
     "poweredBy": "Powered by Helio"
+  },
+  "help": {
+    "open": "Help",
+    "takeTour": "Take the product tour",
+    "usageGuide": "Usage guide",
+    "documentation": "Documentation",
+    "guide": {
+      "title": "Usage guide",
+      "subtitle": "How to get things done in Helio, feature by feature. New here? The 30-second tour is the fastest start.",
+      "support": "Stuck or found a bug? Use the life buoy in the top bar — reports land in your support inbox under Settings.",
+      "sections": {
+        "contacts": {
+          "title": "Bring in your audience",
+          "body": "Import a CSV, capture signups from forms, or send events through the tracking SDK. Every person becomes one profile with traits, scores, and a full activity timeline.",
+          "cta": "Open contacts"
+        },
+        "segments": {
+          "title": "Slice it with live segments",
+          "body": "Build nested and/or rules over traits, behavior, scores, and AI predictions. Membership previews live as you edit and stays continuously up to date.",
+          "cta": "Build a segment"
+        },
+        "emails": {
+          "title": "Design on-brand emails",
+          "body": "Compose with blocks, personalize with '{{'tokens'}}', and preview exactly what each contact receives. Templates are shared by campaigns and journeys.",
+          "cta": "Create a template"
+        },
+        "campaigns": {
+          "title": "Send a campaign",
+          "body": "Pick a template and an audience, A/B test the subject line, then watch opens and clicks stream into the dashboard.",
+          "cta": "Launch a campaign"
+        },
+        "journeys": {
+          "title": "Automate journeys",
+          "body": "Drag a multi-step automation onto the canvas: emails, SMS, WhatsApp, push, in-app, waits, branches, and A/B splits. Journeys run durably — restarts never double-send.",
+          "cta": "Open the canvas"
+        },
+        "growth": {
+          "title": "Capture and convert",
+          "body": "Hosted forms, landing pages, on-site widgets, and in-app messages — each one feeds new contacts straight into segments and journeys.",
+          "cta": "Create a form"
+        },
+        "insights": {
+          "title": "Measure what works",
+          "body": "Funnels, cohort retention, multi-touch attribution, and a read-only SQL explorer over your event stream.",
+          "cta": "Explore insights"
+        },
+        "copilot": {
+          "title": "Let AI do the heavy lifting",
+          "body": "Describe a segment, journey, or email in plain English and the copilot drafts it from your own data — grounded, tenant-scoped, and editable before anything runs.",
+          "cta": "Ask the copilot"
+        },
+        "crm": {
+          "title": "Close the loop with CRM",
+          "body": "Track deals through pipeline stages, work tasks by due date, and share a booking link that turns meetings into contacts automatically.",
+          "cta": "View deals"
+        },
+        "settings": {
+          "title": "Run it your way",
+          "body": "Invite teammates, brand the workspace, mint scoped API keys, wire webhooks and integrations, and harden access with 2FA, SSO, and SCIM.",
+          "cta": "Open settings"
+        }
+      }
+    }
   }
 }

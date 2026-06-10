@@ -15,7 +15,13 @@ import { useEffect, useState } from 'react';
 
 /** Bump the version to re-show the tour after a meaningful product change. */
 const STORAGE_KEY = 'helio.tour.v1.done';
+const START_EVENT = 'helio:tour-start';
 const STEPS = ['welcome', 'contacts', 'journeys', 'copilot', 'crm', 'support'] as const;
+
+/** Reopen the tour from anywhere (the Help menu, the usage guide). */
+export function startProductTour(): void {
+  window.dispatchEvent(new Event(START_EVENT));
+}
 
 /**
  * A one-time product tour for new operators. Auto-opens unless dismissed
@@ -34,6 +40,16 @@ export function TourGuide() {
       if (!localStorage.getItem(STORAGE_KEY)) setOpen(true);
     }, 0);
     return () => clearTimeout(id);
+  }, []);
+
+  // The Help menu can restart the tour at any time, from the first step.
+  useEffect(() => {
+    const onStart = () => {
+      setStep(0);
+      setOpen(true);
+    };
+    window.addEventListener(START_EVENT, onStart);
+    return () => window.removeEventListener(START_EVENT, onStart);
   }, []);
 
   function dismiss() {
