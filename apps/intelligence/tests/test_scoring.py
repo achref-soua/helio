@@ -311,3 +311,21 @@ async def test_clickhouse_client_empty_response_is_empty_list() -> None:
         assert await client.query("SELECT 1") == []
     finally:
         httpx.AsyncClient.__init__ = orig  # type: ignore[method-assign]
+
+
+def test_scoring_endpoint_503_when_store_unreachable() -> None:
+    # Configured ClickHouse that is not running is an operational state:
+    # the endpoint must say what to start, not crash with a 500.
+    app = create_app()
+
+    class _UnreachableService:
+        async def recompute(self, organization_id: str, workspace_id: str) -> None:
+            raise httpx.ConnectError("connection refused")
+
+    app.dependency_overrides[get_scoring_service] = lambda: _UnreachableService()
+    client = TestClient(app)
+    response = client.post(
+        "/v1/scoring/recompute", json={"organization_id": "o", "workspace_id": "w"}
+    )
+    assert response.status_code == 503
+    assert "ClickHouse" in response.json()["detail"]

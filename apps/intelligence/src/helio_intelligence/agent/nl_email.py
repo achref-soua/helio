@@ -14,6 +14,7 @@ from typing import Any
 
 from ..llm import LLMProvider, SystemMessage, UserMessage
 from .email_schema import validate_email_document
+from .naming import suggest_name
 
 _SYSTEM_PROMPT = """You write a Helio marketing email as JSON. Output ONLY the \
 JSON object — no prose, no code fences.
@@ -84,9 +85,9 @@ class NlEmailGenerator:
                     raise ValueError("missing subject")
                 document = validate_email_document(data.get("document", {}))
                 return GeneratedEmail(
-                    name=_suggest_name(prompt),
+                    name=suggest_name(prompt, "New email"),
                     subject=subject[:300],
-                    document=document.model_dump(mode="json"),
+                    document=document.model_dump(mode="json", exclude_none=True),
                 )
             except (ValueError, json.JSONDecodeError) as error:
                 last_error = str(error)
@@ -97,9 +98,3 @@ class NlEmailGenerator:
                     )
                 )
         raise ValueError(f"could not produce a valid email: {last_error}")
-
-
-def _suggest_name(prompt: str) -> str:
-    words = re.findall(r"[A-Za-z0-9]+", prompt)[:6]
-    name = " ".join(words).strip().title()
-    return name[:80] or "New email"
