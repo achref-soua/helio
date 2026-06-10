@@ -6,7 +6,14 @@ import { cn } from '../../lib/utils';
 
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+    // contain-inline-size: a wide table must scroll inside this container,
+    // never size the ancestor grid/flex track (and with it the page) to
+    // its content — without it one long cell makes small screens scroll
+    // sideways.
+    <div
+      data-slot="table-container"
+      className="contain-inline-size relative w-full overflow-x-auto"
+    >
       <table
         data-slot="table"
         className={cn('w-full caption-bottom text-sm', className)}

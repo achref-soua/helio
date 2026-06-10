@@ -306,7 +306,7 @@ export function ContactsView() {
         <Badge variant="outline" data-testid="contacts-total">
           {t('total', { count: total })}
         </Badge>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
           <Button
             variant="outline"
             size="sm"
