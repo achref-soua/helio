@@ -59,7 +59,23 @@ await helio.addListMembers(vips.id, ['contact_a', 'contact_b']);
 
 - Unsubscribes and bounces add a contact to the **suppression list**, which is
   honored at every send — at audience enumeration _and_ again per message.
+  Provider bounce/complaint webhooks feed it automatically — see
+  [Deliverability](/docs/guides/deliverability#bounces--complaints).
 - **One-click unsubscribe** (RFC 8058) and a hosted preference page are built
   in.
 - A contact can be exported or erased for **GDPR** data-subject requests; a
   delete through the API is a true erasure.
+
+## Exports
+
+Two exports live on the Contacts page (editor role or above; both are
+audit-logged):
+
+- **Export CSV** downloads the current view — the active search and list
+  filter apply — up to 10,000 rows, in the same column layout the importer
+  accepts. Cells are quoted per RFC 4180 and defused against spreadsheet
+  formula injection.
+- **Export data (JSON)**, on a contact's row menu, produces a data-subject
+  bundle: the full profile with list memberships, email sends, journey runs,
+  tasks, meetings, push subscriptions, and (when the analytics store is
+  reachable) the most recent 500 behavioral events.
