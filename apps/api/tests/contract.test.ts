@@ -83,7 +83,9 @@ describe('gateway contract', () => {
   });
 
   it('healthz is public, readyz reports dependency state', async () => {
-    expect((await app.request('/healthz')).status).toBe(200);
+    const health = await app.request('/healthz');
+    expect(health.status).toBe(200);
+    expect(health.headers.get('x-content-type-options')).toBe('nosniff');
     const ready = await app.request('/readyz');
     expect(ready.status).toBe(200);
     expect(await ready.json()).toMatchObject({

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { OpenAPIHono } from '@hono/zod-openapi';
+import { secureHeaders } from 'hono/secure-headers';
 
 import { apiKeyAuth } from './middleware/api-key';
 import { idempotency } from './middleware/idempotency';
@@ -32,6 +33,7 @@ export function createApp(deps: GatewayDeps) {
   });
 
   app.use('*', requestLogging);
+  app.use('*', secureHeaders());
 
   app.get('/healthz', (c) => c.json({ status: 'ok', service: 'api' }));
 

@@ -11,6 +11,7 @@ import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
+import { secureHeaders } from 'hono/secure-headers';
 import { pino } from 'pino';
 
 import { enrichEvent } from './enrich';
@@ -106,6 +107,8 @@ export function createApp(deps: IngestDeps) {
       'request',
     );
   });
+
+  app.use('*', secureHeaders());
 
   app.get('/healthz', (c) => c.json({ status: 'ok', service: 'ingest' }));
 
