@@ -25,8 +25,10 @@ interface FakeOpts {
 function fakePrisma(opts: FakeOpts = {}) {
   const created: Array<Record<string, unknown>> = [];
   const updated: Array<{ data: Record<string, unknown> }> = [];
-  const prisma = {
-    integration: { findFirst: vi.fn().mockResolvedValue(opts.integration ?? null) },
+  const prisma: Record<string, unknown> = {
+    // The shop→connection lookup runs through the SECURITY DEFINER webhook
+    // resolver, i.e. raw SQL (ADR-0017).
+    $queryRaw: vi.fn().mockResolvedValue(opts.integration ? [opts.integration] : []),
     contact: {
       findUnique: vi.fn().mockResolvedValue(opts.existingContact ?? null),
       create: vi.fn(async (args: { data: Record<string, unknown> }) => {
@@ -39,8 +41,10 @@ function fakePrisma(opts: FakeOpts = {}) {
       }),
     },
     auditLog: { create: vi.fn(async () => ({})) },
-  } as never;
-  return { prisma, created, updated };
+  };
+  // forTenant() extends the client; the stub hands back itself.
+  prisma.$extends = () => prisma;
+  return { prisma: prisma as never, created, updated };
 }
 
 describe('handleShopifyWebhook', () => {

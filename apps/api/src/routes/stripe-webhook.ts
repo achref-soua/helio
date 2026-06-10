@@ -1,5 +1,10 @@
 import { newId, type Plan, verifyStripeSignature } from '@helio/core';
-import type { PrismaClient } from '@helio/db';
+import {
+  forTenant,
+  type PrismaClient,
+  stripeOrganizationForWebhook,
+  type TenantClient,
+} from '@helio/db';
 import { Hono } from 'hono';
 
 import type { GatewayDeps, GatewayEnv } from '../types';
@@ -22,7 +27,12 @@ function str(value: unknown): string | undefined {
   return typeof value === 'string' && value ? value : undefined;
 }
 
-/** Resolve the org an event belongs to: explicit metadata, else by customer. */
+/**
+ * Resolve the org an event belongs to: explicit metadata, else by customer.
+ * The customer lookup happens before any tenant context exists, so it goes
+ * through the SECURITY DEFINER webhook resolver (ADR-0017) — the app role
+ * itself sees no subscription rows here.
+ */
 async function resolveOrgId(
   prisma: PrismaClient,
   object: Record<string, unknown>,
@@ -31,25 +41,19 @@ async function resolveOrgId(
   const explicit = str(metadata.organizationId) ?? str(object.client_reference_id);
   if (explicit) return explicit;
   const customer = str(object.customer);
-  if (customer) {
-    const existing = await prisma.subscription.findFirst({
-      where: { stripeCustomerId: customer },
-      select: { organizationId: true },
-    });
-    if (existing) return existing.organizationId;
-  }
+  if (customer) return stripeOrganizationForWebhook(prisma, customer);
   return null;
 }
 
 async function upsertSubscription(
-  prisma: PrismaClient,
+  tenantDb: TenantClient,
   organizationId: string,
   patch: SubscriptionPatch,
 ): Promise<void> {
   const update = Object.fromEntries(
     Object.entries(patch).filter(([, value]) => value !== undefined),
   );
-  await prisma.subscription.upsert({
+  await tenantDb.subscription.upsert({
     where: { organizationId },
     // A brand-new Stripe-managed org starts on FREE unless the event maps
     // a paid price; self-hosted orgs simply never get a row.
@@ -81,7 +85,7 @@ export async function handleStripeEvent(
     case 'checkout.session.completed': {
       const orgId = await resolveOrgId(prisma, object);
       if (!orgId) return { handled: false };
-      await upsertSubscription(prisma, orgId, {
+      await upsertSubscription(forTenant(prisma, orgId), orgId, {
         status: 'active',
         stripeCustomerId: str(object.customer),
         stripeSubscriptionId: str(object.subscription),
@@ -93,7 +97,7 @@ export async function handleStripeEvent(
       const orgId = await resolveOrgId(prisma, object);
       if (!orgId) return { handled: false };
       const periodEnd = object.current_period_end;
-      await upsertSubscription(prisma, orgId, {
+      await upsertSubscription(forTenant(prisma, orgId), orgId, {
         plan: pricePlan(object, priceToPlan),
         status: str(object.status),
         stripeCustomerId: str(object.customer),
@@ -106,7 +110,10 @@ export async function handleStripeEvent(
       const orgId = await resolveOrgId(prisma, object);
       if (!orgId) return { handled: false };
       // Cancellation downgrades to FREE rather than deleting the row.
-      await upsertSubscription(prisma, orgId, { plan: 'FREE', status: 'canceled' });
+      await upsertSubscription(forTenant(prisma, orgId), orgId, {
+        plan: 'FREE',
+        status: 'canceled',
+      });
       return { handled: true };
     }
     default:

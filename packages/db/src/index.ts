@@ -28,3 +28,8 @@ export {
   JourneyStatus,
 } from './generated/prisma/enums';
 export { forTenant, type TenantClient } from './tenant';
+export {
+  shopifyConnectionForWebhook,
+  type ShopifyWebhookConnection,
+  stripeOrganizationForWebhook,
+} from './webhook-resolvers';
