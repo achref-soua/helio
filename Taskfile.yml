@@ -60,6 +60,9 @@ tasks:
   verify:e2e:
     desc: 'End-to-end gate (requires: task up; WIPES the local database)'
     cmds:
+      # CI mode serves `next start`, which silently serves whatever build
+      # is on disk — build first so the gate always tests current code.
+      - pnpm turbo build --filter=@helio/web
       - cd apps/web && CI=1 pnpm test:e2e
 
   up:
