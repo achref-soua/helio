@@ -206,6 +206,12 @@ export {
   verifyShopifyHmac,
 } from './shopify';
 export {
+  createShutdown,
+  registerShutdown,
+  type ShutdownOptions,
+  type ShutdownTask,
+} from './shutdown';
+export {
   guardAnalyticsQuery,
   MAX_SQL_LENGTH,
   MAX_SQL_ROWS,
