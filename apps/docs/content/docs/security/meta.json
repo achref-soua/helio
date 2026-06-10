@@ -1,4 +1,4 @@
 {
   "title": "Enterprise & security",
-  "pages": ["sso", "scim", "rate-limits"]
+  "pages": ["two-factor", "sso", "scim", "rate-limits"]
 }

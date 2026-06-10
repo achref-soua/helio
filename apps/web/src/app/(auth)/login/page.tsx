@@ -30,13 +30,19 @@ export default function LoginPage() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     setPending(true);
-    const { error } = await signIn.email({
+    const { data, error } = await signIn.email({
       email,
       password: String(form.get('password')),
     });
     setPending(false);
     if (error) {
       toast.error(error.message ?? t('genericError'));
+      return;
+    }
+    // Accounts with TOTP enabled get a partial session and finish on the
+    // challenge page instead of the dashboard.
+    if ((data as { twoFactorRedirect?: boolean } | null)?.twoFactorRedirect) {
+      router.push('/two-factor');
       return;
     }
     router.push('/');

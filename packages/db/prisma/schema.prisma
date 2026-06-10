@@ -627,6 +627,10 @@ model TwoFactor {
   secret      String
   backupCodes String @map("backup_codes")
   userId      String @map("user_id")
+  /// False between enrollment and the first successful TOTP verification —
+  /// Better-Auth 1.6 only activates 2FA once a code proves the enrollment.
+  /// Defaults true so any pre-1.6 row keeps working.
+  verified    Boolean @default(true)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

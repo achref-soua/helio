@@ -1,0 +1,36 @@
+---
+title: Two-factor authentication
+description: TOTP-based 2FA with single-use backup codes, enrolled per user from Settings.
+---
+
+Every user can protect their account with **TOTP two-factor authentication**
+(Google Authenticator, 1Password, Authy, …). Enrollment is per user, in
+**Settings → Two-factor authentication**.
+
+## Enable
+
+1. Click **Enable 2FA** and confirm your password.
+2. Scan the QR code with your authenticator app — or paste the
+   `otpauth://` URI shown under it for manual entry.
+3. Store the **backup codes** somewhere safe. Each signs you in once if you
+   lose your device, and they are shown only this once.
+4. Confirm a 6-digit code. 2FA activates **only after a code verifies**, so
+   an unscanned QR can never lock you out.
+
+## Signing in
+
+After your password, Helio asks for a current 6-digit code. You can check
+**trust this device for 30 days** to skip the prompt on that browser, or
+use a backup code if your device is unavailable (each backup code works
+exactly once).
+
+## Disable
+
+**Settings → Two-factor authentication → Disable**, confirmed by password.
+
+<Callout type="warn">
+  Credential endpoints — including two-factor verification — are rate-limited against brute force;
+  see [Rate limits](/docs/security/rate-limits). Backup codes are the only recovery path: if both
+  the device and the codes are gone, an operator must clear the user's 2FA enrollment directly in
+  the database.
+</Callout>
