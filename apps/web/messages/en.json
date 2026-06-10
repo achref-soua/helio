@@ -299,7 +299,15 @@
       "empty": "No scoring rules yet.",
       "manageAction": "Scoring rules"
     },
-    "phone": "Phone"
+    "phone": "Phone",
+    "export": {
+      "action": "Export CSV",
+      "done": "Exported {count} contacts",
+      "truncated": "Export capped at 10,000 rows — narrow the filter for the rest",
+      "dataAction": "Export data (JSON)",
+      "dataDone": "Contact data bundle downloaded",
+      "failed": "Export failed"
+    }
   },
   "segments": {
     "title": "Segments",
