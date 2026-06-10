@@ -29,6 +29,26 @@ def copilot_tool_specs() -> list[ToolSpec]:
             parameters=_NO_ARGS,
         ),
         ToolSpec(
+            name="count_contacts",
+            description="Count the workspace's contacts. Pass `key` and `value` "
+            "to count only contacts whose attribute equals a value "
+            "(e.g. key='plan', value='pro'); omit both for the total.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "description": "Attribute name to filter by.",
+                    },
+                    "value": {
+                        "type": "string",
+                        "description": "Attribute value that must match exactly.",
+                    },
+                },
+                "additionalProperties": False,
+            },
+        ),
+        ToolSpec(
             name="search_contacts",
             description="Find contacts by a free-text query over email and name. "
             "Returns up to `limit` contacts with their score and status.",
@@ -86,6 +106,16 @@ class ToolDispatcher:
             if name == "get_workspace_summary":
                 summary = await self._repo.workspace_summary(org, ws)
                 return json.dumps(summary.__dict__)
+            if name == "count_contacts":
+                key = str(arguments.get("key", "")).strip()
+                value = str(arguments.get("value", "")).strip()
+                count = (
+                    await self._repo.count_contacts_by_attribute(org, ws, key, value)
+                    if key and value
+                    else await self._repo.count_contacts(org, ws)
+                )
+                applied = {"key": key, "value": value} if key and value else None
+                return json.dumps({"count": count, "filter": applied})
             if name == "search_contacts":
                 query = str(arguments.get("query", ""))
                 limit = int(arguments.get("limit", 10))

@@ -36,6 +36,23 @@ class OrgRepository:
             )
             return int(value or 0)
 
+    async def count_contacts_by_attribute(
+        self, organization_id: str, workspace_id: str, key: str, value: str
+    ) -> int:
+        """Contacts whose free-form attribute ``key`` equals ``value``.
+
+        Both are bound parameters into the JSONB lookup, so model-chosen
+        filters can never escape into SQL.
+        """
+        async with self._db.scoped(organization_id) as scoped:
+            count = await scoped.fetchval(
+                "SELECT count(*) FROM contact WHERE workspace_id = $1 AND attributes->>$2 = $3",
+                workspace_id,
+                key,
+                value,
+            )
+            return int(count or 0)
+
     async def search_contacts(
         self, organization_id: str, workspace_id: str, query: str, limit: int = 10
     ) -> list[dict[str, Any]]:
