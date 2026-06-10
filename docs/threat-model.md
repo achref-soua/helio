@@ -20,6 +20,8 @@ Tenant contact data (PII), credentials/sessions/API keys, email-sending capabili
 | Privilege escalation in-org          | Role tampering                          | Roles validated against Better-Auth access control; tRPC `requireRole`; viewer denial covered by e2e                                       |
 | Email abuse via dev                  | Accidental real sends                   | All dev mail terminates in Mailpit                                                                                                         |
 
-## Accepted gaps (tracked for Phase 1)
+## Accepted gaps
 
-CSP/security headers on the dashboard; CSRF posture review for the gateway (cookie-less today); per-user scoped API keys replacing the bootstrap token; webhook signature verification; audit-log coverage beyond auth/workspace events; encryption-at-rest guidance for self-hosters.
+CSRF posture review for the gateway (cookie-less today, bearer-authenticated); nonce-based CSP (the dashboard ships a baseline CSP with `unsafe-inline` script/style, the Next.js default posture without per-request nonces); SNS signature verification on the email webhook (shared-token authenticated instead); encryption-at-rest guidance for self-hosters.
+
+Closed since first written: ~~CSP/security headers on the dashboard~~ (baseline CSP + nosniff/referrer/permissions headers, frame-ancestors deny except embeddable hosted pages; edge services ship hono secure-headers); ~~per-user scoped API keys replacing the bootstrap token~~ (ADR-0015); ~~webhook signature verification~~ (Stripe/Shopify signatures, email shared token + ADR-0017 tenant resolvers); ~~audit-log coverage~~ (all domain mutations audit-logged).
