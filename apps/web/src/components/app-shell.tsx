@@ -7,6 +7,7 @@ import {
   AppWindow,
   BarChart3,
   CalendarClock,
+  CircleHelp,
   FileText,
   Handshake,
   LayoutDashboard,
@@ -28,6 +29,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { HelpMenu } from '@/components/help-menu';
 import { ReportDialog } from '@/components/report-dialog';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { UserMenu } from '@/components/user-menu';
@@ -49,6 +51,7 @@ const NAV_ITEMS = [
   { key: 'tasks', href: '/tasks', icon: ListTodo },
   { key: 'scheduling', href: '/scheduling', icon: CalendarClock },
   { key: 'copilot', href: '/copilot', icon: Sparkles },
+  { key: 'help', href: '/help', icon: CircleHelp },
   { key: 'settings', href: '/settings', icon: Settings },
 ] as const;
 
@@ -131,6 +134,7 @@ export function AppShell({ children, brand }: { children: React.ReactNode; brand
           </Sheet>
           <div className="ml-auto flex items-center gap-1">
             <WorkspaceSwitcher />
+            <HelpMenu />
             <ReportDialog />
             <ThemeToggle />
             <UserMenu />
