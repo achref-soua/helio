@@ -4,7 +4,6 @@
 
 **The open-source growth platform** — unify customer data, segment anyone, orchestrate journeys across every channel, and let AI do the heavy lifting. Self-host it, own your data, pay nothing per contact.
 
-[![CI](https://github.com/achref-soua/helio/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/achref-soua/helio/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/achref-soua/helio?include_prereleases)](https://github.com/achref-soua/helio/releases)
 [![Stars](https://img.shields.io/github/stars/achref-soua/helio?style=social)](https://github.com/achref-soua/helio/stargazers)
