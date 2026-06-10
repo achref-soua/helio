@@ -25,7 +25,9 @@ test('drafting an email without the AI service degrades gracefully', async ({ pa
 test('a chat attempt without the AI service surfaces an actionable error', async ({ page }) => {
   await page.goto('/copilot');
   await page.getByLabel('Ask the copilot…').fill('How many contacts do I have?');
-  await page.getByRole('button', { name: 'Send' }).click();
+  // Scoped: the top-bar feedback button's accessible name ("Report a bug
+  // or send feedback") also substring-matches "Send".
+  await page.getByTestId('copilot-chat').getByRole('button', { name: 'Send' }).click();
   // The user's message stays; an unreachable/unconfigured service toasts.
   await expect(page.getByTestId('turn-user')).toContainText('How many contacts');
   await expect(page.locator('[data-sonner-toast]')).toBeVisible({ timeout: 15_000 });

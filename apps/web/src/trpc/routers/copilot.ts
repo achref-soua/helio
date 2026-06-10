@@ -1,9 +1,23 @@
 import { emailDocumentSchema, journeyDefinitionSchema, segmentRuleSchema } from '@helio/core';
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 import { intelligence } from '@/lib/intelligence';
 
 import { orgProcedure, router } from '../init';
+
+/** Parse an AI draft against the canonical schema; an invalid draft is a
+ *  retryable user-facing condition (rephrase), never a 500. */
+function parseDraft<T>(schema: { parse: (value: unknown) => T }, value: unknown): T {
+  try {
+    return schema.parse(value);
+  } catch {
+    throw new TRPCError({
+      code: 'UNPROCESSABLE_CONTENT',
+      message: 'The AI returned a draft Helio could not validate — try rephrasing your request.',
+    });
+  }
+}
 
 /**
  * The copilot BFF: proxies to the intelligence service, injecting the
@@ -44,7 +58,7 @@ export const copilotRouter = router({
         prompt: input.prompt,
       });
       // Re-validate against the canonical schema before trusting it.
-      const rule = segmentRuleSchema.parse(draft.rule);
+      const rule = parseDraft(segmentRuleSchema, draft.rule);
       return { name: draft.name, rule };
     }),
 
@@ -56,7 +70,7 @@ export const copilotRouter = router({
         workspace_id: input.workspaceId,
         prompt: input.prompt,
       });
-      const definition = journeyDefinitionSchema.parse(draft.definition);
+      const definition = parseDraft(journeyDefinitionSchema, draft.definition);
       return { name: draft.name, definition };
     }),
 
@@ -68,7 +82,7 @@ export const copilotRouter = router({
         workspace_id: input.workspaceId,
         prompt: input.prompt,
       });
-      const document = emailDocumentSchema.parse(draft.document);
+      const document = parseDraft(emailDocumentSchema, draft.document);
       return { name: draft.name, subject: draft.subject, document };
     }),
 });
