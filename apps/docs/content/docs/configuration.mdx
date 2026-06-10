@@ -123,6 +123,15 @@ price to a plan.
 | `MAIL_FROM`               | —        | Sender for transactional mail.                           |
 | `SMTP_HOST` / `SMTP_PORT` | —        | SMTP relay (Mailpit `localhost:1025` in dev).            |
 
+## Abuse protection
+
+| Variable                     | Default | Purpose                                                        |
+| ---------------------------- | ------- | -------------------------------------------------------------- |
+| `PUBLIC_RATE_LIMITS_ENABLED` | `true`  | Throttle the dashboard's public endpoints (forms, booking, …). |
+
+Budgets, keying, and the auth brute-force rules are documented in
+[Rate limits & abuse protection](/docs/security/rate-limits).
+
 ## Observability (optional profile)
 
 | Variable                      | Purpose                                            |

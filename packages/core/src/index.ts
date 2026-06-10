@@ -121,6 +121,11 @@ export {
   landingDocumentSchema,
 } from './landing';
 export { type PushNotification, type PushSubscriptionInput, pushSubscriptionSchema } from './push';
+export {
+  FixedWindowRateLimiter,
+  type RateLimitDecision,
+  type RateLimitOptions,
+} from './rate-limit';
 export { hasRole, INVITABLE_ROLES, isRole, type Role, ROLES } from './rbac';
 export {
   type Err,
