@@ -22,6 +22,9 @@ const app = createApp({
         },
       }
     : undefined,
+  emailWebhook: env.EMAIL_WEBHOOK_TOKEN
+    ? { token: env.EMAIL_WEBHOOK_TOKEN, fetch: (url) => fetch(url) }
+    : undefined,
 });
 
 serve({ fetch: app.fetch, port: env.API_PORT }, (info) => {

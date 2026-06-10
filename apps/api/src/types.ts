@@ -12,11 +12,20 @@ export interface StripeConfig {
   priceToPlan: Record<string, Plan>;
 }
 
+/** Bounce/complaint webhook config; absent disables the endpoint (404). */
+export interface EmailWebhookConfig {
+  /** Shared secret carried as `?token=` on the webhook URL. */
+  token: string;
+  /** Outbound fetch confirming SNS subscriptions — injectable for tests. */
+  fetch: (url: string) => Promise<unknown>;
+}
+
 export interface GatewayDeps {
   prisma: PrismaClient;
   redis: RedisLike;
   rateLimit: { max: number; windowSeconds: number };
   stripe?: StripeConfig;
+  emailWebhook?: EmailWebhookConfig;
 }
 
 export interface GatewayVariables {

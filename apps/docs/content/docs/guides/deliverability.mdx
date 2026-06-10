@@ -1,6 +1,6 @@
 ---
 title: Deliverability
-description: Authenticate your sending domains with SPF, DKIM, and DMARC, then verify by DNS.
+description: Authenticate your sending domains with SPF, DKIM, and DMARC, verify by DNS, and feed provider bounce/complaint webhooks into the suppression list.
 ---
 
 Inboxes trust mail that proves who sent it. The deliverability wizard
@@ -30,4 +30,51 @@ private key is tenant-isolated and never returned to the browser.
 <Callout>
   SPF and DMARC are quick to publish; DKIM is the one that requires the generated public key. Give
   DNS a few minutes to propagate before verifying.
+</Callout>
+
+## Bounces & complaints
+
+A hard bounce or a spam complaint means the address itself went bad —
+continuing to send to it from **any** workspace damages your deployment's
+sending reputation. Point your provider's bounce/complaint webhook at the
+API gateway and Helio suppresses the address everywhere: every active
+contact holding it flips to `BOUNCED` or `COMPLAINED` (audit-logged), and
+every send path already skips non-active contacts.
+
+Set a shared secret first (the endpoint answers 404 until it is set):
+
+```bash
+# .env — generate one: openssl rand -hex 24
+EMAIL_WEBHOOK_TOKEN=<your-secret>
+```
+
+### Postmark
+
+In **Postmark → Server → Webhooks**, add a webhook for **Bounce** and
+**Spam complaint** events pointing at:
+
+```
+https://<your-api-host>/webhooks/email/postmark?token=<your-secret>
+```
+
+Hard bounces and bad addresses suppress; soft/transient bounces are
+acknowledged and ignored (Postmark retries those itself).
+
+### Amazon SES
+
+Create an SNS topic, subscribe your gateway URL to it over **HTTPS**, and
+attach the topic to your SES identity's **Bounce** and **Complaint**
+notifications:
+
+```
+https://<your-api-host>/webhooks/email/ses?token=<your-secret>
+```
+
+Helio confirms the SNS subscription automatically (only `https://`
+URLs on `*.amazonaws.com` are followed). Permanent bounces and complaints
+suppress; transient bounces are left to SES's own retries.
+
+<Callout type="warn">
+  The token in the URL is the only thing authenticating these calls — treat the full webhook URL as
+  a secret, and rotate `EMAIL_WEBHOOK_TOKEN` if it leaks.
 </Callout>

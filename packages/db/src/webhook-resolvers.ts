@@ -37,3 +37,23 @@ export async function stripeOrganizationForWebhook(
     SELECT webhook_stripe_organization(${customerId}) AS "organizationId"`;
   return rows[0]?.organizationId ?? null;
 }
+
+export interface SuppressibleContact {
+  id: string;
+  organizationId: string;
+  workspaceId: string;
+}
+
+/**
+ * Every ACTIVE contact holding an address, across all workspaces — the
+ * lookup behind bounce/complaint suppression. A bad address is bad for the
+ * whole deployment's sending reputation, not for one tenant.
+ */
+export async function activeContactsByEmailForWebhook(
+  prisma: PrismaClient,
+  email: string,
+): Promise<SuppressibleContact[]> {
+  return prisma.$queryRaw<SuppressibleContact[]>`
+    SELECT id, organization_id AS "organizationId", workspace_id AS "workspaceId"
+    FROM webhook_contacts_by_email(${email})`;
+}

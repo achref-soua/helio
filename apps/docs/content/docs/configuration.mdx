@@ -27,11 +27,12 @@ and `DATABASE_ADMIN_URL` (schema owner) is a core part of the
 
 ## API gateway
 
-| Variable              | Default | Purpose                          |
-| --------------------- | ------- | -------------------------------- |
-| `API_PORT`            | `4000`  | Public REST gateway port.        |
-| `RATE_LIMIT_MAX`      | `100`   | Requests per window per API key. |
-| `RATE_LIMIT_WINDOW_S` | `60`    | Rate-limit window, seconds.      |
+| Variable              | Default | Purpose                                                                                     |
+| --------------------- | ------- | ------------------------------------------------------------------------------------------- |
+| `API_PORT`            | `4000`  | Public REST gateway port.                                                                   |
+| `RATE_LIMIT_MAX`      | `100`   | Requests per window per API key.                                                            |
+| `RATE_LIMIT_WINDOW_S` | `60`    | Rate-limit window, seconds.                                                                 |
+| `EMAIL_WEBHOOK_TOKEN` | —       | Enables `/webhooks/email/*` [suppression](/docs/guides/deliverability#bounces--complaints). |
 
 The gateway authenticates with [per-organization API keys](/docs/api/rest)
 minted in the dashboard — there is no gateway-wide secret.

@@ -6,6 +6,7 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testconta
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
+  activeContactsByEmailForWebhook,
   createPrismaClient,
   forTenant,
   type PrismaClient,
@@ -26,9 +27,14 @@ describe('webhook tenant resolvers', () => {
   let app: PrismaClient;
 
   const org = { id: newId('org'), name: 'Resolver Org', slug: 'resolver-org' };
+  const orgB = { id: newId('org'), name: 'Resolver Org B', slug: 'resolver-org-b' };
   const workspaceId = newId('ws');
+  const workspaceB = newId('ws');
   const shopDomain = 'resolver-test.myshopify.com';
   const stripeCustomerId = 'cus_resolver_test';
+  const sharedEmail = 'bounced@example.com';
+  const contactA = newId('contact');
+  const contactB = newId('contact');
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
@@ -69,6 +75,26 @@ describe('webhook tenant resolvers', () => {
         plan: 'PRO',
         stripeCustomerId,
       },
+    });
+
+    // The same address lives in two tenants; a third contact is already
+    // suppressed and must not resurface through the resolver.
+    await admin.organization.create({ data: orgB });
+    await admin.workspace.create({
+      data: { id: workspaceB, organizationId: orgB.id, name: 'B Main', slug: 'main' },
+    });
+    await admin.contact.createMany({
+      data: [
+        { id: contactA, organizationId: org.id, workspaceId, email: sharedEmail },
+        { id: contactB, organizationId: orgB.id, workspaceId: workspaceB, email: sharedEmail },
+        {
+          id: newId('contact'),
+          organizationId: org.id,
+          workspaceId,
+          email: 'gone@example.com',
+          status: 'UNSUBSCRIBED',
+        },
+      ],
     });
   });
 
@@ -124,9 +150,37 @@ describe('webhook tenant resolvers', () => {
     expect(updated?.status).toBe('active');
   });
 
+  it('finds every ACTIVE contact holding an address, across tenants', async () => {
+    const contacts = await activeContactsByEmailForWebhook(app, sharedEmail);
+    expect(contacts.map((c) => c.id).sort()).toEqual([contactA, contactB].sort());
+    expect(new Set(contacts.map((c) => c.organizationId))).toEqual(new Set([org.id, orgB.id]));
+  });
+
+  it('omits contacts that are already suppressed', async () => {
+    expect(await activeContactsByEmailForWebhook(app, 'gone@example.com')).toEqual([]);
+  });
+
+  it('suppression writes flow per tenant after resolution', async () => {
+    const contacts = await activeContactsByEmailForWebhook(app, sharedEmail);
+    for (const contact of contacts) {
+      await forTenant(app, contact.organizationId).contact.update({
+        where: { id: contact.id },
+        data: { status: 'BOUNCED' },
+      });
+    }
+    const statuses = await admin.contact.findMany({
+      where: { email: sharedEmail },
+      select: { status: true },
+    });
+    expect(statuses.map((s) => s.status)).toEqual(['BOUNCED', 'BOUNCED']);
+    // Suppressed contacts no longer resolve — the lookup is self-limiting.
+    expect(await activeContactsByEmailForWebhook(app, sharedEmail)).toEqual([]);
+  });
+
   it('the resolvers expose only their single lookup, not the tables', async () => {
     // The function is the escape hatch; direct table access stays sealed.
     expect(await app.integration.count()).toBe(0);
     expect(await app.subscription.count()).toBe(0);
+    expect(await app.contact.count()).toBe(0);
   });
 });
