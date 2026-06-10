@@ -142,7 +142,15 @@ logs, and exposes Prometheus metrics. See the
 - **Tenant isolation** is enforced by Postgres RLS regardless of deployment —
   see [Tenancy](/docs/concepts/tenancy).
 - **Deliverability** — configure SPF/DKIM/DMARC for your sending domain and use
-  a reputable relay (SES/Postmark/Resend) rather than raw SMTP.
+  a reputable relay (SES/Postmark/Resend) rather than raw SMTP; point its
+  bounce/complaint webhook at the gateway
+  ([setup](/docs/guides/deliverability#bounces--complaints)).
+- **Rolling deploys are safe** — every service drains on SIGTERM and journeys
+  resume across worker restarts.
+
+Day-2 procedures — backups and restore drills, upgrades, secret rotation,
+incident quick checks — live in the
+[production operations runbook](https://github.com/achref-soua/helio/blob/main/docs/runbooks/production-ops.md).
 
 ## Running a public demo
 
