@@ -6,6 +6,7 @@ import {
   dmarcPasses,
   isLikelyDomain,
   spfPasses,
+  suggestedSpfInclude,
 } from '../src/deliverability';
 
 describe('deliverabilityRecords', () => {
@@ -52,5 +53,15 @@ describe('isLikelyDomain', () => {
     expect(isLikelyDomain('localhost')).toBe(false);
     expect(isLikelyDomain('no spaces.com')).toBe(false);
     expect(isLikelyDomain('-bad.com')).toBe(false);
+  });
+});
+
+describe('suggestedSpfInclude', () => {
+  it('maps provider kinds to their include and stays quiet otherwise', () => {
+    expect(suggestedSpfInclude('EMAIL_POSTMARK')).toBe('spf.mtasv.net');
+    expect(suggestedSpfInclude('EMAIL_RESEND')).toBe('_spf.resend.com');
+    expect(suggestedSpfInclude('EMAIL_MAILGUN')).toBe('mailgun.org');
+    expect(suggestedSpfInclude('EMAIL_SMTP')).toBeNull();
+    expect(suggestedSpfInclude('SMS_TWILIO')).toBeNull();
   });
 });

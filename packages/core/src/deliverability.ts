@@ -50,6 +50,24 @@ export function spfPasses(txtRecords: readonly string[]): boolean {
   return txtRecords.some((record) => /v=spf1\b/i.test(record));
 }
 
+/**
+ * The SPF include to suggest for a connected email credential kind, or
+ * null when it depends on the relay (plain SMTP) or the kind isn't an
+ * email provider.
+ */
+export function suggestedSpfInclude(kind: string): string | null {
+  switch (kind) {
+    case 'EMAIL_POSTMARK':
+      return 'spf.mtasv.net';
+    case 'EMAIL_RESEND':
+      return '_spf.resend.com';
+    case 'EMAIL_MAILGUN':
+      return 'mailgun.org';
+    default:
+      return null;
+  }
+}
+
 /** The DKIM record is published and carries the expected public key. */
 export function dkimPasses(txtRecords: readonly string[], publicKey: string): boolean {
   return txtRecords.some((record) => /v=DKIM1/i.test(record) && record.includes(publicKey));

@@ -904,7 +904,8 @@
     "status": {
       "PENDING": "Pending",
       "VERIFIED": "Verified"
-    }
+    },
+    "spfSuggested": "Suggested from your \"{name}\" email credential."
   },
   "landing": {
     "title": "Landing pages",
@@ -1192,6 +1193,7 @@
     "encryptionMissing": "HELIO_ENCRYPTION_KEY is not set on this deployment, so credentials cannot be stored. Add it to your environment and restart.",
     "genericError": "Something went wrong",
     "testSend": "Send test",
-    "testSent": "Test email sent to {to}"
+    "testSent": "Test email sent to {to}",
+    "emailFallbackNotice": "No provider connected — mail uses the deployment fallback SMTP. In local setups that is Mailpit, a test inbox: nothing reaches real recipients until you connect a provider here."
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { deliverabilityRecords } from '@helio/core';
+import { deliverabilityRecords, suggestedSpfInclude } from '@helio/core';
 import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
 import {
@@ -41,6 +41,12 @@ export function DeliverabilityPanel({ canManage }: { canManage: boolean }) {
     ...trpc.deliverability.list.queryOptions({ workspaceId: workspaceId ?? '' }),
     enabled: canManage && !!workspaceId,
   });
+  // Suggest the SPF include from the org's connected email provider.
+  const credentials = useQuery({ ...trpc.credentials.list.queryOptions(), enabled: canManage });
+  const emailCredential = credentials.data?.credentials.find((credential) =>
+    credential.kind.startsWith('EMAIL_'),
+  );
+  const spfSuggestion = emailCredential ? suggestedSpfInclude(emailCredential.kind) : null;
   const add = useMutation(trpc.deliverability.add.mutationOptions());
   const verify = useMutation(trpc.deliverability.verify.mutationOptions());
   const remove = useMutation(trpc.deliverability.remove.mutationOptions());
@@ -128,7 +134,17 @@ export function DeliverabilityPanel({ canManage }: { canManage: boolean }) {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="spfInclude">{t('spfInclude')}</Label>
-                  <Input id="spfInclude" name="spfInclude" placeholder="amazonses.com" />
+                  <Input
+                    id="spfInclude"
+                    name="spfInclude"
+                    defaultValue={spfSuggestion ?? ''}
+                    placeholder="amazonses.com"
+                  />
+                  {spfSuggestion && emailCredential ? (
+                    <p className="text-muted-foreground text-xs">
+                      {t('spfSuggested', { name: emailCredential.name })}
+                    </p>
+                  ) : null}
                 </div>
                 <DialogFooter>
                   <Button type="submit" disabled={add.isPending} data-testid="domain-submit">

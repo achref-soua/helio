@@ -222,7 +222,9 @@ export function CredentialsPanel({ canManage }: { canManage: boolean }) {
                 />
               </div>
               {rows.length === 0 ? (
-                <p className="text-muted-foreground text-sm">{t('emptyChannel')}</p>
+                <p className="text-muted-foreground text-sm">
+                  {channel === 'email' ? t('emailFallbackNotice') : t('emptyChannel')}
+                </p>
               ) : (
                 <ul className="grid gap-2">
                   {rows.map((credential) => (
