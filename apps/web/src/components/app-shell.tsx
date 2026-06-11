@@ -111,7 +111,7 @@ function VersionBadge({ version }: { version?: string }) {
   const t = useTranslations('app');
   if (!version) return null;
   return (
-    <div className="text-sidebar-foreground/50 mt-auto px-4 text-xs">
+    <div className="text-sidebar-foreground/70 mt-auto px-4 text-xs">
       {t('versionBadge', { version })}
     </div>
   );
