@@ -439,17 +439,6 @@ describe('row-level security tenant isolation', () => {
     expect(await tenantA.inAppMessage.count()).toBe(1);
   });
 
-  it('subscriptions are tenant-isolated', async () => {
-    await forTenant(app, orgA.id).subscription.create({
-      data: { id: newId('sub'), organizationId: orgA.id, plan: 'PRO' },
-    });
-    expect(await forTenant(app, orgB.id).subscription.count()).toBe(0);
-    const mine = await forTenant(app, orgA.id).subscription.findUnique({
-      where: { organizationId: orgA.id },
-    });
-    expect(mine?.plan).toBe('PRO');
-  });
-
   it('the SSO provider table is walled off from the RLS app role entirely', async () => {
     // SSO providers hold the OIDC client secret. Like the rest of the auth
     // domain the table is reached only through the admin client; the app

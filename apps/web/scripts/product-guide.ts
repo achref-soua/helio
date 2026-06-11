@@ -350,7 +350,7 @@ function buildHtml(): string {
     <p>A lightweight CRM tracks deals through stages with tasks grouped by due date, and a
     booking page turns meetings into contacts automatically — double-booking is structurally
     impossible. Settings round it out: team roles, two-factor auth, SSO/SCIM, scoped API keys,
-    outbound webhooks, white-labeling, sending-domain authentication, billing, and a built-in
+    outbound webhooks, white-labeling, sending-domain authentication, and a built-in
     support inbox.</p>
     ${shotFigure('deals', 'CRM-lite: deals through pipeline stages, keyboard-accessible.')}
   </div>

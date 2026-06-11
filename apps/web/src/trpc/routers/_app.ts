@@ -1,7 +1,6 @@
 import { protectedProcedure, publicProcedure, router } from '../init';
 import { analyticsRouter } from './analytics';
 import { apiKeyRouter } from './api-key';
-import { billingRouter } from './billing';
 import { brandingRouter } from './branding';
 import { campaignRouter } from './campaign';
 import { contactRouter } from './contact';
@@ -44,7 +43,6 @@ export const appRouter = router({
   scoring: scoringRouter,
   scheduling: schedulingRouter,
   crm: crmRouter,
-  billing: billingRouter,
   sso: ssoRouter,
   apiKey: apiKeyRouter,
   webhook: webhookRouter,

@@ -13,7 +13,6 @@ import { contactRoutes } from './routes/contacts';
 import { emailWebhookRoutes } from './routes/email-webhook';
 import { listRoutes } from './routes/lists';
 import { shopifyWebhookRoutes } from './routes/shopify-webhook';
-import { stripeWebhookRoutes } from './routes/stripe-webhook';
 import { workspaceRoutes } from './routes/workspaces';
 import type { GatewayDeps, GatewayEnv } from './types';
 
@@ -60,7 +59,6 @@ export function createApp(deps: GatewayDeps) {
 
   // Provider webhooks authenticate by signature or shared token, not the
   // bearer token, so they mount before the /v1 auth middleware.
-  app.route('/', stripeWebhookRoutes(deps));
   app.route('/', shopifyWebhookRoutes(deps));
   app.route('/', emailWebhookRoutes(deps));
 

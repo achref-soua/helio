@@ -315,44 +315,6 @@ describe('gateway contract', () => {
       expect(secondBody.nextCursor).toBeNull();
       expect(firstBody.data.map((contact) => contact.id)).not.toContain(secondBody.data[0]!.id);
     });
-
-    it('enforces the plan contact cap on create', async () => {
-      const capOrgId = newId('org');
-      await admin.organization.create({ data: { id: capOrgId, name: 'Cap Org', slug: 'cap-org' } });
-      const wsId = newId('ws');
-      await admin.workspace.create({
-        data: { id: wsId, organizationId: capOrgId, name: 'Cap WS', slug: 'cap-ws' },
-      });
-      // FREE caps at 1,000 contacts; fill it so the next create is over.
-      await admin.subscription.create({
-        data: { id: newId('sub'), organizationId: capOrgId, plan: 'FREE' },
-      });
-      await admin.contact.createMany({
-        data: Array.from({ length: 1_000 }, (_, index) => ({
-          id: newId('contact'),
-          organizationId: capOrgId,
-          workspaceId: wsId,
-          email: `cap${index}@example.com`,
-        })),
-      });
-      const capKey = await generateGatewayApiKey(capOrgId);
-      await admin.gatewayApiKey.create({
-        data: {
-          id: newId('gwk'),
-          organizationId: capOrgId,
-          name: 'cap',
-          keyHash: capKey.keyHash,
-          prefix: capKey.prefix,
-        },
-      });
-      const res = await app.request('/v1/contacts', {
-        method: 'POST',
-        headers: { authorization: `Bearer ${capKey.key}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ workspaceId: wsId, email: 'one-too-many@example.com' }),
-      });
-      expect(res.status).toBe(403);
-      expect(((await res.json()) as { type: string }).type).toBe('urn:helio:problem:http_403');
-    });
   });
 
   describe('lists', () => {

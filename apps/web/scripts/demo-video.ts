@@ -456,7 +456,7 @@ async function shoot(page: Page, showroom: Showroom): Promise<void> {
   await caption(
     page,
     'White-label it',
-    'Your name, color, and logo on the dashboard and every hosted page. Plus webhooks, billing, and a support inbox.',
+    'Your name, color, and logo on the dashboard and every hosted page. Plus webhooks and a support inbox.',
   );
   await dwell(page, 6_500);
 
