@@ -1213,7 +1213,7 @@
   },
   "backups": {
     "title": "Backups",
-    "subtitle": "Nightly local database backups, taken by the bundled backup service. Restore from the command line: helio restore <file>.",
+    "subtitle": "Nightly local database backups, taken by the bundled backup service. Restore from the command line with the helio restore command.",
     "runNow": "Back up now",
     "queued": "Backup queued — it appears below within ~20 seconds",
     "stale": "No successful backup in the last 36 hours — check helio logs backup.",
