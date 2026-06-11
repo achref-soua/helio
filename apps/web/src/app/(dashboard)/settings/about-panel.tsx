@@ -55,7 +55,7 @@ export async function AboutPanel() {
         {update ? (
           <p>
             <a
-              className="text-primary font-medium underline underline-offset-4"
+              className="text-foreground font-medium underline underline-offset-4"
               href={update.url}
               target="_blank"
               rel="noreferrer"
@@ -72,7 +72,7 @@ export async function AboutPanel() {
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           <a
-            className="text-primary underline underline-offset-4"
+            className="text-foreground underline underline-offset-4"
             href={REPO_URL}
             target="_blank"
             rel="noreferrer"
@@ -80,7 +80,7 @@ export async function AboutPanel() {
             {t('repo')}
           </a>
           <a
-            className="text-primary underline underline-offset-4"
+            className="text-foreground underline underline-offset-4"
             href={`${REPO_URL}/releases`}
             target="_blank"
             rel="noreferrer"
@@ -88,7 +88,7 @@ export async function AboutPanel() {
             {t('releases')}
           </a>
           <a
-            className="text-primary underline underline-offset-4"
+            className="text-foreground underline underline-offset-4"
             href={`${REPO_URL}/tree/main/apps/docs`}
             target="_blank"
             rel="noreferrer"

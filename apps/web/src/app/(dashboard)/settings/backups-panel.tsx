@@ -117,7 +117,7 @@ export function BackupsPanel({ isOwner }: { isOwner: boolean }) {
                   <TableCell>
                     {run.status === 'OK' ? (
                       <a
-                        className="text-primary inline-flex items-center gap-1 underline underline-offset-4"
+                        className="text-foreground inline-flex items-center gap-1 underline underline-offset-4"
                         href={`/api/admin/backups/${run.id}`}
                         aria-label={t('downloadAria', { file: run.filename })}
                       >
