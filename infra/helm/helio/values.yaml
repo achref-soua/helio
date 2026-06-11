@@ -184,12 +184,12 @@ redis:
 # `@helio/db` package and the Prisma CLI (the migrations create the RLS roles).
 migrations:
   enabled: false
+  # The dedicated one-shot migrate image (same registry/tag scheme as the
+  # services); override for air-gapped registries.
   image: ''
   command:
-    - pnpm
-    - '--filter'
-    - '@helio/db'
-    - 'db:deploy'
+    - /entrypoint.sh
+    - deploy
 
 nodeSelector: {}
 tolerations: []
