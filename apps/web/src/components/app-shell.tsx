@@ -31,6 +31,7 @@ import { useState } from 'react';
 
 import { HelpMenu } from '@/components/help-menu';
 import { ReportDialog } from '@/components/report-dialog';
+import { SunSplash } from '@/components/sun-splash';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { UserMenu } from '@/components/user-menu';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
@@ -131,6 +132,7 @@ export function AppShell({
 
   return (
     <div className="flex min-h-svh">
+      <SunSplash brand={brand} />
       <aside className="bg-sidebar border-sidebar-border hidden w-60 shrink-0 flex-col gap-6 border-r py-4 md:flex">
         <Wordmark brand={brand} />
         <NavLinks />
