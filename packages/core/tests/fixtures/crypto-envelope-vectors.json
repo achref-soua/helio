@@ -1,0 +1,112 @@
+[
+  {
+    "description": "plain ascii secret",
+    "key": "gGSpdJ53bk/TaHygjiZzlK+9RHJsCdxmOaqM7JVe4lI=",
+    "previousKey": null,
+    "organizationId": "org_vault_vectors",
+    "credentialId": "cred_vault_vectors",
+    "field": "apiKey",
+    "plaintext": "postmark-server-token-1234",
+    "envelope": "enc:v1:d5a80698:Rmcf+JvNxcsuP50A:Sg36mlVYSn2WIjyIl7K41Ydfb0TpLUeMBDo=:tyq8lXolHarY0FRM6XN19w==",
+    "expect": "ok"
+  },
+  {
+    "description": "empty string round-trips",
+    "key": "gGSpdJ53bk/TaHygjiZzlK+9RHJsCdxmOaqM7JVe4lI=",
+    "previousKey": null,
+    "organizationId": "org_vault_vectors",
+    "credentialId": "cred_vault_vectors",
+    "field": "apiKey",
+    "plaintext": "",
+    "envelope": "enc:v1:d5a80698:iZDg5OIQfNh/rdzv::592V38H2g7/f9xzKxDM6fQ==",
+    "expect": "ok"
+  },
+  {
+    "description": "unicode survives byte-exact",
+    "key": "gGSpdJ53bk/TaHygjiZzlK+9RHJsCdxmOaqM7JVe4lI=",
+    "previousKey": null,
+    "organizationId": "org_vault_vectors",
+    "credentialId": "cred_vault_vectors",
+    "field": "apiKey",
+    "plaintext": "مرحبا 👋  — 秘密のキー",
+    "envelope": "enc:v1:d5a80698:1v2M/hr10ioRDtxJ:zIlVvnBUd3BoTXODd2/ku9edFv96XuLZhsmyHsBdscW6oLID:m/wwUhlaRmPgcrFvUlPPTA==",
+    "expect": "ok"
+  },
+  {
+    "description": "a 4 KiB value",
+    "key": "gGSpdJ53bk/TaHygjiZzlK+9RHJsCdxmOaqM7JVe4lI=",
+    "previousKey": null,
+    "organizationId": "org_vault_vectors",
+    "credentialId": "cred_vault_vectors",
+    "field": "apiKey",
+    "plaintext": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+    "envelope": "enc:v1:d5a80698:JJqg8vC3cOU6DXPx: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:fOVtRqq+ChI/KMTOXybpYg==",
+    "expect": "ok"
+  },
+  {
+    "description": "previous key still opens envelopes during rotation",
+    "key": "N+FgDLzmnNRoG43iapXEaEm4ETVQocK3eDOQFsGxG1Y=",
+    "previousKey": "gGSpdJ53bk/TaHygjiZzlK+9RHJsCdxmOaqM7JVe4lI=",
+    "organizationId": "org_vault_vectors",
+    "credentialId": "cred_vault_vectors",
+    "field": "apiKey",
+    "plaintext": "sealed-under-the-old-key",
+    "envelope": "enc:v1:d5a80698:dC9Yo/nnFzHdMyHs:nvsmZoMyIn+/BLGoNH4Tb90uFE4jOTXv:+jwRXL3HmPoaE+faTilL/Q==",
+    "expect": "ok"
+  },
+  {
+    "description": "tampered ciphertext fails authentication",
+    "key": "gGSpdJ53bk/TaHygjiZzlK+9RHJsCdxmOaqM7JVe4lI=",
+    "previousKey": null,
+    "organizationId": "org_vault_vectors",
+    "credentialId": "cred_vault_vectors",
+    "field": "apiKey",
+    "plaintext": null,
+    "envelope": "enc:v1:d5a80698:iVtaCaXjmtUNzt2j:AkflWHRPD/TA:kvpSzd7PiOlIrtR219KGdQ==",
+    "expect": "fail_tag"
+  },
+  {
+    "description": "envelope rebound to a different field fails (AAD)",
+    "key": "gGSpdJ53bk/TaHygjiZzlK+9RHJsCdxmOaqM7JVe4lI=",
+    "previousKey": null,
+    "organizationId": "org_vault_vectors",
+    "credentialId": "cred_vault_vectors",
+    "field": "smtpPassword",
+    "plaintext": null,
+    "envelope": "enc:v1:d5a80698:71W7/n4kdSm+xUiE:jauK3DDxIMbdhd+Q7xQX:WZ9BzWQCodFbw/2VbS9iqw==",
+    "expect": "fail_aad"
+  },
+  {
+    "description": "envelope rebound to a different organization fails (AAD)",
+    "key": "gGSpdJ53bk/TaHygjiZzlK+9RHJsCdxmOaqM7JVe4lI=",
+    "previousKey": null,
+    "organizationId": "org_someone_else",
+    "credentialId": "cred_vault_vectors",
+    "field": "apiKey",
+    "plaintext": null,
+    "envelope": "enc:v1:d5a80698:95yteLb+m60/63I5:KPbDxyra9GyvU65BksRn+CYuZbKxyAE=:BPTC7myxmlzlpPonOvIH3w==",
+    "expect": "fail_aad"
+  },
+  {
+    "description": "an envelope sealed by an unknown key is refused by fingerprint",
+    "key": "gGSpdJ53bk/TaHygjiZzlK+9RHJsCdxmOaqM7JVe4lI=",
+    "previousKey": "N+FgDLzmnNRoG43iapXEaEm4ETVQocK3eDOQFsGxG1Y=",
+    "organizationId": "org_vault_vectors",
+    "credentialId": "cred_vault_vectors",
+    "field": "apiKey",
+    "plaintext": null,
+    "envelope": "enc:v1:f00815ba:XFJRY9sAIQNn3s4d:4EKly80KsGwOlNF8Th45GDwj:tJ7sMSHaQyEFsIK1WfEmPA==",
+    "expect": "fail_key"
+  },
+  {
+    "description": "malformed envelopes are rejected structurally",
+    "key": "gGSpdJ53bk/TaHygjiZzlK+9RHJsCdxmOaqM7JVe4lI=",
+    "previousKey": null,
+    "organizationId": "org_vault_vectors",
+    "credentialId": "cred_vault_vectors",
+    "field": "apiKey",
+    "plaintext": null,
+    "envelope": "enc:v1:not-an-envelope",
+    "expect": "fail_format"
+  }
+]
