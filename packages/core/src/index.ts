@@ -177,6 +177,7 @@ export {
   type RateLimitOptions,
 } from './rate-limit';
 export { hasRole, INVITABLE_ROLES, isRole, type Role, ROLES } from './rbac';
+export { countByDay, dayKey, dayKeys, fillDailySeries, mergeDailySeries } from './reports';
 export {
   type Err,
   err,

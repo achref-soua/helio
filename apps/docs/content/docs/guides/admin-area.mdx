@@ -33,7 +33,23 @@ and the target object. Rows written by the auth kernel (sign-ins, member
 changes) appear even when they happened outside the dashboard — SCIM
 provisioning included.
 
+## Reports
+
+**Admin → Reports** answers the organization-wide questions in one place:
+
+- **Messages sent** — email and in-app deliveries per day (30/60/90-day
+  window).
+- **Contact growth** — new contacts per day.
+- **Top campaigns** — by emails sent, with opens and clicks when the
+  analytics store is reachable; when it isn't, the card says so plainly
+  and the send counts stay accurate.
+- **Journey outcomes** — enrollments per journey by status.
+- **Member activity** — audited actions per member over the last 30 days.
+
+Tabular cards download as CSV. Numbers come from Helio's own database
+first, so the page works on the core profile without ClickHouse.
+
 <Callout type="info">
-  Who can see this? `admin:audit` — admins and owners. The full role matrix lives in [Roles &
-  permissions](/docs/security/permissions).
+  Who can see this? `admin:audit` / `admin:reports` — admins and owners. The full role matrix lives
+  in [Roles & permissions](/docs/security/permissions).
 </Callout>

@@ -1285,6 +1285,33 @@
       "system": "system",
       "empty": "No audit entries match these filters yet.",
       "loadMore": "Load more"
+    },
+    "reports": {
+      "period": "Period",
+      "days": "{days} days",
+      "sends": "Messages sent",
+      "sendsHint": "Email and in-app deliveries per day, across the organization.",
+      "growth": "Contact growth",
+      "growthHint": "New contacts per day.",
+      "campaigns": "Top campaigns",
+      "campaignsHint": "By emails sent, with opens and clicks from the analytics store.",
+      "engagementDown": "Opens and clicks need the analytics store (ClickHouse), which is not reachable right now — send counts remain accurate.",
+      "campaign": "Campaign",
+      "sendsCol": "Sends",
+      "opens": "Opens",
+      "clicks": "Clicks",
+      "journeys": "Journey outcomes",
+      "journeysHint": "Enrollments by status, all time.",
+      "journey": "Journey",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "members": "Member activity",
+      "membersHint": "Audited actions per member, last 30 days.",
+      "member": "Member",
+      "actions": "Actions",
+      "csv": "CSV",
+      "empty": "Nothing here yet."
     }
   }
 }

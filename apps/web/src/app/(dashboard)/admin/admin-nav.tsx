@@ -5,8 +5,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
-// Reports (G4) and system health (G5) append here as they land.
-const SECTIONS = [{ key: 'audit', href: '/admin/audit' }] as const;
+// System health (G5) appends here when it lands.
+const SECTIONS = [
+  { key: 'audit', href: '/admin/audit' },
+  { key: 'reports', href: '/admin/reports' },
+] as const;
 
 export function AdminNav() {
   const t = useTranslations('admin.nav');
