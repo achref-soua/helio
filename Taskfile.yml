@@ -101,6 +101,11 @@ tasks:
     cmds:
       - pnpm --filter @helio/web exec tsx scripts/demo-video.ts
 
+  release:bundle:
+    desc: 'Build the pinned self-host install bundle (dist/helio-bundle-<v>.tar.gz)'
+    cmds:
+      - pnpm exec tsx scripts/release/build-bundle.ts {{.CLI_ARGS}}
+
   product:guide:
     desc: Render the Helio product guide PDF (same prereqs as demo:video)
     cmds:

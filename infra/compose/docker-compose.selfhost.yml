@@ -1,0 +1,289 @@
+# Helio self-host stack — the file `helio install` runs. Image tags are
+# pinned to one release by the bundle build (never `latest`), so an install
+# is reproducible and `helio update` is an explicit, backed-up step.
+#
+# Profiles:
+#   core  (default) — dashboard, REST API, AI service, Postgres, Redis, and
+#                     Mailpit as the fallback test inbox. ~2.5 GB RAM.
+#   full            — adds event ingestion + tracking + journey/campaign
+#                     workers and their stores (ClickHouse, Redpanda,
+#                     Temporal). Recommended ≥ 8 GB RAM.
+#
+# Postgres and Redis are deliberately NOT exposed to the host; the admin
+# surfaces for them live inside Helio (Database Studio, backups).
+
+name: helio
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-helio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set by the installer}
+      POSTGRES_DB: ${POSTGRES_DB:-helio}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER:-helio}']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - '${MAILPIT_UI_PORT:-8025}:8025'
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:8025/readyz']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  migrate:
+    image: ghcr.io/achref-soua/helio-migrate:__HELIO_VERSION__
+    profiles: ['ops']
+    environment:
+      DATABASE_ADMIN_URL: postgresql://${POSTGRES_USER:-helio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-helio}
+      HELIO_APP_DB_PASSWORD: ${HELIO_APP_DB_PASSWORD}
+      HELIO_ENCRYPTION_KEY: ${HELIO_ENCRYPTION_KEY}
+      HELIO_ENCRYPTION_KEY_PREVIOUS: ${HELIO_ENCRYPTION_KEY_PREVIOUS:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    image: ghcr.io/achref-soua/helio-web:__HELIO_VERSION__
+    restart: unless-stopped
+    ports:
+      - '${WEB_PORT:-3000}:3000'
+    environment:
+      DATABASE_URL: postgresql://helio_app:${HELIO_APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-helio}
+      DATABASE_ADMIN_URL: postgresql://${POSTGRES_USER:-helio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-helio}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET}
+      HELIO_ENCRYPTION_KEY: ${HELIO_ENCRYPTION_KEY}
+      HELIO_ENCRYPTION_KEY_PREVIOUS: ${HELIO_ENCRYPTION_KEY_PREVIOUS:-}
+      HELIO_UPDATE_CHECK: ${HELIO_UPDATE_CHECK:-true}
+      SMTP_HOST: mailpit
+      SMTP_PORT: '1025'
+      MAIL_FROM: ${MAIL_FROM:-Helio <no-reply@helio.local>}
+      TEMPORAL_ADDRESS: temporal:7233
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-helio}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-helio}
+      INTELLIGENCE_URL: http://intelligence:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:3000/api/healthz || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 12
+
+  api:
+    image: ghcr.io/achref-soua/helio-api:__HELIO_VERSION__
+    restart: unless-stopped
+    ports:
+      - '${API_PORT:-4000}:4000'
+    environment:
+      DATABASE_URL: postgresql://helio_app:${HELIO_APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-helio}
+      REDIS_URL: redis://redis:6379
+      EMAIL_WEBHOOK_TOKEN: ${EMAIL_WEBHOOK_TOKEN:-}
+      SMS_WEBHOOK_TOKEN: ${SMS_WEBHOOK_TOKEN:-}
+      HELIO_ENCRYPTION_KEY: ${HELIO_ENCRYPTION_KEY}
+      HELIO_ENCRYPTION_KEY_PREVIOUS: ${HELIO_ENCRYPTION_KEY_PREVIOUS:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:4000/healthz || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 12
+
+  intelligence:
+    image: ghcr.io/achref-soua/helio-intelligence:__HELIO_VERSION__
+    restart: unless-stopped
+    environment:
+      INTEL_DATABASE_URL: postgresql://helio_app:${HELIO_APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-helio}
+      INTEL_LLM_PROVIDER: ${INTEL_LLM_PROVIDER:-groq}
+      INTEL_LLM_MODEL: ${INTEL_LLM_MODEL:-llama-3.3-70b-versatile}
+      INTEL_LLM_API_KEY: ${INTEL_LLM_API_KEY:-}
+      HELIO_ENCRYPTION_KEY: ${HELIO_ENCRYPTION_KEY}
+      HELIO_ENCRYPTION_KEY_PREVIOUS: ${HELIO_ENCRYPTION_KEY_PREVIOUS:-}
+      INTEL_CLICKHOUSE_URL: http://clickhouse:8123
+      INTEL_CLICKHOUSE_USER: ${CLICKHOUSE_USER:-helio}
+      INTEL_CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      INTEL_CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB:-helio}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(''http://localhost:8000/healthz'', timeout=4).status==200 else 1)"',
+        ]
+      interval: 15s
+      timeout: 6s
+      retries: 12
+
+  # ── full profile ────────────────────────────────────────────────────────
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.12
+    profiles: ['full']
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-helio}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-helio}
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:8123/ping || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 18
+
+  redpanda:
+    image: redpandadata/redpanda:v24.3.1
+    profiles: ['full']
+    restart: unless-stopped
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --memory=1G
+      - --overprovisioned
+      - --kafka-addr=PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr=PLAINTEXT://redpanda:9092
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
+    healthcheck:
+      test: ['CMD-SHELL', 'rpk cluster health | grep -q "Healthy:.*true"']
+      interval: 10s
+      timeout: 8s
+      retries: 18
+
+  temporal:
+    image: temporalio/auto-setup:1.26
+    profiles: ['full']
+    restart: unless-stopped
+    environment:
+      DB: postgres12
+      DB_PORT: '5432'
+      POSTGRES_USER: ${POSTGRES_USER:-helio}
+      POSTGRES_PWD: ${POSTGRES_PASSWORD}
+      POSTGRES_SEEDS: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'temporal operator cluster health --address temporal:7233 || exit 1']
+      interval: 15s
+      timeout: 8s
+      retries: 20
+
+  ingest:
+    image: ghcr.io/achref-soua/helio-ingest:__HELIO_VERSION__
+    profiles: ['full']
+    restart: unless-stopped
+    ports:
+      - '${INGEST_PORT:-4100}:4100'
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-helio}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-helio}
+      DATABASE_URL: postgresql://helio_app:${HELIO_APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-helio}
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:4100/healthz || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 12
+
+  tracking:
+    image: ghcr.io/achref-soua/helio-tracking:__HELIO_VERSION__
+    profiles: ['full']
+    restart: unless-stopped
+    ports:
+      - '${TRACKING_PORT:-4200}:4200'
+    environment:
+      TRACKING_SECRET: ${TRACKING_SECRET}
+      PUBLIC_TRACKING_URL: ${PUBLIC_TRACKING_URL:-http://localhost:4200}
+      KAFKA_BROKERS: redpanda:9092
+      DATABASE_URL: postgresql://helio_app:${HELIO_APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-helio}
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:4200/healthz || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 12
+
+  workers:
+    image: ghcr.io/achref-soua/helio-workers:__HELIO_VERSION__
+    profiles: ['full']
+    restart: unless-stopped
+    environment:
+      DATABASE_ADMIN_URL: postgresql://${POSTGRES_USER:-helio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-helio}
+      TEMPORAL_ADDRESS: temporal:7233
+      SMTP_HOST: mailpit
+      SMTP_PORT: '1025'
+      MAIL_FROM: ${MAIL_FROM:-Helio <no-reply@helio.local>}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      PUBLIC_TRACKING_URL: ${PUBLIC_TRACKING_URL:-http://localhost:4200}
+      TRACKING_SECRET: ${TRACKING_SECRET}
+      UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET}
+      HELIO_ENCRYPTION_KEY: ${HELIO_ENCRYPTION_KEY}
+      HELIO_ENCRYPTION_KEY_PREVIOUS: ${HELIO_ENCRYPTION_KEY_PREVIOUS:-}
+      KAFKA_BROKERS: redpanda:9092
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-helio}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-helio}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      WEBHOOK_SIGNING_SECRET: ${WEBHOOK_SIGNING_SECRET:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  redis-data:
+  clickhouse-data:
+  redpanda-data:
