@@ -37,6 +37,26 @@ export {
   type NormalizeResult,
 } from './contacts';
 export {
+  CREDENTIAL_KINDS,
+  type CredentialChannel,
+  type CredentialKind,
+  credentialKindSchema,
+  credentialKindsForChannel,
+  type CredentialKindSpec,
+  credentialSpec,
+  LLM_PROVIDERS,
+  type LlmProvider,
+  type MaskedCredential,
+  maskSecret,
+  type SecretFieldSpec,
+  secretLast4,
+  type SecretMetaEntry,
+  type SecretsMeta,
+  toMaskedCredential,
+  validateCredentialInput,
+  type ValidatedCredentialInput,
+} from './credentials';
+export {
   decryptField,
   encryptField,
   generateEncryptionKey,
