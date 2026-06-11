@@ -1,0 +1,39 @@
+---
+title: Admin area
+description: The audit log — who did what, when — with filters and CSV export. Reports and system health join it here.
+---
+
+**Admin** (in the sidebar, visible to admins and owners) is the
+organization's control room. It opens on the **audit log**; reports and
+system health land alongside it.
+
+## Audit log
+
+Every security-relevant action in Helio writes an audit entry: sign-ins,
+two-factor changes, password changes, member invitations and role changes,
+every settings change (credentials, SSO/SCIM, API keys, webhooks,
+integrations, domains, branding, churn models), content lifecycle events
+(campaign and journey launches, imports and exports), backup requests, and
+each analytics SQL execution — including attempts made while the analytics
+store was down.
+
+The viewer shows the trail newest-first with:
+
+- **Action starts with** — filter by action family, e.g. `auth.` for
+  sign-ins and credential changes, `member.` for invitations and role
+  changes, `campaign.` for launches.
+- **Actor** — match by member name or email.
+- **From / To** — a date window.
+- **Export CSV** — the current filter as a file, capped at 1,000 rows (a
+  notice tells you when the cap cut the result; narrow the window for the
+  rest).
+
+Entries name the actor (or `system` for unattended writes), the action,
+and the target object. Rows written by the auth kernel (sign-ins, member
+changes) appear even when they happened outside the dashboard — SCIM
+provisioning included.
+
+<Callout type="info">
+  Who can see this? `admin:audit` — admins and owners. The full role matrix lives in [Roles &
+  permissions](/docs/security/permissions).
+</Callout>

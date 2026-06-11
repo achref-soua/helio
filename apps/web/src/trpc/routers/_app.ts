@@ -1,6 +1,7 @@
 import { authDb } from '@/lib/auth';
 
 import { protectedProcedure, publicProcedure, router } from '../init';
+import { adminRouter } from './admin';
 import { analyticsRouter } from './analytics';
 import { apiKeyRouter } from './api-key';
 import { backupsRouter } from './backups';
@@ -56,6 +57,7 @@ export const appRouter = router({
   campaign: campaignRouter,
   journey: journeyRouter,
   analytics: analyticsRouter,
+  admin: adminRouter,
   copilot: copilotRouter,
   form: formRouter,
   landing: landingRouter,

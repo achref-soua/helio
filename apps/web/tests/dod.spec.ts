@@ -80,5 +80,13 @@ test('owner invites a teammate who joins as viewer', async ({ page, browser, req
   const payload = JSON.stringify(await denied.json());
   expect(payload).toContain('FORBIDDEN');
 
+  // The admin area is hidden from viewers — and the server gate holds even
+  // when the URL is typed by hand.
+  await expect(
+    memberPage.getByRole('navigation', { name: 'Primary' }).getByText('Admin'),
+  ).toHaveCount(0);
+  await memberPage.goto('/admin/audit');
+  await expect(memberPage.getByRole('heading', { name: 'Overview' })).toBeVisible();
+
   await memberContext.close();
 });
