@@ -23,6 +23,13 @@ export const env = createEnv({
   // key rotation the previous key stays readable via _PREVIOUS.
   HELIO_ENCRYPTION_KEY: z.string().optional(),
   HELIO_ENCRYPTION_KEY_PREVIOUS: z.string().optional(),
+  // The backups panel (Settings) — enabled in the self-host bundle, where
+  // the sidecar's folder is mounted read-only at this path.
+  BACKUPS_PANEL_ENABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  HELIO_BACKUPS_PATH: z.string().default('/var/lib/helio/backups'),
   // Analytics reads (full profile); callers degrade gracefully without it.
   CLICKHOUSE_URL: z.string().min(1).default('http://localhost:8123'),
   CLICKHOUSE_USER: z.string().min(1).default('helio'),

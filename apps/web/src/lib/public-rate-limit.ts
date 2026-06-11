@@ -23,6 +23,8 @@ const BUDGETS = {
   form: { max: 30, windowSeconds: 60 },
   /** Public meeting booking — writes meetings, contacts, and tasks. */
   booking: { max: 30, windowSeconds: 60 },
+  /** Backup downloads — authenticated owners pulling dump files. */
+  backupDownload: { max: 20, windowSeconds: 60 },
   /** SCIM provisioning — sized for an IdP sync burst. */
   scim: { max: 240, windowSeconds: 60 },
 } as const;
