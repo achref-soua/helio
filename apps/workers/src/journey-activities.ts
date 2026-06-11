@@ -19,7 +19,7 @@ import { compileSegmentRule, type Prisma, type PrismaClient } from '@helio/db';
 import { renderEmail } from '@helio/emails';
 
 import type { ActivityConfig } from './activities';
-import type { EmailProvider } from './email-provider';
+import type { EmailSenderResolver } from './email-provider-factory';
 import type { PushProvider } from './push-provider';
 import type { SmsProvider } from './sms-provider';
 import type { WhatsAppProvider } from './whatsapp-provider';
@@ -37,7 +37,7 @@ export interface LoadedJourney {
  */
 export function createJourneyActivities(
   prisma: PrismaClient,
-  provider: EmailProvider,
+  resolveSender: EmailSenderResolver,
   config: ActivityConfig,
   pushProvider?: PushProvider,
   smsProvider?: SmsProvider,
@@ -91,8 +91,9 @@ export function createJourneyActivities(
           wrapLink: (url) =>
             clickRedirectUrl(config.trackingUrl, config.trackingSecret, send.id, url),
         });
-        await provider.send({
-          from: config.mailFrom,
+        const sender = await resolveSender(contact.organizationId);
+        await sender.provider.send({
+          from: sender.from,
           to: contact.email,
           subject: rendered.subject,
           html: rendered.html,

@@ -16,10 +16,9 @@ import { compileSegmentRule, type EventConditionSets, type PrismaClient } from '
 import { renderEmail } from '@helio/emails';
 import { Context } from '@temporalio/activity';
 
-import type { EmailProvider } from './email-provider';
+import type { EmailSenderResolver } from './email-provider-factory';
 
 export interface ActivityConfig {
-  mailFrom: string;
   appUrl: string;
   trackingUrl: string;
   trackingSecret: string;
@@ -51,7 +50,7 @@ export interface CampaignContext {
  */
 export function createActivities(
   prisma: PrismaClient,
-  provider: EmailProvider,
+  resolveSender: EmailSenderResolver,
   config: ActivityConfig,
   clickhouse?: ClickHouseClient,
 ) {
@@ -163,6 +162,9 @@ export function createActivities(
         include: { template: true },
       });
       const result: SendBatchResult = { sent: 0, failed: 0, skipped: 0 };
+      // One resolution per batch: the org's own provider and From identity,
+      // or the deployment fallback (ADR-0019).
+      const sender = await resolveSender(campaign.organizationId);
 
       for (const contactId of contactIds) {
         Context.current().heartbeat(contactId);
@@ -218,8 +220,8 @@ export function createActivities(
               clickRedirectUrl(config.trackingUrl, config.trackingSecret, send.id, url),
           });
 
-          await provider.send({
-            from: config.mailFrom,
+          await sender.provider.send({
+            from: sender.from,
             to: contact.email,
             subject: rendered.subject,
             html: rendered.html,
