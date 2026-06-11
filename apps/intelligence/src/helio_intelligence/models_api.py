@@ -52,6 +52,11 @@ class ArtifactRequest(BaseModel):
     model_id: str = Field(min_length=1, max_length=64)
 
 
+class ValidateArtifactRequest(ArtifactRequest):
+    format: str
+    n_inputs: int = Field(ge=1, le=len(FEATURE_NAMES))
+
+
 def create_models_router(*, allow_private_endpoints: bool = False) -> APIRouter:
     router = APIRouter(prefix="/v1/models/churn", tags=["models"])
 
@@ -114,6 +119,24 @@ def create_models_router(*, allow_private_endpoints: bool = False) -> APIRouter:
             ok=check_probabilities(predictions, len(matrix)) is None,
             error=check_probabilities(predictions, len(matrix)),
         )
+
+    @router.post("/validate-artifact", response_model=VerdictResponse)
+    async def validate_stored_artifact(request: ValidateArtifactRequest) -> VerdictResponse:
+        """Re-run validation on an already-stored artifact — how a feature-
+        mapping edit proves the new input width still fits the model."""
+        extension = _EXTENSIONS.get(request.format)
+        if extension is None:
+            raise HTTPException(status_code=422, detail="format must be ONNX or XGBOOST_JSON")
+        try:
+            path = artifact_path(request.organization_id, request.model_id, extension)
+        except ModelStorageError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        if not path.exists():
+            return VerdictResponse(ok=False, error="the model file is missing — upload it again")
+        outcome = await asyncio.to_thread(
+            validate_artifact, request.format, str(path), request.n_inputs
+        )
+        return VerdictResponse(ok=outcome.ok, error=outcome.error)
 
     @router.post("/delete-artifact", response_model=VerdictResponse)
     async def delete_artifact(request: ArtifactRequest) -> VerdictResponse:

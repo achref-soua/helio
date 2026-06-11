@@ -4,6 +4,7 @@ import { apiKeyRouter } from './api-key';
 import { backupsRouter } from './backups';
 import { brandingRouter } from './branding';
 import { campaignRouter } from './campaign';
+import { churnModelRouter } from './churn-model';
 import { contactRouter } from './contact';
 import { contactListRouter } from './contact-list';
 import { copilotRouter } from './copilot';
@@ -43,6 +44,7 @@ export const appRouter = router({
   form: formRouter,
   landing: landingRouter,
   scoring: scoringRouter,
+  churnModel: churnModelRouter,
   scheduling: schedulingRouter,
   crm: crmRouter,
   credentials: credentialsRouter,

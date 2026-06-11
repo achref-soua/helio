@@ -38,13 +38,27 @@ export function AnalyticsPanel({ canManage }: { canManage: boolean }) {
 
   async function onSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!workspaceId) return;
+    // The active-workspace hook is null until the workspace list loads; a
+    // submit landing in that window waits for it instead of no-oping.
+    // (Putting `!workspaceId` in `disabled` instead trips a React 19
+    // hydration trap: SSR renders the attribute, and a mismatch leaves the
+    // button disabled in the DOM forever.)
+    const targetWorkspaceId =
+      workspaceId ??
+      (await queryClient
+        .fetchQuery(trpc.workspace.list.queryOptions())
+        .then((workspaces) => workspaces[0]?.id ?? null)
+        .catch(() => null));
+    if (!targetWorkspaceId) {
+      toast.error(t('genericError'));
+      return;
+    }
     const events = (value ?? stored)
       .split(',')
       .map((entry) => entry.trim())
       .filter(Boolean);
     try {
-      await save.mutateAsync({ workspaceId, events });
+      await save.mutateAsync({ workspaceId: targetWorkspaceId, events });
       await queryClient.invalidateQueries(trpc.workspace.list.pathFilter());
       setValue(null);
       toast.success(t('saved'));
@@ -73,7 +87,7 @@ export function AnalyticsPanel({ canManage }: { canManage: boolean }) {
             />
           </div>
           <div>
-            <Button type="submit" disabled={save.isPending || !workspaceId}>
+            <Button type="submit" disabled={save.isPending}>
               {t('save')}
             </Button>
           </div>

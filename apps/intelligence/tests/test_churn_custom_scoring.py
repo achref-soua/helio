@@ -372,6 +372,40 @@ def test_validate_endpoint_returns_guard_verdicts() -> None:
     assert unknown.status_code == 422
 
 
+def test_validate_artifact_revalidates_stored_models(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, xgboost_bytes: bytes
+) -> None:
+    monkeypatch.setenv("INTEL_MODELS_PATH", str(tmp_path))
+    from helio_intelligence.model_runtime.storage import store_artifact
+
+    store_artifact("org_a", "chm_5", ".json", xgboost_bytes)
+    client = TestClient(create_app())
+
+    good = client.post(
+        "/v1/models/churn/validate-artifact",
+        json={
+            "organization_id": "org_a",
+            "model_id": "chm_5",
+            "format": "XGBOOST_JSON",
+            "n_inputs": N_FEATURES,
+        },
+    )
+    assert good.status_code == 200 and good.json()["ok"] is True
+
+    missing = client.post(
+        "/v1/models/churn/validate-artifact",
+        json={
+            "organization_id": "org_a",
+            "model_id": "chm_nope",
+            "format": "XGBOOST_JSON",
+            "n_inputs": N_FEATURES,
+        },
+    )
+    assert missing.status_code == 200
+    assert missing.json()["ok"] is False
+    assert "missing" in missing.json()["error"]
+
+
 def test_delete_artifact_removes_files(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, xgboost_bytes: bytes
 ) -> None:
