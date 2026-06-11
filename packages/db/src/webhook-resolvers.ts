@@ -28,16 +28,6 @@ export async function shopifyConnectionForWebhook(
   return rows[0] ?? null;
 }
 
-/** Resolve the org owning a Stripe customer id, if any subscription has it. */
-export async function stripeOrganizationForWebhook(
-  prisma: PrismaClient,
-  customerId: string,
-): Promise<string | null> {
-  const rows = await prisma.$queryRaw<Array<{ organizationId: string | null }>>`
-    SELECT webhook_stripe_organization(${customerId}) AS "organizationId"`;
-  return rows[0]?.organizationId ?? null;
-}
-
 export interface SuppressibleContact {
   id: string;
   organizationId: string;

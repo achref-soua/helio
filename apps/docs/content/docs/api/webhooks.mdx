@@ -88,20 +88,9 @@ function verify(rawBody: string, signature: string, secret: string): boolean {
 
 ## Inbound — provider webhooks
 
-| Source                 | Endpoint               | Effect                                                      |
-| ---------------------- | ---------------------- | ----------------------------------------------------------- |
-| Email bounce/complaint | tracking / delivery    | Adds the address to the **suppression list** automatically. |
-| Stripe (hosted only)   | gateway, outside `/v1` | Maps a subscription's price to a plan; signature-verified.  |
-
-### Stripe billing webhook
-
-When `STRIPE_WEBHOOK_SECRET` is configured, the gateway accepts Stripe events at
-a dedicated route (mounted outside `/v1`, authenticated by Stripe's signature
-rather than an API key). It handles `checkout.session.completed` and
-`customer.subscription.*`, upserting the organization's subscription and
-deriving the plan from the price. Until configured, the route returns `404`.
-Self-hosted Helio is unlimited and unmetered, so this is optional — see
-[Billing configuration](/docs/configuration#billing-hosted-only-optional).
+| Source                 | Endpoint            | Effect                                                      |
+| ---------------------- | ------------------- | ----------------------------------------------------------- |
+| Email bounce/complaint | tracking / delivery | Adds the address to the **suppression list** automatically. |
 
 The journey node uses a single global `WEBHOOK_SIGNING_SECRET` and a plain
 `x-helio-signature: <hex>` header (no timestamp); event subscriptions above use

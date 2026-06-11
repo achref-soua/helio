@@ -11,15 +11,14 @@ import {
   forTenant,
   type PrismaClient,
   shopifyConnectionForWebhook,
-  stripeOrganizationForWebhook,
 } from '../src/index';
 
 /**
  * Regression coverage for ADR-0017: signature-authenticated webhooks must
  * resolve their tenant through the SECURITY DEFINER resolvers. A plain
  * table read on the app role matches nothing before a tenant context is
- * set — exactly the bug that silently no-oped the Stripe and Shopify
- * webhooks against a real database.
+ * set — exactly the bug that silently no-oped the provider webhooks
+ * against a real database.
  */
 describe('webhook tenant resolvers', () => {
   let container: StartedPostgreSqlContainer;
@@ -31,7 +30,7 @@ describe('webhook tenant resolvers', () => {
   const workspaceId = newId('ws');
   const workspaceB = newId('ws');
   const shopDomain = 'resolver-test.myshopify.com';
-  const stripeCustomerId = 'cus_resolver_test';
+  const integrationId = newId('intg');
   const sharedEmail = 'bounced@example.com';
   const contactA = newId('contact');
   const contactB = newId('contact');
@@ -60,20 +59,12 @@ describe('webhook tenant resolvers', () => {
     });
     await admin.integration.create({
       data: {
-        id: newId('intg'),
+        id: integrationId,
         organizationId: org.id,
         workspaceId,
         provider: 'SHOPIFY',
         externalId: shopDomain,
         secret: 'shpss_secret',
-      },
-    });
-    await admin.subscription.create({
-      data: {
-        id: newId('sub'),
-        organizationId: org.id,
-        plan: 'PRO',
-        stripeCustomerId,
       },
     });
 
@@ -108,7 +99,6 @@ describe('webhook tenant resolvers', () => {
     expect(
       await app.integration.findFirst({ where: { provider: 'SHOPIFY', externalId: shopDomain } }),
     ).toBeNull();
-    expect(await app.subscription.findFirst({ where: { stripeCustomerId } })).toBeNull();
   });
 
   it('resolves a Shopify shop domain to its connection on the app role', async () => {
@@ -134,20 +124,15 @@ describe('webhook tenant resolvers', () => {
     });
   });
 
-  it('resolves a Stripe customer to its organization on the app role', async () => {
-    expect(await stripeOrganizationForWebhook(app, stripeCustomerId)).toBe(org.id);
-    expect(await stripeOrganizationForWebhook(app, 'cus_unknown')).toBeNull();
-  });
-
   it('writes work under forTenant once the org is resolved', async () => {
-    const orgId = await stripeOrganizationForWebhook(app, stripeCustomerId);
-    const tenantDb = forTenant(app, orgId!);
-    await tenantDb.subscription.update({
-      where: { organizationId: orgId! },
-      data: { status: 'active' },
+    const connection = await shopifyConnectionForWebhook(app, shopDomain);
+    const tenantDb = forTenant(app, connection!.organizationId);
+    await tenantDb.integration.update({
+      where: { id: integrationId },
+      data: { config: { lastWebhookAt: 'resolver-test' } },
     });
-    const updated = await admin.subscription.findUnique({ where: { organizationId: org.id } });
-    expect(updated?.status).toBe('active');
+    const updated = await admin.integration.findUnique({ where: { id: integrationId } });
+    expect(updated?.config).toEqual({ lastWebhookAt: 'resolver-test' });
   });
 
   it('finds every ACTIVE contact holding an address, across tenants', async () => {
@@ -180,7 +165,6 @@ describe('webhook tenant resolvers', () => {
   it('the resolvers expose only their single lookup, not the tables', async () => {
     // The function is the escape hatch; direct table access stays sealed.
     expect(await app.integration.count()).toBe(0);
-    expect(await app.subscription.count()).toBe(0);
     expect(await app.contact.count()).toBe(0);
   });
 });

@@ -33,6 +33,5 @@ export {
   activeContactsByEmailForWebhook,
   shopifyConnectionForWebhook,
   type ShopifyWebhookConnection,
-  stripeOrganizationForWebhook,
   type SuppressibleContact,
 } from './webhook-resolvers';

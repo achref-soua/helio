@@ -1,12 +1,5 @@
-import {
-  contactEmailSchema,
-  contactLimitFor,
-  isValidPlan,
-  newId,
-  type Plan,
-  wouldExceedContactLimit,
-} from '@helio/core';
-import { type Contact, forTenant, type TenantClient } from '@helio/db';
+import { contactEmailSchema, newId } from '@helio/core';
+import { type Contact, forTenant } from '@helio/db';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { HTTPException } from 'hono/http-exception';
 
@@ -179,10 +172,6 @@ const createContactRoute = createRoute({
       content: { 'application/json': { schema: ContactSchema } },
     },
     ...unauthorized,
-    403: {
-      description: "The plan's contact limit has been reached",
-      content: { 'application/problem+json': { schema: ProblemSchema } },
-    },
     404: {
       description: 'The referenced workspace does not exist',
       content: { 'application/problem+json': { schema: ProblemSchema } },
@@ -228,35 +217,6 @@ const deleteContactRoute = createRoute({
     ...notFound,
   },
 });
-
-/**
- * Resolve the org's plan the way the dashboard does: a subscription row
- * (kept current by the Stripe webhook) or UNLIMITED for self-hosted orgs
- * with none. The cap rules themselves live in @helio/core.
- */
-async function resolvePlan(tenantDb: TenantClient, organizationId: string): Promise<Plan> {
-  const subscription = await tenantDb.subscription.findUnique({
-    where: { organizationId },
-    select: { plan: true },
-  });
-  return subscription && isValidPlan(subscription.plan) ? subscription.plan : 'UNLIMITED';
-}
-
-/** Reject the create when it would push the org past its plan's contact cap. */
-async function assertContactCapacity(
-  tenantDb: TenantClient,
-  organizationId: string,
-  adding: number,
-) {
-  const plan = await resolvePlan(tenantDb, organizationId);
-  if (contactLimitFor(plan) === null) return;
-  const current = await tenantDb.contact.count();
-  if (wouldExceedContactLimit(plan, current, adding)) {
-    throw new HTTPException(403, {
-      message: `contact limit reached for the ${plan} plan (${contactLimitFor(plan)}); upgrade to add more`,
-    });
-  }
-}
 
 function serialize(contact: Contact) {
   return {
@@ -331,8 +291,6 @@ export function contactRoutes(deps: GatewayDeps) {
     // RLS guarantees a found workspace is this org's; a miss is a 404.
     const workspace = await tenantDb.workspace.findUnique({ where: { id: input.workspaceId } });
     if (!workspace) throw new HTTPException(404, { message: 'workspace not found' });
-
-    await assertContactCapacity(tenantDb, organizationId, 1);
 
     const existing = await tenantDb.contact.findFirst({
       where: { workspaceId: input.workspaceId, email },

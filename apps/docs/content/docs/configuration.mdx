@@ -104,17 +104,6 @@ runs over the RLS-bound application role, never the admin connection — so the
 model can never reach another tenant's data. For full data sovereignty, point
 `INTEL_LLM_PROVIDER` at `ollama` or `local`.
 
-## Billing (hosted only, optional)
-
-Self-hosted Helio is unlimited and unmetered — leave these blank. When set, the
-gateway accepts signature-verified Stripe webhooks and maps a subscription's
-price to a plan.
-
-| Variable                                  | Purpose                                     |
-| ----------------------------------------- | ------------------------------------------- |
-| `STRIPE_WEBHOOK_SECRET`                   | Verifies inbound Stripe webhook signatures. |
-| `STRIPE_PRICE_PRO` / `STRIPE_PRICE_SCALE` | Map Stripe prices to Helio plans.           |
-
 ## Auth & email
 
 | Variable                  | Required | Purpose                                                  |

@@ -5,7 +5,6 @@ import { getTranslations } from 'next-intl/server';
 import { auth } from '@/lib/auth';
 
 import { ApiKeysPanel } from './api-keys-panel';
-import { BillingPanel } from './billing-panel';
 import { BrandingPanel } from './branding-panel';
 import { DeliverabilityPanel } from './deliverability-panel';
 import { IntegrationsPanel } from './integrations-panel';
@@ -55,7 +54,6 @@ export default async function SettingsPage() {
         canManage={me?.role === 'owner' || me?.role === 'admin'}
       />
       <SecurityPanel />
-      <BillingPanel />
       {(me?.role === 'owner' || me?.role === 'admin') && (
         <>
           <SsoPanel canManage />

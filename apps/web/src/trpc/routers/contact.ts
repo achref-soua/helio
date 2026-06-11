@@ -1,11 +1,4 @@
-import {
-  contactEmailSchema,
-  contactLimitFor,
-  contactsToCsv,
-  newId,
-  normalizeContactRows,
-  wouldExceedContactLimit,
-} from '@helio/core';
+import { contactEmailSchema, contactsToCsv, newId, normalizeContactRows } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
@@ -14,28 +7,11 @@ import { pushContactToSalesforce } from '@/lib/salesforce';
 import { emitWebhookEvent } from '@/lib/webhooks';
 
 import { orgProcedure, requireRole, router } from '../init';
-import { resolvePlan, type TenantDb } from './billing';
 
 const attributesSchema = z.record(z.string(), z.string()).default({});
 
 /** One CSV export tops out here; the audit row records any truncation. */
 const EXPORT_CAP = 10_000;
-
-/**
- * Enforce the org's plan contact cap before adding `adding` contacts.
- * UNLIMITED (the self-hosted default) never blocks. Counts are org-wide.
- */
-async function assertContactCapacity(tenantDb: TenantDb, organizationId: string, adding: number) {
-  const plan = await resolvePlan(tenantDb, organizationId);
-  if (contactLimitFor(plan) === null) return;
-  const current = await tenantDb.contact.count();
-  if (wouldExceedContactLimit(plan, current, adding)) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: `Contact limit reached for the ${plan} plan (${contactLimitFor(plan)}). Upgrade to add more.`,
-    });
-  }
-}
 
 /** Resolve and authorize the workspace inside the tenant scope. */
 async function assertWorkspace(
@@ -104,7 +80,6 @@ export const contactRouter = router({
     .mutation(async ({ ctx, input }) => {
       requireRole(ctx.memberRole, 'editor');
       await assertWorkspace(ctx.tenantDb, input.workspaceId);
-      await assertContactCapacity(ctx.tenantDb, ctx.organizationId, 1);
       const existing = await ctx.tenantDb.contact.findFirst({
         where: { workspaceId: input.workspaceId, email: input.email },
       });
@@ -208,9 +183,6 @@ export const contactRouter = router({
       requireRole(ctx.memberRole, 'editor');
       await assertWorkspace(ctx.tenantDb, input.workspaceId);
       const { valid, invalid, duplicates, source, suppressed } = normalizeContactRows(input.rows);
-      // Bound the import to the plan's remaining headroom (new emails only;
-      // existing ones are skipped, but this is a safe upper bound).
-      await assertContactCapacity(ctx.tenantDb, ctx.organizationId, valid.length);
       const result = await ctx.tenantDb.contact.createMany({
         data: valid.map((row) => ({
           id: newId('contact'),

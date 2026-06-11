@@ -515,16 +515,6 @@
               }
             }
           },
-          "403": {
-            "description": "The plan's contact limit has been reached",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
           "404": {
             "description": "The referenced workspace does not exist",
             "content": {
