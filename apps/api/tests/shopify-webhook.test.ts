@@ -1,11 +1,12 @@
 import { createHmac } from 'node:crypto';
 
+import { encryptField, generateEncryptionKey } from '@helio/core';
 import RedisMock from 'ioredis-mock';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../src/app';
 import { handleShopifyWebhook } from '../src/routes/shopify-webhook';
-import type { RedisLike } from '../src/types';
+import type { GatewayDeps, RedisLike } from '../src/types';
 
 const sign = (secret: string, body: string) =>
   createHmac('sha256', secret).update(body).digest('base64');
@@ -13,7 +14,7 @@ const sign = (secret: string, body: string) =>
 const connection = { organizationId: 'org_1', workspaceId: 'ws_1' };
 
 interface FakeOpts {
-  integration?: { organizationId: string; workspaceId: string; secret: string } | null;
+  integration?: { id: string; organizationId: string; workspaceId: string; secret: string } | null;
   existingContact?: {
     id: string;
     attributes: Record<string, unknown>;
@@ -90,14 +91,15 @@ describe('handleShopifyWebhook', () => {
 });
 
 describe('POST /webhooks/shopify', () => {
-  const integration = { organizationId: 'org_1', workspaceId: 'ws_1', secret: 'shh' };
+  const integration = { id: 'intg_1', organizationId: 'org_1', workspaceId: 'ws_1', secret: 'shh' };
 
-  function makeApp(opts: FakeOpts = {}) {
+  function makeApp(opts: FakeOpts = {}, extra: Partial<GatewayDeps> = {}) {
     const { prisma } = fakePrisma(opts);
     return createApp({
       prisma,
       redis: new RedisMock() as unknown as RedisLike,
       rateLimit: { max: 1000, windowSeconds: 3600 },
+      ...extra,
     });
   }
 
@@ -134,6 +136,39 @@ describe('POST /webhooks/shopify', () => {
     });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ received: true, handled: true });
+  });
+
+  it('verifies against a sealed signing secret (ADR-0019)', async () => {
+    const key = generateEncryptionKey();
+    const sealed = await encryptField(
+      'shh',
+      { organizationId: 'org_1', credentialId: 'intg_1', field: 'secret' },
+      key,
+    );
+    const app = makeApp({ integration: { ...integration, secret: sealed } }, { vault: { key } });
+    const response = await app.request('/webhooks/shopify', {
+      method: 'POST',
+      headers: headers({ 'x-shopify-hmac-sha256': sign('shh', body) }),
+      body,
+    });
+    expect(response.status).toBe(200);
+  });
+
+  it('503s when a sealed secret arrives but no vault key is configured', async () => {
+    const key = generateEncryptionKey();
+    const sealed = await encryptField(
+      'shh',
+      { organizationId: 'org_1', credentialId: 'intg_1', field: 'secret' },
+      key,
+    );
+    const app = makeApp({ integration: { ...integration, secret: sealed } });
+    const response = await app.request('/webhooks/shopify', {
+      method: 'POST',
+      headers: headers({ 'x-shopify-hmac-sha256': sign('shh', body) }),
+      body,
+    });
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: 'vault_key_missing' });
   });
 
   it('400s without the shop and topic headers', async () => {

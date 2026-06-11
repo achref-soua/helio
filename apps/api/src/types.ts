@@ -17,6 +17,8 @@ export interface GatewayDeps {
   redis: RedisLike;
   rateLimit: { max: number; windowSeconds: number };
   emailWebhook?: EmailWebhookConfig;
+  /** Deployment encryption key(s) for sealed integration secrets. */
+  vault?: { key: string; previousKey?: string };
 }
 
 export interface GatewayVariables {

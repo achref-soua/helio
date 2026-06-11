@@ -11,6 +11,8 @@ import type { PrismaClient } from './client';
  */
 
 export interface ShopifyWebhookConnection {
+  /** The integration row id — the AAD slot for the sealed signing secret. */
+  id: string;
   organizationId: string;
   workspaceId: string;
   secret: string | null;
@@ -22,8 +24,8 @@ export async function shopifyConnectionForWebhook(
   shopDomain: string,
 ): Promise<ShopifyWebhookConnection | null> {
   const rows = await prisma.$queryRaw<
-    Array<{ organizationId: string; workspaceId: string; secret: string | null }>
-  >`SELECT organization_id AS "organizationId", workspace_id AS "workspaceId", secret
+    Array<{ id: string; organizationId: string; workspaceId: string; secret: string | null }>
+  >`SELECT id, organization_id AS "organizationId", workspace_id AS "workspaceId", secret
     FROM webhook_shopify_connection(${shopDomain})`;
   return rows[0] ?? null;
 }

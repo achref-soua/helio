@@ -40,6 +40,9 @@ export const env = createEnv({
   EVENTS_TOPIC: z.string().min(1).default('helio.events.v1'),
   /** Optional HMAC key for journey webhook signatures (x-helio-signature). */
   WEBHOOK_SIGNING_SECRET: z.string().min(24).optional(),
+  /** Opens per-org provider credentials (ADR-0019); absent → env providers. */
+  HELIO_ENCRYPTION_KEY: z.string().optional(),
+  HELIO_ENCRYPTION_KEY_PREVIOUS: z.string().optional(),
   /** VAPID keys for Web Push; push nodes no-op when unset. */
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),

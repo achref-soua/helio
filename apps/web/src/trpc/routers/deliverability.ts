@@ -5,6 +5,8 @@ import { dkimPasses, dmarcPasses, isLikelyDomain, newId, spfPasses } from '@heli
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { sealRowSecret, vaultReady } from '@/lib/vault';
+
 import { orgProcedure, requireRole, router } from '../init';
 
 /** An RSA-2048 DKIM key pair: a PEM private key and the base64 DER public key. */
@@ -59,15 +61,21 @@ export const deliverabilityRouter = router({
     .mutation(async ({ ctx, input }) => {
       requireRole(ctx.memberRole, 'admin');
       const keys = generateDkimKeys();
+      const id = newId('dom');
+      // Seal the private key at rest when the vault is configured; rows
+      // created before the vault existed stay readable via openRowSecret.
+      const dkimPrivateKey = vaultReady()
+        ? await sealRowSecret(ctx.organizationId, id, 'dkimPrivateKey', keys.privateKey)
+        : keys.privateKey;
       try {
         const created = await ctx.tenantDb.sendingDomain.create({
           data: {
-            id: newId('dom'),
+            id,
             organizationId: ctx.organizationId,
             workspaceId: input.workspaceId,
             domain: input.domain,
             dkimPublicKey: keys.publicKey,
-            dkimPrivateKey: keys.privateKey,
+            dkimPrivateKey,
             spfInclude: input.spfInclude || null,
           },
         });

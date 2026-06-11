@@ -2,8 +2,11 @@ import { pushSalesforceLead, salesforceLeadFromContact } from '@helio/core';
 import type { TenantClient } from '@helio/db';
 import { trace } from '@opentelemetry/api';
 
+import { openRowSecret } from './vault';
+
 interface PushContext {
   tenantDb: TenantClient;
+  organizationId: string;
 }
 
 interface ContactInput {
@@ -26,16 +29,17 @@ export async function pushContactToSalesforce(
   try {
     const integration = await ctx.tenantDb.integration.findFirst({
       where: { provider: 'SALESFORCE', enabled: true },
-      select: { secret: true, config: true },
+      select: { id: true, secret: true, config: true },
     });
     const instanceUrl = (integration?.config as { instanceUrl?: string } | null)?.instanceUrl;
     if (!integration?.secret || !instanceUrl) return;
-    await pushSalesforceLead(
-      fetch,
-      instanceUrl,
+    const accessToken = await openRowSecret(
+      ctx.organizationId,
+      integration.id,
+      'secret',
       integration.secret,
-      salesforceLeadFromContact(contact),
     );
+    await pushSalesforceLead(fetch, instanceUrl, accessToken, salesforceLeadFromContact(contact));
   } catch (error) {
     trace
       .getActiveSpan()

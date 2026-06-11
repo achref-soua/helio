@@ -2,6 +2,8 @@ import { newId } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { sealRowSecret } from '@/lib/vault';
+
 import { orgProcedure, requireRole, router } from '../init';
 
 const shopDomainSchema = z
@@ -46,6 +48,16 @@ export const integrationsRouter = router({
     .mutation(async ({ ctx, input }) => {
       requireRole(ctx.memberRole, 'admin');
       try {
+        // The envelope AAD binds the secret to its row id, so resolve the
+        // id before sealing (upsert would only reveal it afterwards).
+        const existing = await ctx.tenantDb.integration.findUnique({
+          where: {
+            organizationId_provider: { organizationId: ctx.organizationId, provider: 'SHOPIFY' },
+          },
+          select: { id: true },
+        });
+        const id = existing?.id ?? newId('intg');
+        const secret = await sealRowSecret(ctx.organizationId, id, 'secret', input.secret);
         const integration = await ctx.tenantDb.integration.upsert({
           where: {
             organizationId_provider: {
@@ -54,22 +66,25 @@ export const integrationsRouter = router({
             },
           },
           create: {
-            id: newId('intg'),
+            id,
             organizationId: ctx.organizationId,
             workspaceId: input.workspaceId,
             provider: 'SHOPIFY',
             externalId: input.shopDomain,
-            secret: input.secret,
+            secret,
           },
           update: {
             workspaceId: input.workspaceId,
             externalId: input.shopDomain,
-            secret: input.secret,
+            secret,
             enabled: true,
           },
         });
         return { id: integration.id };
-      } catch {
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('HELIO_ENCRYPTION_KEY')) {
+          throw new TRPCError({ code: 'PRECONDITION_FAILED', message: error.message });
+        }
         // Unique (provider, externalId) — the shop is wired to another org.
         throw new TRPCError({
           code: 'CONFLICT',
@@ -88,21 +103,37 @@ export const integrationsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       requireRole(ctx.memberRole, 'admin');
+      const existing = await ctx.tenantDb.integration.findUnique({
+        where: {
+          organizationId_provider: { organizationId: ctx.organizationId, provider: 'SALESFORCE' },
+        },
+        select: { id: true },
+      });
+      const id = existing?.id ?? newId('intg');
+      let secret: string;
+      try {
+        secret = await sealRowSecret(ctx.organizationId, id, 'secret', input.accessToken);
+      } catch (error) {
+        throw new TRPCError({
+          code: 'PRECONDITION_FAILED',
+          message: error instanceof Error ? error.message : 'encryption key missing',
+        });
+      }
       const integration = await ctx.tenantDb.integration.upsert({
         where: {
           organizationId_provider: { organizationId: ctx.organizationId, provider: 'SALESFORCE' },
         },
         create: {
-          id: newId('intg'),
+          id,
           organizationId: ctx.organizationId,
           workspaceId: input.workspaceId,
           provider: 'SALESFORCE',
-          secret: input.accessToken,
+          secret,
           config: { instanceUrl: input.instanceUrl },
         },
         update: {
           workspaceId: input.workspaceId,
-          secret: input.accessToken,
+          secret,
           config: { instanceUrl: input.instanceUrl },
           enabled: true,
         },
