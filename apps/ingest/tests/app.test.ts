@@ -64,6 +64,10 @@ describe('ingest app', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('x-content-type-options')).toBe('nosniff');
     expect(response.headers.get('x-frame-options')).toBe('SAMEORIGIN');
+    expect(await response.json()).toMatchObject({
+      service: 'ingest',
+      version: expect.any(String),
+    });
   });
 
   it('readyz aggregates probes and reports degradation', async () => {

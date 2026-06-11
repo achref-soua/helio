@@ -28,6 +28,15 @@ import {
  * (OUT_FILE to override).
  */
 const rootEnv = path.resolve(import.meta.dirname, '../../../.env');
+// The guide always states the version it documents — read from the root
+// package.json (kept current by release tooling) instead of hardcoding.
+const VERSION = `v${
+  (
+    JSON.parse(
+      readFileSync(path.resolve(import.meta.dirname, '../../../package.json'), 'utf8'),
+    ) as { version: string }
+  ).version
+}`;
 if (existsSync(rootEnv)) loadEnvFile(rootEnv);
 
 const OUT_FILE =
@@ -201,7 +210,7 @@ function buildHtml(): string {
   <div class="tagline">The open-source growth platform — unify customer data, segment anyone,
   orchestrate journeys across every channel, and let AI do the heavy lifting.
   Self-hosted, on your own servers.</div>
-  <div class="meta">Product guide<span class="sep">•</span>v1.0.0<span class="sep">•</span>${date}</div>
+  <div class="meta">Product guide<span class="sep">•</span>${VERSION}<span class="sep">•</span>${date}</div>
   <div class="foot">Achref Soua · ${REPO.replace('https://', '')}</div>
 </div></div>
 
@@ -561,7 +570,7 @@ task up                     <span class="c"># or: docker compose --profile full 
     <tr><td><b>Repository</b></td><td>${REPO}</td></tr>
     <tr><td><b>Issues &amp; ideas</b></td><td>${REPO}/issues</td></tr>
   </table>
-  <p style="margin-top:26px;color:#78716c">Helio v1.0.0 · AGPL-3.0 — every screenshot in this
+  <p style="margin-top:26px;color:#78716c">Helio ${VERSION} · AGPL-3.0 — every screenshot in this
   guide is the real product.</p>
 </div>
 

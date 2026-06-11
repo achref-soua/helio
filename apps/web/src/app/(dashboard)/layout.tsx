@@ -1,3 +1,4 @@
+import { helioVersion } from '@helio/core';
 import { forTenant } from '@helio/db';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -32,10 +33,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
       })
     : null;
 
+  const version = helioVersion();
   return (
     <>
       <BrandStyle color={org?.brandColor} />
-      <AppShell brand={org ? { name: org.brandName ?? org.name, logoUrl: org.logo } : undefined}>
+      <AppShell
+        brand={org ? { name: org.brandName ?? org.name, logoUrl: org.logo } : undefined}
+        version={version === 'dev' ? 'dev' : `v${version}`}
+      >
         {children}
       </AppShell>
       <TourGuide />

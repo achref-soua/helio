@@ -10,5 +10,10 @@ COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @helio/db build
 ENV NODE_ENV=production
+# Release identity baked at build time; surfaced on /healthz and in the UI.
+ARG HELIO_VERSION
+ARG HELIO_COMMIT
+ENV HELIO_VERSION=$HELIO_VERSION \
+    HELIO_COMMIT=$HELIO_COMMIT
 USER helio
 CMD ["pnpm", "--filter", "@helio/workers", "start"]

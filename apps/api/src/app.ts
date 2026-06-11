@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
+import { healthPayload } from '@helio/core';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { secureHeaders } from 'hono/secure-headers';
 
@@ -34,7 +35,7 @@ export function createApp(deps: GatewayDeps) {
   app.use('*', requestLogging);
   app.use('*', secureHeaders());
 
-  app.get('/healthz', (c) => c.json({ status: 'ok', service: 'api' }));
+  app.get('/healthz', (c) => c.json(healthPayload('api')));
 
   app.get('/metrics', async (c) =>
     c.text(await metricsRegistry.metrics(), 200, { 'content-type': metricsRegistry.contentType }),
