@@ -11,6 +11,10 @@ export const env = createEnv({
   // Shared secret on the bounce/complaint webhook URL (?token=…). The
   // endpoint is disabled (404) until set.
   EMAIL_WEBHOOK_TOKEN: z.string().default(''),
+  // Opens sealed integration secrets (ADR-0019); same key the dashboard
+  // seals with. Legacy plaintext rows still verify without it.
+  HELIO_ENCRYPTION_KEY: z.string().default(''),
+  HELIO_ENCRYPTION_KEY_PREVIOUS: z.string().default(''),
 });
 
 export type Env = typeof env;

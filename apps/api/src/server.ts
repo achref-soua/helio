@@ -20,6 +20,12 @@ const app = createApp({
   emailWebhook: env.EMAIL_WEBHOOK_TOKEN
     ? { token: env.EMAIL_WEBHOOK_TOKEN, fetch: (url) => fetch(url) }
     : undefined,
+  vault: env.HELIO_ENCRYPTION_KEY
+    ? {
+        key: env.HELIO_ENCRYPTION_KEY,
+        previousKey: env.HELIO_ENCRYPTION_KEY_PREVIOUS || undefined,
+      }
+    : undefined,
 });
 
 const server = serve({ fetch: app.fetch, port: env.API_PORT }, (info) => {

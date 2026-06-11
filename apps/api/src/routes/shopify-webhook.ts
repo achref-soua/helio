@@ -1,4 +1,10 @@
-import { newId, shopifyContactForTopic, verifyShopifyHmac } from '@helio/core';
+import {
+  decryptField,
+  isEnvelope,
+  newId,
+  shopifyContactForTopic,
+  verifyShopifyHmac,
+} from '@helio/core';
 import { forTenant, type Prisma, shopifyConnectionForWebhook, type TenantClient } from '@helio/db';
 import { Hono } from 'hono';
 
@@ -92,9 +98,30 @@ export function shopifyWebhookRoutes(deps: GatewayDeps) {
     const integration = await shopifyConnectionForWebhook(deps.prisma, shop);
     if (!integration?.secret) return c.json({ error: 'unknown_shop' }, 404);
 
+    // Secrets written since ADR-0019 arrive sealed; rows from before the
+    // vault stay plaintext and verify directly.
+    let signingSecret = integration.secret;
+    if (isEnvelope(signingSecret)) {
+      if (!deps.vault) return c.json({ error: 'vault_key_missing' }, 503);
+      try {
+        signingSecret = await decryptField(
+          signingSecret,
+          {
+            organizationId: integration.organizationId,
+            credentialId: integration.id,
+            field: 'secret',
+          },
+          deps.vault.key,
+          deps.vault.previousKey,
+        );
+      } catch {
+        return c.json({ error: 'vault_key_mismatch' }, 503);
+      }
+    }
+
     const body = await c.req.text();
     const valid = await verifyShopifyHmac(
-      integration.secret,
+      signingSecret,
       body,
       c.req.header('x-shopify-hmac-sha256'),
     );

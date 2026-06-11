@@ -104,6 +104,7 @@ describe('webhook tenant resolvers', () => {
   it('resolves a Shopify shop domain to its connection on the app role', async () => {
     const connection = await shopifyConnectionForWebhook(app, shopDomain);
     expect(connection).toEqual({
+      id: integrationId,
       organizationId: org.id,
       workspaceId,
       secret: 'shpss_secret',
