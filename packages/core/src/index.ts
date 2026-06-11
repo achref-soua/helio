@@ -36,6 +36,19 @@ export {
   type NormalizedContactRow,
   type NormalizeResult,
 } from './contacts';
+export {
+  decryptField,
+  encryptField,
+  generateEncryptionKey,
+  isEnvelope,
+  keyFingerprint,
+  type ParsedEnvelope,
+  parseEnvelope,
+  VaultDecryptError,
+  VaultFormatError,
+  VaultKeyUnknownError,
+  type VaultScope,
+} from './crypto-envelope';
 export { CONTACT_CSV_HEADER, type ContactCsvRow, contactsToCsv, csvCell, csvDocument } from './csv';
 export {
   deliverabilityRecords,
