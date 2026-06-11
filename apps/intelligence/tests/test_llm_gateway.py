@@ -186,7 +186,7 @@ def test_factory_requires_a_key_for_hosted_providers() -> None:
 
 
 def test_factory_rejects_unknown_provider() -> None:
-    with pytest.raises(ValueError, match="Unknown INTEL_LLM_PROVIDER"):
+    with pytest.raises(ValueError, match="Unknown LLM provider"):
         create_llm_provider(_settings(llm_provider="cohere", llm_api_key="k"))
 
 

@@ -2,7 +2,7 @@ import os
 import time
 
 import structlog
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 from prometheus_client import CONTENT_TYPE_LATEST, Histogram, generate_latest
 
 from .logging import configure_logging
@@ -62,7 +62,13 @@ def create_app() -> FastAPI:
     database = Database(settings.database_url) if settings.database_url else None
     app.state.database = database
 
-    if settings.llm_configured and database is not None:
+    # AI surfaces come up when a database exists and there is at least one
+    # possible provider: the deployment INTEL_LLM_* config, or org-connected
+    # credentials (which need the shared vault key to open). Which provider
+    # actually serves a request is resolved per organization (ADR-0019).
+    vault_key_present = bool(settings.encryption_key.get_secret_value())
+    llm_resolver = None
+    if database is not None and (settings.llm_configured or vault_key_present):
         from .agent import Copilot
         from .agent.nl_email import NlEmailGenerator
         from .agent.nl_journey import NlJourneyGenerator
@@ -75,20 +81,52 @@ def create_app() -> FastAPI:
             get_repository,
             get_segment_generator,
         )
-        from .llm import create_llm_provider
+        from .llm.org_provider import OrgLlmResolver, build_default_provider
 
         repository = OrgRepository(database)
-        provider = create_llm_provider(settings)
+        llm_resolver = OrgLlmResolver(settings, database, build_default_provider(settings))
+        app.state.llm_resolver = llm_resolver
 
-        app.dependency_overrides[get_copilot] = lambda: Copilot(
-            provider=provider,
-            repository=repository,
-            temperature=settings.llm_temperature,
-            max_tokens=settings.llm_max_tokens,
-        )
-        app.dependency_overrides[get_segment_generator] = lambda: NlSegmentGenerator(provider)
-        app.dependency_overrides[get_journey_generator] = lambda: NlJourneyGenerator(provider)
-        app.dependency_overrides[get_email_generator] = lambda: NlEmailGenerator(provider)
+        async def _resolved_for(request: Request):  # type: ignore[no-untyped-def]
+            # Starlette caches the body, so the endpoint's own parse is free.
+            try:
+                body = await request.json()
+            except Exception:  # noqa: BLE001 — malformed body → 422 later
+                body = {}
+            organization_id = str(body.get("organization_id", "") or "")
+            resolved = await llm_resolver.resolve(organization_id)
+            if resolved is None:
+                raise HTTPException(
+                    status_code=503,
+                    detail=(
+                        "no AI provider is configured — set INTEL_LLM_API_KEY on the "
+                        "deployment or connect one under Settings → Provider credentials"
+                    ),
+                )
+            return resolved
+
+        async def routed_copilot(request: Request) -> Copilot:
+            resolved = await _resolved_for(request)
+            return Copilot(
+                provider=resolved.provider,
+                repository=repository,
+                temperature=resolved.temperature,
+                max_tokens=resolved.max_tokens,
+            )
+
+        async def routed_segment_generator(request: Request) -> NlSegmentGenerator:
+            return NlSegmentGenerator((await _resolved_for(request)).provider)
+
+        async def routed_journey_generator(request: Request) -> NlJourneyGenerator:
+            return NlJourneyGenerator((await _resolved_for(request)).provider)
+
+        async def routed_email_generator(request: Request) -> NlEmailGenerator:
+            return NlEmailGenerator((await _resolved_for(request)).provider)
+
+        app.dependency_overrides[get_copilot] = routed_copilot
+        app.dependency_overrides[get_segment_generator] = routed_segment_generator
+        app.dependency_overrides[get_journey_generator] = routed_journey_generator
+        app.dependency_overrides[get_email_generator] = routed_email_generator
         app.dependency_overrides[get_repository] = lambda: repository
 
     if settings.scoring_configured and database is not None:
@@ -156,6 +194,27 @@ def create_app() -> FastAPI:
             "provider": settings.llm_provider,
             "model": settings.llm_model,
             "configured": settings.llm_configured,
+        }
+
+    @app.post("/v1/llm/config")
+    async def llm_config_for_org(body: dict[str, str]) -> dict[str, object]:
+        # The org-aware variant: which provider would actually serve this
+        # organization (its own credential, or the deployment fallback).
+        organization_id = str(body.get("organization_id", "") or "")
+        resolver = getattr(app.state, "llm_resolver", None)
+        resolved = await resolver.resolve(organization_id) if resolver else None
+        if resolved is None:
+            return {
+                "provider": settings.llm_provider,
+                "model": settings.llm_model,
+                "configured": settings.llm_configured,
+                "source": "deployment",
+            }
+        return {
+            "provider": resolved.provider_name,
+            "model": resolved.model,
+            "configured": True,
+            "source": resolved.source,
         }
 
     log.info("intelligence app created", service=settings.service_name)

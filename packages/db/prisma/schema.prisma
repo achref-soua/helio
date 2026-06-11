@@ -138,6 +138,10 @@ model Workspace {
   organizationId String   @map("organization_id")
   name           String
   slug           String
+  /// Event names that count as a conversion for predictive scoring in
+  /// this workspace (string array); null falls back to the deployment
+  /// default (INTEL_SCORING_CONVERSION_EVENTS).
+  conversionEvents Json? @map("conversion_events")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 

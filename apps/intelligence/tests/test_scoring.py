@@ -111,27 +111,37 @@ def test_predict_on_empty_is_empty() -> None:
 
 
 class _FakeScoped:
-    def __init__(self, contacts: list[dict[str, Any]], sink: list[Any]) -> None:
+    def __init__(
+        self,
+        contacts: list[dict[str, Any]],
+        sink: list[Any],
+        workspace_events: Any = None,
+    ) -> None:
         self._contacts = contacts
         self._sink = sink
+        self._workspace_events = workspace_events
 
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
         return self._contacts
+
+    async def fetchval(self, query: str, *args: Any) -> Any:
+        return self._workspace_events
 
     async def executemany(self, query: str, args: list[tuple[Any, ...]]) -> None:
         self._sink.extend(args)
 
 
 class _FakeDb:
-    def __init__(self, contacts: list[dict[str, Any]]) -> None:
+    def __init__(self, contacts: list[dict[str, Any]], workspace_events: Any = None) -> None:
         self._contacts = contacts
+        self._workspace_events = workspace_events
         self.writes: list[Any] = []
         self.scoped_orgs: list[str] = []
 
     @asynccontextmanager
     async def scoped(self, organization_id: str):  # type: ignore[no-untyped-def]
         self.scoped_orgs.append(organization_id)
-        yield _FakeScoped(self._contacts, self.writes)
+        yield _FakeScoped(self._contacts, self.writes, self._workspace_events)
 
 
 class _FakeCh:
@@ -329,3 +339,37 @@ def test_scoring_endpoint_503_when_store_unreachable() -> None:
     )
     assert response.status_code == 503
     assert "ClickHouse" in response.json()["detail"]
+
+
+class _RecordingCh(_FakeCh):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.queries: list[str] = []
+
+    async def query(self, sql: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+        self.queries.append(sql)
+        return await super().query(sql, params)
+
+
+async def test_workspace_conversion_events_override_the_deployment_default() -> None:
+    contacts = [_contact(f"c{i}", f"u{i}@x.com", tenure=90, score=i) for i in range(4)]
+    aggregates = [_agg(f"u{i}@x.com", total_events=i) for i in range(4)]
+    db = _FakeDb(contacts, workspace_events='["Trial Started", "Upgraded"]')
+    ch = _RecordingCh(aggregates, converted=["u3@x.com"])
+    service = ScoringService(db, ch, conversion_events=["Order Completed"])  # type: ignore[arg-type]
+
+    await service.recompute("org_a", "ws_a")
+
+    converted_sql = next(q for q in ch.queries if "event IN" in q)
+    assert "'Trial Started'" in converted_sql and "'Upgraded'" in converted_sql
+    assert "Order Completed" not in converted_sql
+
+
+async def test_workspace_without_events_uses_the_deployment_default() -> None:
+    contacts = [_contact("c0", "u0@x.com", tenure=90, score=1)]
+    db = _FakeDb(contacts, workspace_events=None)
+    ch = _RecordingCh([_agg("u0@x.com", total_events=1)], converted=[])
+    service = ScoringService(db, ch, conversion_events=["Order Completed"])  # type: ignore[arg-type]
+    await service.recompute("org_a", "ws_a")
+    converted_sql = next(q for q in ch.queries if "event IN" in q)
+    assert "'Order Completed'" in converted_sql

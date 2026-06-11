@@ -8,7 +8,9 @@ RLS-scoped transaction so a run can only ever touch its own organization.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -94,11 +96,12 @@ class ScoringService:
         async with self._db.scoped(organization_id) as scoped:
             contact_rows = await scoped.fetch(_CONTACTS_SQL, workspace_id)
             contacts = [dict(row) for row in contact_rows]
+            conversion_events = await self._workspace_conversion_events(scoped, workspace_id)
         if not contacts:
             return ScoringResult(0, "none", "none", 0, 0, DEFAULT_HOUR)
 
         aggregates = await self._ch.query(_AGGREGATE_SQL, {"workspace_id": workspace_id})
-        converted_emails = await self._converted_emails(workspace_id)
+        converted_emails = await self._converted_emails(workspace_id, conversion_events)
         frame = build_feature_frame(contacts, aggregates, converted_emails)
 
         conversion = train(frame.columns(CONVERSION_FEATURES), frame.converted)
@@ -144,10 +147,32 @@ class ScoringService:
         # No contact is old enough yet — nothing to learn from.
         return "insufficient_data", np.zeros(frame.size, dtype=np.float64)
 
-    async def _converted_emails(self, workspace_id: str) -> set[str]:
-        if not self._conversion_events:
+    async def _workspace_conversion_events(
+        self,
+        scoped: Any,
+        workspace_id: str,
+    ) -> list[str]:
+        """The workspace's own conversion-event list, or the deployment
+        default. Stored as JSON on the workspace row; anything unparseable
+        falls back rather than failing a recompute."""
+        try:
+            raw = await scoped.fetchval(
+                "SELECT conversion_events FROM workspace WHERE id = $1", workspace_id
+            )
+        except Exception:  # noqa: BLE001 — pre-migration databases lack the column
+            return self._conversion_events
+        if raw is None:
+            return self._conversion_events
+        value = json.loads(raw) if isinstance(raw, str) else raw
+        if not isinstance(value, list):
+            return self._conversion_events
+        names = safe_event_names([str(item) for item in value])
+        return names if names else self._conversion_events
+
+    async def _converted_emails(self, workspace_id: str, events: list[str]) -> set[str]:
+        if not events:
             return set()
-        names = ", ".join(f"'{name}'" for name in self._conversion_events)
+        names = ", ".join(f"'{name}'" for name in events)
         sql = (
             "SELECT DISTINCT user_id AS email FROM events "
             "WHERE workspace_id = {workspace_id:String} "
