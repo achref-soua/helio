@@ -92,6 +92,9 @@ export const auth = betterAuth({
           to: data.email,
           subject: `Join ${data.organization.name} on Helio`,
           text: `${data.inviter.user.name || data.inviter.user.email} invited you to ${data.organization.name}: ${inviteUrl}`,
+          // Invites go out through the org's own email provider when one
+          // is connected, so they carry the org's From identity.
+          organizationId: data.organization.id,
         });
       },
     }),

@@ -37,6 +37,10 @@ test('admin stores, verifies, and removes an smtp credential', async ({ page }) 
   await row.getByRole('button', { name: 'Verify' }).click();
   await expect(row.getByText('Verified', { exact: true })).toBeVisible();
 
+  // A test send delivers a real message through the credential (to Mailpit).
+  await row.getByRole('button', { name: 'Send test' }).click();
+  await expect(page.getByText(/Test email sent to/)).toBeVisible();
+
   // Editing without re-entering the secret keeps it stored.
   await row.getByRole('button', { name: 'Edit' }).click();
   const editDialog = page.getByRole('dialog');

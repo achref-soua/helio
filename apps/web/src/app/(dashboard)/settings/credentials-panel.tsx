@@ -27,7 +27,7 @@ import {
 import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { KeyRound, ShieldCheck, Trash2 } from 'lucide-react';
+import { KeyRound, Send, ShieldCheck, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -120,6 +120,7 @@ export function CredentialsPanel({ canManage }: { canManage: boolean }) {
   const save = useMutation(trpc.credentials.save.mutationOptions());
   const verify = useMutation(trpc.credentials.verify.mutationOptions());
   const remove = useMutation(trpc.credentials.remove.mutationOptions());
+  const sendTest = useMutation(trpc.credentials.sendTest.mutationOptions());
 
   const invalidate = () => queryClient.invalidateQueries(trpc.credentials.list.pathFilter());
   const credentials = list.data?.credentials ?? [];
@@ -165,6 +166,16 @@ export function CredentialsPanel({ canManage }: { canManage: boolean }) {
       else toast.error(result.lastError ?? t('verifyFailed'));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('verifyFailed'));
+    }
+  }
+
+  async function onSendTest(credential: MaskedCredential) {
+    try {
+      const result = await sendTest.mutateAsync({ id: credential.id });
+      if (result.ok) toast.success(t('testSent', { to: result.to }));
+      else toast.error(result.message);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('genericError'));
     }
   }
 
@@ -246,6 +257,17 @@ export function CredentialsPanel({ canManage }: { canManage: boolean }) {
                           <ShieldCheck aria-hidden />
                           {t('verify')}
                         </Button>
+                        {credential.kind.startsWith('EMAIL_') ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onSendTest(credential)}
+                            disabled={sendTest.isPending}
+                          >
+                            <Send aria-hidden />
+                            {t('testSend')}
+                          </Button>
+                        ) : null}
                         <Button variant="outline" size="sm" onClick={() => openEdit(credential)}>
                           {t('edit')}
                         </Button>

@@ -16,6 +16,7 @@ import { compileSegmentRule, type EventConditionSets, type PrismaClient } from '
 import { renderEmail } from '@helio/emails';
 import { Context } from '@temporalio/activity';
 
+import { raiseOrgAlert } from './alerts';
 import type { EmailSenderResolver } from './email-provider-factory';
 
 export interface ActivityConfig {
@@ -244,6 +245,16 @@ export function createActivities(
           });
           result.failed += 1;
         }
+      }
+      if (result.failed > 0) {
+        await raiseOrgAlert(
+          prisma,
+          campaign.organizationId,
+          'campaign_send_failures',
+          `${result.failed} email${result.failed === 1 ? '' : 's'} failed in campaign "${campaign.name}"`,
+          { campaignId, failed: result.failed, sent: result.sent },
+          { path: ['campaignId'], equals: campaignId },
+        );
       }
       return result;
     },

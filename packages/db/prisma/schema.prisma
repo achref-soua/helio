@@ -60,8 +60,28 @@ model Organization {
   inAppMessages       InAppMessage[]
   inAppDeliveries     InAppDelivery[]
   providerCredentials ProviderCredential[]
+  systemAlerts        SystemAlert[]
 
   @@map("organization")
+}
+
+/// An operational notice for an organization — provider send failures,
+/// backup problems, model errors. Surfaced in the dashboard bell;
+/// dismissed by setting readAt. Writers dedupe against unread alerts so
+/// retries don't stack copies.
+model SystemAlert {
+  id             String    @id
+  organizationId String    @map("organization_id")
+  kind           String
+  message        String
+  context        Json      @default("{}")
+  readAt         DateTime? @map("read_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@map("system_alert")
 }
 
 /// Which third-party surface a credential connects (ADR-0019).

@@ -15,6 +15,7 @@ import { z } from 'zod';
 
 import { runCredentialProbe } from '@/lib/credential-verify';
 import { env } from '@/lib/env';
+import { senderFromCredentialRow } from '@/lib/mailer';
 
 import { orgProcedure, requireRole, router } from '../init';
 
@@ -235,6 +236,53 @@ export const credentialsRouter = router({
         existing.name,
       );
       return maskRow(row);
+    }),
+
+  /** Deliver a short real message through the credential, to the caller. */
+  sendTest: orgProcedure
+    .input(z.object({ id: z.string().min(1), to: z.string().email().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      requireRole(ctx.memberRole, 'admin');
+      encryptionKeys();
+      const existing = await ctx.tenantDb.providerCredential.findUnique({
+        where: { id: input.id },
+        select: { id: true, kind: true, name: true, config: true, secrets: true },
+      });
+      if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Credential not found' });
+      if (!existing.kind.startsWith('EMAIL_')) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Test sends are only available for email credentials',
+        });
+      }
+      const to = input.to ?? ctx.session.user.email;
+      try {
+        const sender = await senderFromCredentialRow(ctx.organizationId, existing);
+        await sender.send({
+          to,
+          subject: 'Helio test email',
+          text: `This is a test from your "${existing.name}" email credential. If you can read this, sending works.`,
+          html: `<p>This is a test from your "<b>${existing.name}</b>" email credential. If you can read this, sending works.</p>`,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message.slice(0, 200) : 'send failed';
+        await writeAudit(
+          ctx,
+          'credential.test_failed',
+          existing.id,
+          existing.kind as CredentialKind,
+          existing.name,
+        );
+        return { ok: false as const, to, message };
+      }
+      await writeAudit(
+        ctx,
+        'credential.test_sent',
+        existing.id,
+        existing.kind as CredentialKind,
+        existing.name,
+      );
+      return { ok: true as const, to };
     }),
 
   remove: orgProcedure
