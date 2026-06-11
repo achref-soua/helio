@@ -2,7 +2,11 @@
   "app": {
     "name": "Helio",
     "tagline": "The open-source growth platform",
-    "versionBadge": "Helio {version}"
+    "versionBadge": "Helio {version}",
+    "splash": {
+      "starting": "Helio is starting",
+      "signingOut": "Signing you out"
+    }
   },
   "nav": {
     "dashboard": "Dashboard",
