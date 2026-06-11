@@ -34,6 +34,7 @@ export { seedDemoWorkspace, type SeedSummary, type SeedTarget } from './seed-dem
 export { forTenant, type TenantClient } from './tenant';
 export {
   activeContactsByEmailForWebhook,
+  activeContactsByPhoneForWebhook,
   shopifyConnectionForWebhook,
   type ShopifyWebhookConnection,
   type SuppressibleContact,

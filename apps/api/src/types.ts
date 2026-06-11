@@ -17,6 +17,8 @@ export interface GatewayDeps {
   redis: RedisLike;
   rateLimit: { max: number; windowSeconds: number };
   emailWebhook?: EmailWebhookConfig;
+  /** Twilio delivery-status callback config; absent disables it (404). */
+  smsWebhook?: { token: string };
   /** Deployment encryption key(s) for sealed integration secrets. */
   vault?: { key: string; previousKey?: string };
 }

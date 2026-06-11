@@ -49,3 +49,13 @@ export async function activeContactsByEmailForWebhook(
     SELECT id, organization_id AS "organizationId", workspace_id AS "workspaceId"
     FROM webhook_contacts_by_email(${email})`;
 }
+
+/** Every ACTIVE contact holding a phone number — Twilio status callbacks. */
+export async function activeContactsByPhoneForWebhook(
+  prisma: PrismaClient,
+  phone: string,
+): Promise<SuppressibleContact[]> {
+  return prisma.$queryRaw<SuppressibleContact[]>`
+    SELECT id, organization_id AS "organizationId", workspace_id AS "workspaceId"
+    FROM webhook_contacts_by_phone(${phone})`;
+}

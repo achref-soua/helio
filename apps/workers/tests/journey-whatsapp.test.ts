@@ -14,7 +14,14 @@ const active = {
 
 function activitiesFor(contact: unknown, whatsapp?: WhatsAppProvider) {
   const prisma = { contact: { findUnique: vi.fn(async () => contact) } } as never;
-  return createJourneyActivities(prisma, {} as never, {} as never, undefined, undefined, whatsapp);
+  return createJourneyActivities(
+    prisma,
+    {} as never,
+    {} as never,
+    undefined,
+    undefined,
+    async () => whatsapp,
+  );
 }
 
 describe('sendJourneyWhatsApp', () => {

@@ -14,6 +14,7 @@ import { contactRoutes } from './routes/contacts';
 import { emailWebhookRoutes } from './routes/email-webhook';
 import { listRoutes } from './routes/lists';
 import { shopifyWebhookRoutes } from './routes/shopify-webhook';
+import { smsWebhookRoutes } from './routes/sms-webhook';
 import { workspaceRoutes } from './routes/workspaces';
 import type { GatewayDeps, GatewayEnv } from './types';
 
@@ -62,6 +63,7 @@ export function createApp(deps: GatewayDeps) {
   // bearer token, so they mount before the /v1 auth middleware.
   app.route('/', shopifyWebhookRoutes(deps));
   app.route('/', emailWebhookRoutes(deps));
+  app.route('/', smsWebhookRoutes(deps));
 
   // Authenticated (per-org API key), rate-limited, idempotent API surface.
   app.use('/v1/*', apiKeyAuth(deps));

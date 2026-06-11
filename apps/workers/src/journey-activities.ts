@@ -21,9 +21,8 @@ import { renderEmail } from '@helio/emails';
 import type { ActivityConfig } from './activities';
 import { raiseOrgAlert } from './alerts';
 import type { EmailSenderResolver } from './email-provider-factory';
+import type { SmsResolver, WhatsAppResolver } from './messaging-provider-factory';
 import type { PushProvider } from './push-provider';
-import type { SmsProvider } from './sms-provider';
-import type { WhatsAppProvider } from './whatsapp-provider';
 
 export interface LoadedJourney {
   organizationId: string;
@@ -41,8 +40,8 @@ export function createJourneyActivities(
   resolveSender: EmailSenderResolver,
   config: ActivityConfig,
   pushProvider?: PushProvider,
-  smsProvider?: SmsProvider,
-  whatsappProvider?: WhatsAppProvider,
+  resolveSms?: SmsResolver,
+  resolveWhatsApp?: WhatsAppResolver,
 ) {
   return {
     async loadJourney(journeyId: string): Promise<LoadedJourney> {
@@ -255,9 +254,11 @@ export function createJourneyActivities(
      */
     async sendJourneySms(contactId: string, body: string): Promise<{ sent: number }> {
       const contact = await prisma.contact.findUnique({ where: { id: contactId } });
-      if (!contact || contact.status !== 'ACTIVE' || !contact.phone || !smsProvider) {
+      if (!contact || contact.status !== 'ACTIVE' || !contact.phone || !resolveSms) {
         return { sent: 0 };
       }
+      const smsProvider = await resolveSms(contact.organizationId);
+      if (!smsProvider) return { sent: 0 };
       const rendered = renderTokens(body, {
         email: contact.email,
         firstName: contact.firstName,
@@ -274,9 +275,11 @@ export function createJourneyActivities(
      */
     async sendJourneyWhatsApp(contactId: string, body: string): Promise<{ sent: number }> {
       const contact = await prisma.contact.findUnique({ where: { id: contactId } });
-      if (!contact || contact.status !== 'ACTIVE' || !contact.phone || !whatsappProvider) {
+      if (!contact || contact.status !== 'ACTIVE' || !contact.phone || !resolveWhatsApp) {
         return { sent: 0 };
       }
+      const whatsappProvider = await resolveWhatsApp(contact.organizationId);
+      if (!whatsappProvider) return { sent: 0 };
       const rendered = renderTokens(body, {
         email: contact.email,
         firstName: contact.firstName,
