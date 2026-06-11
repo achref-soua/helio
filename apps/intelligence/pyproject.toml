@@ -17,6 +17,7 @@ dependencies = [
     "httpx>=0.27",
     "numpy>=2.1",
     "scikit-learn>=1.5",
+    "cryptography>=43,<46",
 ]
 
 [dependency-groups]
