@@ -7,3 +7,5 @@
 import './doctor';
 import './install';
 import './lifecycle';
+import './rotate-key';
+import './update';
