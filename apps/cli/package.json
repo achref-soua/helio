@@ -1,0 +1,23 @@
+{
+  "name": "@helio/cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The helio installer/operator CLI — one command to install, update, back up, and run a self-hosted Helio.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/main.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@helio/config": "workspace:*",
+    "@types/node": "^25.9.2",
+    "@vitest/coverage-v8": "^4.1.8",
+    "eslint": "^10.4.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}
