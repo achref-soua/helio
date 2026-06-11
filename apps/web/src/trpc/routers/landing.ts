@@ -3,7 +3,7 @@ import { type Prisma } from '@helio/db';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 /**
  * Hosted, block-based landing pages. Managed through the tenant client;
@@ -27,7 +27,7 @@ export const landingRouter = router({
   create: orgProcedure
     .input(z.object({ workspaceId: z.string().min(1), title: z.string().trim().min(1).max(120) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'landing:write');
       const page = await ctx.tenantDb.landingPage.create({
         data: {
           id: newId('lp'),
@@ -50,7 +50,7 @@ export const landingRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'landing:write');
       const { id, ...rest } = input;
       const { count } = await ctx.tenantDb.landingPage.updateMany({
         where: { id },
@@ -67,7 +67,7 @@ export const landingRouter = router({
   remove: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'landing:write');
       const { count } = await ctx.tenantDb.landingPage.deleteMany({ where: { id: input.id } });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
       return { ok: true };

@@ -1,3 +1,4 @@
+import { can } from '@helio/core';
 import { forTenant } from '@helio/db';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
     where: { organizationId_userId: { organizationId, userId: session.user.id } },
     select: { role: true },
   });
-  if (member?.role !== 'owner' && member?.role !== 'admin') {
+  if (!can(member?.role ?? '', 'settings:churn-model')) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
   const decision = await checkPublicRateLimit('modelExport', session.user.id);

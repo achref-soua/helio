@@ -2,7 +2,7 @@ import { newId, widgetTypeSchema } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 const ctaUrlSchema = z.string().trim().url().max(2000);
 
@@ -32,7 +32,7 @@ export const widgetRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'widgets:write');
       const widget = await ctx.tenantDb.widget.create({
         data: {
           id: newId('wgt'),
@@ -63,7 +63,7 @@ export const widgetRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'widgets:write');
       const { id, ...rest } = input;
       const { count } = await ctx.tenantDb.widget.updateMany({
         where: { id },
@@ -84,7 +84,7 @@ export const widgetRouter = router({
   remove: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'widgets:write');
       const { count } = await ctx.tenantDb.widget.deleteMany({ where: { id: input.id } });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
       return { ok: true };

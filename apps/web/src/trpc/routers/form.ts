@@ -2,7 +2,7 @@ import { newId } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 export const formRouter = router({
   list: orgProcedure.input(z.object({ workspaceId: z.string().min(1) })).query(({ ctx, input }) =>
@@ -21,7 +21,7 @@ export const formRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'forms:write');
       const existing = await ctx.tenantDb.form.findFirst({
         where: { workspaceId: input.workspaceId, name: input.name },
       });
@@ -54,7 +54,7 @@ export const formRouter = router({
   delete: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'forms:write');
       const form = await ctx.tenantDb.form.delete({ where: { id: input.id } });
       await ctx.tenantDb.auditLog.create({
         data: {

@@ -6,7 +6,7 @@ import { getClickHouse } from '@/lib/clickhouse';
 import { pushContactToSalesforce } from '@/lib/salesforce';
 import { emitWebhookEvent } from '@/lib/webhooks';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 const attributesSchema = z.record(z.string(), z.string()).default({});
 
@@ -78,7 +78,7 @@ export const contactRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'contacts:write');
       await assertWorkspace(ctx.tenantDb, input.workspaceId);
       const existing = await ctx.tenantDb.contact.findFirst({
         where: { workspaceId: input.workspaceId, email: input.email },
@@ -129,7 +129,7 @@ export const contactRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'contacts:write');
       const contact = await ctx.tenantDb.contact.update({
         where: { id: input.id },
         data: {
@@ -155,7 +155,7 @@ export const contactRouter = router({
   delete: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'contacts:write');
       // Hard delete by design: GDPR erasure, cascades list memberships.
       const contact = await ctx.tenantDb.contact.delete({ where: { id: input.id } });
       await ctx.tenantDb.auditLog.create({
@@ -180,7 +180,7 @@ export const contactRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'contacts:write');
       await assertWorkspace(ctx.tenantDb, input.workspaceId);
       const { valid, invalid, duplicates, source, suppressed } = normalizeContactRows(input.rows);
       const result = await ctx.tenantDb.contact.createMany({
@@ -236,7 +236,7 @@ export const contactRouter = router({
     )
     .query(async ({ ctx, input }) => {
       // Bulk PII egress — held to the same role bar as bulk imports.
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'contacts:export');
       await assertWorkspace(ctx.tenantDb, input.workspaceId);
       const contacts = await ctx.tenantDb.contact.findMany({
         where: {
@@ -278,7 +278,7 @@ export const contactRouter = router({
   dataExport: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'contacts:export');
       const contact = await ctx.tenantDb.contact.findUnique({
         where: { id: input.id },
         include: {

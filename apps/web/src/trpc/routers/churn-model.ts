@@ -14,7 +14,7 @@ import { decryptCredentialField } from '@/lib/credential-secrets';
 import { env } from '@/lib/env';
 import { intelligence, type ModelVerdict } from '@/lib/intelligence';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 /**
  * Bring-your-own churn models (ADR-0021). The dashboard owns the rows and
@@ -94,7 +94,7 @@ export const churnModelRouter = router({
   list: orgProcedure
     .input(z.object({ workspaceId: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:churn-model');
       const rows = await ctx.tenantDb.churnModel.findMany({
         where: { workspaceId: input.workspaceId },
         orderBy: { createdAt: 'desc' },
@@ -128,7 +128,7 @@ export const churnModelRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:churn-model');
       const mapping = churnFeatureMappingSchema.parse(input.mapping);
       const modelId = newId('chm');
 
@@ -210,7 +210,7 @@ export const churnModelRouter = router({
   updateMapping: orgProcedure
     .input(z.object({ id: z.string().min(1), mapping: mappingInput }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:churn-model');
       const mapping = churnFeatureMappingSchema.parse(input.mapping);
       const existing = await ctx.tenantDb.churnModel.findUnique({ where: { id: input.id } });
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Model not found' });
@@ -227,7 +227,7 @@ export const churnModelRouter = router({
   revalidate: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:churn-model');
       const existing = await ctx.tenantDb.churnModel.findUnique({ where: { id: input.id } });
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Model not found' });
 
@@ -249,7 +249,7 @@ export const churnModelRouter = router({
   activate: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:churn-model');
       const existing = await ctx.tenantDb.churnModel.findUnique({ where: { id: input.id } });
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Model not found' });
       if (existing.status === 'FAILED' || !existing.validatedAt) {
@@ -282,7 +282,7 @@ export const churnModelRouter = router({
   disable: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:churn-model');
       const existing = await ctx.tenantDb.churnModel.findUnique({ where: { id: input.id } });
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Model not found' });
       await ctx.tenantDb.churnModel.update({
@@ -302,7 +302,7 @@ export const churnModelRouter = router({
   remove: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:churn-model');
       const existing = await ctx.tenantDb.churnModel.findUnique({ where: { id: input.id } });
       if (!existing) return { ok: true };
 

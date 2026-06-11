@@ -14,7 +14,7 @@ import { z } from 'zod';
 
 import { getClickHouse } from '@/lib/clickhouse';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 interface DailyRow {
   day: string;
@@ -326,7 +326,7 @@ export const analyticsRouter = router({
   runSql: orgProcedure
     .input(z.object({ workspaceId: z.string().min(1), sql: z.string().min(1).max(5000) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'analytics:sql');
       const workspace = await ctx.tenantDb.workspace.findUnique({
         where: { id: input.workspaceId },
         select: { id: true },

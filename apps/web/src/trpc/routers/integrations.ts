@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { sealRowSecret } from '@/lib/vault';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 const shopDomainSchema = z
   .string()
@@ -30,7 +30,7 @@ const instanceUrlSchema = z
  */
 export const integrationsRouter = router({
   list: orgProcedure.query(({ ctx }) => {
-    requireRole(ctx.memberRole, 'admin');
+    requirePermission(ctx.memberRole, 'settings:integrations');
     return ctx.tenantDb.integration.findMany({
       select: { id: true, provider: true, externalId: true, enabled: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
@@ -46,7 +46,7 @@ export const integrationsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:integrations');
       try {
         // The envelope AAD binds the secret to its row id, so resolve the
         // id before sealing (upsert would only reveal it afterwards).
@@ -102,7 +102,7 @@ export const integrationsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:integrations');
       const existing = await ctx.tenantDb.integration.findUnique({
         where: {
           organizationId_provider: { organizationId: ctx.organizationId, provider: 'SALESFORCE' },
@@ -144,7 +144,7 @@ export const integrationsRouter = router({
   setEnabled: orgProcedure
     .input(z.object({ id: z.string().min(1), enabled: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:integrations');
       const { count } = await ctx.tenantDb.integration.updateMany({
         where: { id: input.id },
         data: { enabled: input.enabled },
@@ -156,7 +156,7 @@ export const integrationsRouter = router({
   disconnect: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:integrations');
       const { count } = await ctx.tenantDb.integration.deleteMany({ where: { id: input.id } });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
       return { ok: true };

@@ -2,6 +2,7 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 
+import { can } from '@helio/core';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
@@ -29,7 +30,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     where: { organizationId_userId: { organizationId, userId: session.user.id } },
     select: { role: true },
   });
-  if (member?.role !== 'owner') {
+  if (!can(member?.role ?? '', 'admin:backups')) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
   const decision = await checkPublicRateLimit('backupDownload', session.user.id);

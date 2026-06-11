@@ -2,7 +2,7 @@ import { newId } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 export const contactListRouter = router({
   list: orgProcedure.input(z.object({ workspaceId: z.string().min(1) })).query(({ ctx, input }) =>
@@ -16,7 +16,7 @@ export const contactListRouter = router({
   create: orgProcedure
     .input(z.object({ workspaceId: z.string().min(1), name: z.string().trim().min(1).max(80) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'lists:write');
       const existing = await ctx.tenantDb.contactList.findFirst({
         where: { workspaceId: input.workspaceId, name: input.name },
       });
@@ -50,7 +50,7 @@ export const contactListRouter = router({
       z.object({ listId: z.string().min(1), contactIds: z.array(z.string()).min(1).max(1000) }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'lists:write');
       const result = await ctx.tenantDb.contactListMember.createMany({
         data: input.contactIds.map((contactId) => ({
           listId: input.listId,
@@ -65,7 +65,7 @@ export const contactListRouter = router({
   removeMember: orgProcedure
     .input(z.object({ listId: z.string().min(1), contactId: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'lists:write');
       await ctx.tenantDb.contactListMember.delete({
         where: { listId_contactId: { listId: input.listId, contactId: input.contactId } },
       });

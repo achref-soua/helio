@@ -2,7 +2,7 @@ import { availabilitySchema, isValidTimeZone, newId } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 const timeZoneSchema = z.string().trim().refine(isValidTimeZone, 'Unknown timezone');
 
@@ -37,7 +37,7 @@ export const schedulingRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'scheduling:write');
       const data = {
         title: input.title,
         description: input.description ?? null,
@@ -87,7 +87,7 @@ export const schedulingRouter = router({
   cancelMeeting: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'scheduling:write');
       const { count } = await ctx.tenantDb.meeting.updateMany({
         where: { id: input.id },
         data: { status: 'CANCELED' },
