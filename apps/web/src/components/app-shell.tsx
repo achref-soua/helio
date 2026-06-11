@@ -19,6 +19,7 @@ import {
   MousePointerClick,
   Route,
   Settings,
+  ShieldCheck,
   Sparkles,
   Sun,
   Users,
@@ -35,6 +36,7 @@ import { SunSplash } from '@/components/sun-splash';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { UserMenu } from '@/components/user-menu';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
+import { usePermission } from '@/hooks/use-permission';
 
 const NAV_ITEMS = [
   { key: 'dashboard', href: '/', icon: LayoutDashboard },
@@ -53,15 +55,20 @@ const NAV_ITEMS = [
   { key: 'scheduling', href: '/scheduling', icon: CalendarClock },
   { key: 'copilot', href: '/copilot', icon: Sparkles },
   { key: 'help', href: '/help', icon: CircleHelp },
+  { key: 'admin', href: '/admin', icon: ShieldCheck },
   { key: 'settings', href: '/settings', icon: Settings },
 ] as const;
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const t = useTranslations('nav');
   const pathname = usePathname();
+  // The admin section is hidden from non-admins; the server gate on the
+  // /admin layout is the actual boundary.
+  const { allowed: adminAllowed } = usePermission('admin:audit');
+  const items = NAV_ITEMS.filter(({ key }) => key !== 'admin' || adminAllowed);
   return (
     <nav aria-label="Primary" className="grid gap-1 px-2">
-      {NAV_ITEMS.map(({ key, href, icon: Icon }) => {
+      {items.map(({ key, href, icon: Icon }) => {
         const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
         return (
           <Link

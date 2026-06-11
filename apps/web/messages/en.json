@@ -26,7 +26,8 @@
     "widgets": "Widgets",
     "inApp": "In-app",
     "insights": "Insights",
-    "help": "Help"
+    "help": "Help",
+    "admin": "Admin"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -1259,5 +1260,31 @@
     "exportHint": "Download this workspace’s training data (features + churn label) as CSV.",
     "export": "Training CSV",
     "genericError": "Something went wrong — try again."
+  },
+  "admin": {
+    "title": "Admin",
+    "subtitle": "Audit trail, reports, and system health for this organization.",
+    "nav": {
+      "audit": "Audit log",
+      "reports": "Reports",
+      "health": "System health"
+    },
+    "audit": {
+      "actionFilter": "Action starts with",
+      "actorFilter": "Actor (name or email)",
+      "from": "From",
+      "to": "To",
+      "apply": "Apply filters",
+      "export": "Export CSV",
+      "exportFailed": "Export failed — try again.",
+      "truncated": "Export capped at 1,000 rows — narrow the filters for the rest.",
+      "time": "Time",
+      "actor": "Actor",
+      "action": "Action",
+      "target": "Target",
+      "system": "system",
+      "empty": "No audit entries match these filters yet.",
+      "loadMore": "Load more"
+    }
   }
 }
