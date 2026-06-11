@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Annotated
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
 
 from .scoring import ScoringService
@@ -20,6 +20,11 @@ from .scoring import ScoringService
 class RecomputeRequest(BaseModel):
     organization_id: str = Field(min_length=1, max_length=64)
     workspace_id: str = Field(min_length=1, max_length=64)
+
+
+class FeaturesExportRequest(RecomputeRequest):
+    # Emails are PII — exporting them is an explicit opt-in.
+    include_email: bool = False
 
 
 class RecomputeResponse(BaseModel):
@@ -65,6 +70,33 @@ def create_scoring_router() -> APIRouter:
             converted=result.converted,
             churned=result.churned,
             send_hour_fallback=result.send_hour_fallback,
+        )
+
+    @router.post("/features-export")
+    async def features_export(
+        request: FeaturesExportRequest,
+        service: Annotated[ScoringService, Depends(get_scoring_service)],
+    ) -> Response:
+        """The training CSV for bring-your-own churn models: the exact
+        feature columns the runtime feeds a model, plus `churned_label`."""
+        try:
+            content = await service.export_features(
+                request.organization_id,
+                request.workspace_id,
+                include_email=request.include_email,
+            )
+        except httpx.HTTPError as error:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "the analytics store (ClickHouse) is unreachable — "
+                    "start the full stack (task up:full) and retry"
+                ),
+            ) from error
+        return Response(
+            content=content,
+            media_type="text/csv",
+            headers={"content-disposition": 'attachment; filename="churn-training-data.csv"'},
         )
 
     return router

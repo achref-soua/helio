@@ -49,11 +49,17 @@ def create_app() -> FastAPI:
     # health checks and metrics on a bare deploy.
     from .copilot_api import create_copilot_router
     from .generation_api import create_generation_router
+    from .models_api import create_models_router
     from .scoring_api import create_scoring_router
 
     app.include_router(create_copilot_router())
     app.include_router(create_generation_router())
     app.include_router(create_scoring_router())
+    # Model upload/validation is filesystem-only — usable even on a bare
+    # deploy (no database), which is also how the tests exercise it.
+    app.include_router(
+        create_models_router(allow_private_endpoints=settings.allow_private_model_endpoints)
+    )
 
     # The database pool is shared by the copilot and the scorer; create it
     # once if either is configured.
@@ -143,6 +149,9 @@ def create_app() -> FastAPI:
             database,
             clickhouse,
             conversion_events=settings.scoring_conversion_events,
+            encryption_key=settings.encryption_key.get_secret_value(),
+            encryption_key_previous=(settings.encryption_key_previous.get_secret_value() or None),
+            allow_private_endpoints=settings.allow_private_model_endpoints,
         )
         app.dependency_overrides[get_scoring_service] = lambda: scoring_service
 
