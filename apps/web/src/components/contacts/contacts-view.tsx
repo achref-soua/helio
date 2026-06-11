@@ -34,6 +34,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { Download, Gauge, ListPlus, MoreHorizontal, Plus, Sparkles, Upload } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useDeferredValue, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -183,7 +184,17 @@ export function ContactsView() {
           />
         ),
       }),
-      columnHelper.accessor('email', { header: t('columns.email') }),
+      columnHelper.accessor('email', {
+        header: t('columns.email'),
+        cell: ({ row, getValue }) => (
+          <Link
+            href={`/contacts/${row.original.id}`}
+            className="text-foreground underline-offset-4 hover:underline"
+          >
+            {getValue()}
+          </Link>
+        ),
+      }),
       columnHelper.accessor(
         (row) => [row.firstName, row.lastName].filter(Boolean).join(' ') || '—',
         { id: 'name', header: t('columns.name') },

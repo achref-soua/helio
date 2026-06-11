@@ -1341,5 +1341,41 @@
       "empty": "No alerts.",
       "markAllRead": "Mark all read"
     }
+  },
+  "contactDetail": {
+    "loading": "Loading contact…",
+    "notFound": "This contact does not exist (or belongs to another workspace).",
+    "back": "Back to contacts",
+    "edit": "Edit",
+    "scores": "Scores & predictions",
+    "leadScore": "Lead score",
+    "conversion": "Conversion likelihood",
+    "churn": "Churn risk",
+    "bestHour": "Best send hour",
+    "traits": "Traits",
+    "noTraits": "No traits yet — they arrive with identify calls and imports.",
+    "lists": "Lists",
+    "noLists": "Not on any list.",
+    "notes": "Notes",
+    "notesHint": "Pinned notes stay on top. Visible to your whole team.",
+    "noteLabel": "New note",
+    "addNote": "Add note",
+    "pin": "Pin note",
+    "unpin": "Unpin note",
+    "deleteNote": "Delete note",
+    "deals": "Deals",
+    "noDeals": "No deals yet.",
+    "tasks": "Tasks",
+    "noTasks": "No tasks yet.",
+    "timeline": "Activity timeline",
+    "timelineHint": "Emails, behavioral events, and changes — newest first.",
+    "timelineDegraded": "Emails and changes shown; behavioral events need the analytics store (ClickHouse), which is not reachable right now.",
+    "noActivity": "No activity recorded yet.",
+    "type": {
+      "email": "Email",
+      "event": "Event",
+      "audit": "Change"
+    },
+    "genericError": "Something went wrong — try again."
   }
 }

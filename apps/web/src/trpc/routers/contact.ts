@@ -25,6 +25,126 @@ async function assertWorkspace(
 }
 
 export const contactRouter = router({
+  /** Everything the detail page shows in one round-trip (H2). */
+  get: orgProcedure.input(z.object({ id: z.string().min(1) })).query(async ({ ctx, input }) => {
+    const contact = await ctx.tenantDb.contact.findUnique({
+      where: { id: input.id },
+      include: {
+        company: { select: { id: true, name: true } },
+        listMembers: { include: { list: { select: { id: true, name: true } } } },
+        deals: {
+          select: { id: true, title: true, status: true, valueCents: true, currency: true },
+          orderBy: { createdAt: 'desc' },
+        },
+        tasks: {
+          select: { id: true, title: true, status: true, dueAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        },
+        notes: { orderBy: [{ pinned: 'desc' }, { createdAt: 'desc' }], take: 50 },
+      },
+    });
+    if (!contact) throw new TRPCError({ code: 'NOT_FOUND', message: 'Contact not found' });
+    const authorIds = [
+      ...new Set(contact.notes.map((note) => note.authorId).filter((id): id is string => !!id)),
+    ];
+    const authors = authorIds.length
+      ? await ctx.appDb.user
+          .findMany({
+            where: { id: { in: authorIds } },
+            select: { id: true, name: true, email: true },
+          })
+          .catch(() => [])
+      : [];
+    const names = new Map(authors.map((user) => [user.id, user.name || user.email]));
+    return {
+      ...contact,
+      notes: contact.notes.map((note) => ({
+        ...note,
+        author: note.authorId ? (names.get(note.authorId) ?? null) : null,
+      })),
+    };
+  }),
+
+  /**
+   * The unified activity feed: email sends and audit entries from
+   * Postgres, behavioral events from ClickHouse when it is up — merged
+   * newest-first. The page stays useful on the core profile.
+   */
+  timeline: orgProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const contact = await ctx.tenantDb.contact.findUnique({
+        where: { id: input.id },
+        select: { id: true, email: true, workspaceId: true },
+      });
+      if (!contact) throw new TRPCError({ code: 'NOT_FOUND', message: 'Contact not found' });
+
+      const [sends, audits] = await Promise.all([
+        ctx.tenantDb.emailSend.findMany({
+          where: { contactId: contact.id },
+          select: { id: true, subject: true, status: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 25,
+        }),
+        ctx.tenantDb.auditLog.findMany({
+          where: { targetId: contact.id },
+          select: { id: true, action: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 25,
+        }),
+      ]);
+
+      let clickhouseUp = true;
+      let events: Array<{ id: string; label: string; at: Date }> = [];
+      try {
+        const result = await getClickHouse().query({
+          query: `
+            SELECT event, timestamp FROM events
+            WHERE workspace_id = {workspaceId:String} AND user_id = {email:String}
+            ORDER BY timestamp DESC LIMIT 25`,
+          query_params: { workspaceId: contact.workspaceId, email: contact.email },
+          format: 'JSON',
+        });
+        const body = (await result.json()) as { data: Array<{ event: string; timestamp: string }> };
+        events = body.data.map((row, index) => ({
+          id: `evt_${index}`,
+          label: row.event,
+          at: new Date(`${row.timestamp.replace(' ', 'T')}Z`),
+        }));
+      } catch {
+        clickhouseUp = false;
+      }
+
+      const entries = [
+        ...sends.map((send) => ({
+          id: send.id,
+          type: 'email' as const,
+          label: send.subject,
+          detail: send.status,
+          at: send.createdAt,
+        })),
+        ...audits.map((audit) => ({
+          id: audit.id,
+          type: 'audit' as const,
+          label: audit.action,
+          detail: null,
+          at: audit.createdAt,
+        })),
+        ...events.map((event) => ({
+          id: event.id,
+          type: 'event' as const,
+          label: event.label,
+          detail: null,
+          at: event.at,
+        })),
+      ]
+        .sort((a, b) => b.at.getTime() - a.at.getTime())
+        .slice(0, 50);
+
+      return { clickhouseUp, entries };
+    }),
+
   list: orgProcedure
     .input(
       z.object({

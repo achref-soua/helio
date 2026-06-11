@@ -361,6 +361,59 @@ export const crmRouter = router({
       await writeAudit(ctx, task.workspaceId, 'task.deleted', 'task', input.id);
       return { id: input.id };
     }),
+
+  // ── Notes (H2/H3): free text on a contact or a deal ────────────────────
+
+  createNote: orgProcedure
+    .input(
+      z
+        .object({
+          workspaceId: z.string().min(1),
+          contactId: z.string().min(1).optional(),
+          dealId: z.string().min(1).optional(),
+          body: z.string().trim().min(1).max(4000),
+        })
+        .refine((value) => value.contactId || value.dealId, {
+          message: 'A note needs a contact or a deal',
+        }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const note = await ctx.tenantDb.note.create({
+        data: {
+          id: newId('note'),
+          organizationId: ctx.organizationId,
+          workspaceId: input.workspaceId,
+          contactId: input.contactId,
+          dealId: input.dealId,
+          authorId: ctx.session.user.id,
+          body: input.body,
+        },
+      });
+      await writeAudit(ctx, input.workspaceId, 'note.created', 'note', note.id);
+      return { id: note.id };
+    }),
+
+  setNotePinned: orgProcedure
+    .input(z.object({ id: z.string().min(1), pinned: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const note = await ctx.tenantDb.note.update({
+        where: { id: input.id },
+        data: { pinned: input.pinned },
+      });
+      await writeAudit(ctx, note.workspaceId, 'note.pinned', 'note', note.id);
+      return { id: note.id, pinned: note.pinned };
+    }),
+
+  deleteNote: orgProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const note = await ctx.tenantDb.note.delete({ where: { id: input.id } });
+      await writeAudit(ctx, note.workspaceId, 'note.deleted', 'note', input.id);
+      return { id: input.id };
+    }),
 });
 
 async function writeAudit(
