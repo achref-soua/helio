@@ -44,7 +44,9 @@ test('owner invites a teammate who joins as viewer', async ({ page, browser, req
   await page.goto('/settings');
   await expect(page.getByText('Members', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Invite' }).click();
-  await page.getByLabel('Email').fill(memberEmail);
+  // exact: the credentials empty-state on this page exposes a select
+  // labeled "Add a Email sending credential", which substring-matches.
+  await page.getByLabel('Email', { exact: true }).fill(memberEmail);
   await page.getByRole('button', { name: 'Editor' }).click();
   await page.getByRole('menuitem', { name: 'Viewer' }).click();
   await page.getByRole('button', { name: 'Send invitation' }).click();
