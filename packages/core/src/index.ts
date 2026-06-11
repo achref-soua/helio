@@ -36,7 +36,9 @@ export {
   type NormalizedContactRow,
   type NormalizeResult,
 } from './contacts';
+export { probeOutcome, type ProbeRequest, probeRequestFor } from './credential-probes';
 export {
+  type ConfigFieldSpec,
   CREDENTIAL_KINDS,
   type CredentialChannel,
   type CredentialKind,

@@ -1153,5 +1153,43 @@
     "repo": "GitHub repository",
     "releases": "Releases & changelog",
     "docs": "Documentation"
+  },
+  "credentials": {
+    "title": "Provider credentials",
+    "subtitle": "Connect the services Helio sends through. Secrets are encrypted at rest and shown masked — they never leave the server.",
+    "channels": {
+      "email": "Email sending",
+      "sms": "SMS",
+      "whatsapp": "WhatsApp",
+      "ai": "AI copilot",
+      "model": "Churn model",
+      "import": "Migration imports"
+    },
+    "add": "Add…",
+    "addFor": "Add a {channel} credential",
+    "addTitle": "Connect a provider",
+    "addSubtitle": "Enter your {kind} details. Secrets are sealed with AES-256-GCM before they reach the database.",
+    "editTitle": "Edit {name}",
+    "emptyChannel": "Nothing connected yet.",
+    "name": "Name",
+    "namePlaceholder": "e.g. Production",
+    "secretKeep": "Stored ({mask}) — leave blank to keep",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "verify": "Verify",
+    "verified": "Credentials verified",
+    "verifyFailed": "Verification failed",
+    "saved": "Credential saved",
+    "deleted": "Credential removed",
+    "deleteAria": "Delete {name}",
+    "confirmDelete": "Remove \"{name}\"? Sends that depend on it will fall back to the deployment defaults.",
+    "status": {
+      "UNVERIFIED": "Unverified",
+      "VERIFIED": "Verified",
+      "FAILED": "Failed"
+    },
+    "encryptionMissing": "HELIO_ENCRYPTION_KEY is not set on this deployment, so credentials cannot be stored. Add it to your environment and restart.",
+    "genericError": "Something went wrong"
   }
 }

@@ -36,11 +36,22 @@ export interface SecretFieldSpec {
   optional?: boolean;
 }
 
+/** UI metadata for one config key — the settings form renders from this. */
+export interface ConfigFieldSpec {
+  name: string;
+  label: string;
+  type: 'text' | 'number' | 'select' | 'checkbox';
+  options?: readonly string[];
+  placeholder?: string;
+  required?: boolean;
+}
+
 export interface CredentialKindSpec {
   kind: CredentialKind;
   label: string;
   channel: CredentialChannel;
   configSchema: z.ZodTypeAny;
+  configFields: ConfigFieldSpec[];
   secretFields: SecretFieldSpec[];
 }
 
@@ -66,6 +77,26 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
         ...fromFields,
       })
       .strict(),
+    configFields: [
+      {
+        name: 'host',
+        label: 'Host',
+        type: 'text',
+        placeholder: 'smtp.example.com',
+        required: true,
+      },
+      { name: 'port', label: 'Port', type: 'number', placeholder: '587', required: true },
+      { name: 'secure', label: 'Use TLS (port 465)', type: 'checkbox' },
+      { name: 'user', label: 'Username', type: 'text' },
+      {
+        name: 'fromEmail',
+        label: 'From email',
+        type: 'text',
+        placeholder: 'hello@yourdomain.com',
+        required: true,
+      },
+      { name: 'fromName', label: 'From name', type: 'text', placeholder: 'Acme Inc.' },
+    ],
     secretFields: [{ name: 'password', label: 'SMTP password', optional: true }],
   },
   EMAIL_POSTMARK: {
@@ -75,6 +106,11 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
     configSchema: z
       .object({ messageStream: z.string().trim().min(1).max(80).optional(), ...fromFields })
       .strict(),
+    configFields: [
+      { name: 'fromEmail', label: 'From email', type: 'text', required: true },
+      { name: 'fromName', label: 'From name', type: 'text' },
+      { name: 'messageStream', label: 'Message stream', type: 'text', placeholder: 'outbound' },
+    ],
     secretFields: [{ name: 'serverToken', label: 'Server API token' }],
   },
   EMAIL_RESEND: {
@@ -82,6 +118,10 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
     label: 'Resend',
     channel: 'email',
     configSchema: z.object({ ...fromFields }).strict(),
+    configFields: [
+      { name: 'fromEmail', label: 'From email', type: 'text', required: true },
+      { name: 'fromName', label: 'From name', type: 'text' },
+    ],
     secretFields: [{ name: 'apiKey', label: 'API key' }],
   },
   EMAIL_MAILGUN: {
@@ -95,6 +135,18 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
         ...fromFields,
       })
       .strict(),
+    configFields: [
+      {
+        name: 'domain',
+        label: 'Sending domain',
+        type: 'text',
+        placeholder: 'mg.yourdomain.com',
+        required: true,
+      },
+      { name: 'region', label: 'Region', type: 'select', options: ['us', 'eu'], required: true },
+      { name: 'fromEmail', label: 'From email', type: 'text', required: true },
+      { name: 'fromName', label: 'From name', type: 'text' },
+    ],
     secretFields: [{ name: 'apiKey', label: 'API key' }],
   },
   SMS_TWILIO: {
@@ -113,6 +165,22 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
           .regex(/^\+[1-9]\d{6,14}$/, 'must be E.164, e.g. +15555550100'),
       })
       .strict(),
+    configFields: [
+      {
+        name: 'accountSid',
+        label: 'Account SID',
+        type: 'text',
+        placeholder: 'AC…',
+        required: true,
+      },
+      {
+        name: 'fromNumber',
+        label: 'From number',
+        type: 'text',
+        placeholder: '+15555550100',
+        required: true,
+      },
+    ],
     secretFields: [{ name: 'authToken', label: 'Auth token' }],
   },
   WHATSAPP_CLOUD: {
@@ -120,6 +188,9 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
     label: 'WhatsApp Cloud API',
     channel: 'whatsapp',
     configSchema: z.object({ phoneNumberId: z.string().trim().min(1).max(64) }).strict(),
+    configFields: [
+      { name: 'phoneNumberId', label: 'Phone number ID', type: 'text', required: true },
+    ],
     secretFields: [{ name: 'accessToken', label: 'Access token' }],
   },
   LLM: {
@@ -135,6 +206,30 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
         maxTokens: z.coerce.number().int().min(1).max(128000).optional(),
       })
       .strict(),
+    configFields: [
+      {
+        name: 'provider',
+        label: 'Provider',
+        type: 'select',
+        options: [...LLM_PROVIDERS],
+        required: true,
+      },
+      {
+        name: 'model',
+        label: 'Model',
+        type: 'text',
+        placeholder: 'llama-3.3-70b-versatile',
+        required: true,
+      },
+      {
+        name: 'baseUrl',
+        label: 'Base URL (self-hosted)',
+        type: 'text',
+        placeholder: 'http://localhost:11434/v1',
+      },
+      { name: 'temperature', label: 'Temperature', type: 'number' },
+      { name: 'maxTokens', label: 'Max tokens', type: 'number' },
+    ],
     secretFields: [{ name: 'apiKey', label: 'API key', optional: true }],
   },
   CHURN_ENDPOINT: {
@@ -153,6 +248,15 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
           }),
       })
       .strict(),
+    configFields: [
+      {
+        name: 'url',
+        label: 'Predict URL',
+        type: 'text',
+        placeholder: 'https://models.internal/churn',
+        required: true,
+      },
+    ],
     secretFields: [{ name: 'authHeader', label: 'Authorization header value', optional: true }],
   },
   IMPORT_HUBSPOT: {
@@ -160,6 +264,7 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
     label: 'HubSpot',
     channel: 'import',
     configSchema: z.object({}).strict(),
+    configFields: [],
     secretFields: [{ name: 'accessToken', label: 'Private app access token' }],
   },
   IMPORT_MAILCHIMP: {
@@ -167,6 +272,7 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
     label: 'Mailchimp',
     channel: 'import',
     configSchema: z.object({}).strict(),
+    configFields: [],
     secretFields: [{ name: 'apiKey', label: 'API key' }],
   },
   IMPORT_KLAVIYO: {
@@ -174,6 +280,7 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
     label: 'Klaviyo',
     channel: 'import',
     configSchema: z.object({}).strict(),
+    configFields: [],
     secretFields: [{ name: 'apiKey', label: 'Private API key' }],
   },
 };

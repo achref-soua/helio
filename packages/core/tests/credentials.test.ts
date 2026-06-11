@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { z } from 'zod';
 
 import {
   CREDENTIAL_KINDS,
@@ -17,6 +18,16 @@ describe('credential registry', () => {
       expect(spec.kind).toBe(kind);
       expect(spec.label.length).toBeGreaterThan(0);
       expect(spec.configSchema).toBeDefined();
+    }
+  });
+
+  it('configFields stay in sync with each kind config schema', () => {
+    for (const kind of CREDENTIAL_KINDS) {
+      const spec = credentialSpec(kind);
+      const shape = (spec.configSchema as z.ZodObject<z.ZodRawShape>).shape;
+      expect(new Set(spec.configFields.map((field) => field.name))).toEqual(
+        new Set(Object.keys(shape)),
+      );
     }
   });
 
