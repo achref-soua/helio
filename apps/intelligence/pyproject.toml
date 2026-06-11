@@ -18,6 +18,8 @@ dependencies = [
     "numpy>=2.1",
     "scikit-learn>=1.5",
     "cryptography>=43,<46",
+    "onnxruntime>=1.20,<1.21",
+    "xgboost>=2.1,<2.2",
 ]
 
 [dependency-groups]
@@ -30,6 +32,7 @@ dev = [
     "pytest-asyncio>=0.24",
     "testcontainers>=4.8",
     "asyncpg-stubs>=0.30",
+    "skl2onnx>=1.17",
 ]
 
 [build-system]
@@ -53,7 +56,7 @@ files = ["src"]
 # scikit-learn ships no type information; we wrap it behind our own typed
 # surface (scoring/model.py) and keep the rest of the codebase strict.
 [[tool.mypy.overrides]]
-module = ["sklearn.*"]
+module = ["sklearn.*", "onnxruntime.*", "xgboost.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

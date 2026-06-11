@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     # self-hosted LLMs work out of the box.
     llm_require_tls: bool = True
 
+    # BYO churn models: where uploaded artifacts live, and whether HTTP
+    # model endpoints may resolve to private addresses (the self-host
+    # bundle enables this — LAN model servers are the normal case there).
+    models_path: str = "/var/lib/helio/models"
+    allow_private_model_endpoints: bool = False
+
     # The deployment's credential-vault key (ADR-0019) — deliberately NOT
     # INTEL_-prefixed: it is the same key every Helio service shares. When
     # set (with the database), organizations that connected an AI provider
