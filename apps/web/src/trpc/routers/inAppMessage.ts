@@ -2,6 +2,8 @@ import { newId } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { writeAudit } from '@/lib/audit';
+
 import { orgProcedure, requirePermission, router } from '../init';
 
 const ctaUrlSchema = z.string().trim().url().max(2000);
@@ -44,6 +46,13 @@ export const inAppMessageRouter = router({
           ctaUrl: input.ctaUrl || null,
         },
       });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'inapp.created',
+        targetType: 'in_app_message',
+        targetId: message.id,
+      });
       return { id: message.id };
     }),
 
@@ -74,6 +83,13 @@ export const inAppMessageRouter = router({
         },
       });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'inapp.updated',
+        targetType: 'in_app_message',
+        targetId: id,
+      });
       return { id };
     }),
 
@@ -83,6 +99,13 @@ export const inAppMessageRouter = router({
       requirePermission(ctx.memberRole, 'inapp:write');
       const { count } = await ctx.tenantDb.inAppMessage.deleteMany({ where: { id: input.id } });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'inapp.deleted',
+        targetType: 'in_app_message',
+        targetId: input.id,
+      });
       return { ok: true };
     }),
 });

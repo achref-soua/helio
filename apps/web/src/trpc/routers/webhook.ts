@@ -2,6 +2,8 @@ import { generateWebhookSecret, newId, signWebhookPayload, webhookEventSchema } 
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { writeAudit } from '@/lib/audit';
+
 import { orgProcedure, requirePermission, router } from '../init';
 
 /** A reachable http(s) endpoint, capped to keep stored rows sane. */
@@ -58,6 +60,13 @@ export const webhookRouter = router({
         },
       });
       // The plaintext secret is shown to the operator exactly once.
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'webhook.created',
+        targetType: 'webhook_endpoint',
+        targetId: endpoint.id,
+      });
       return { id: endpoint.id, secret };
     }),
 
@@ -84,6 +93,13 @@ export const webhookRouter = router({
         },
       });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'webhook.updated',
+        targetType: 'webhook_endpoint',
+        targetId: id,
+      });
       return { id };
     }),
 
@@ -93,6 +109,13 @@ export const webhookRouter = router({
       requirePermission(ctx.memberRole, 'settings:webhooks');
       const { count } = await ctx.tenantDb.webhookEndpoint.deleteMany({ where: { id: input.id } });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'webhook.deleted',
+        targetType: 'webhook_endpoint',
+        targetId: input.id,
+      });
       return { ok: true };
     }),
 

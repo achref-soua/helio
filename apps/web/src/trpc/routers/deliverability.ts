@@ -5,6 +5,7 @@ import { dkimPasses, dmarcPasses, isLikelyDomain, newId, spfPasses } from '@heli
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { writeAudit } from '@/lib/audit';
 import { sealRowSecret, vaultReady } from '@/lib/vault';
 
 import { orgProcedure, requirePermission, router } from '../init';
@@ -79,6 +80,13 @@ export const deliverabilityRouter = router({
             spfInclude: input.spfInclude || null,
           },
         });
+        await writeAudit(ctx.tenantDb, {
+          organizationId: ctx.organizationId,
+          actorId: ctx.session.user.id,
+          action: 'sending_domain.added',
+          targetType: 'sending_domain',
+          targetId: created.id,
+        });
         return { id: created.id };
       } catch {
         throw new TRPCError({ code: 'CONFLICT', message: 'That domain is already added' });
@@ -110,6 +118,14 @@ export const deliverabilityRouter = router({
           verifiedAt: verified ? new Date() : null,
         },
       });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'sending_domain.verified',
+        targetType: 'sending_domain',
+        targetId: input.id,
+        metadata: { verified },
+      });
       return { checks, verified };
     }),
 
@@ -119,6 +135,13 @@ export const deliverabilityRouter = router({
       requirePermission(ctx.memberRole, 'settings:deliverability');
       const { count } = await ctx.tenantDb.sendingDomain.deleteMany({ where: { id: input.id } });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'sending_domain.removed',
+        targetType: 'sending_domain',
+        targetId: input.id,
+      });
       return { ok: true };
     }),
 });

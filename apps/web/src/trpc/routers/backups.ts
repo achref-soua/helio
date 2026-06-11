@@ -1,6 +1,7 @@
 import { newId } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 
+import { writeAudit } from '@/lib/audit';
 import { env } from '@/lib/env';
 
 import { orgProcedure, requirePermission, router } from '../init';
@@ -56,6 +57,12 @@ export const backupsRouter = router({
     requirePanel();
     await ctx.tenantDb.backupRequest.create({
       data: { id: newId('bkr'), label: 'dashboard' },
+    });
+    await writeAudit(ctx.tenantDb, {
+      organizationId: ctx.organizationId,
+      actorId: ctx.session.user.id,
+      action: 'backup.requested',
+      targetType: 'backup',
     });
     return { queued: true };
   }),

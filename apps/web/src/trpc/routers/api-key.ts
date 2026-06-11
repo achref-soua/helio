@@ -2,6 +2,8 @@ import { generateGatewayApiKey, newId } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { writeAudit } from '@/lib/audit';
+
 import { orgProcedure, requirePermission, router } from '../init';
 
 /**
@@ -33,6 +35,13 @@ export const apiKeyRouter = router({
           prefix,
         },
       });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'api_key.created',
+        targetType: 'api_key',
+        targetId: prefix,
+      });
       return { key };
     }),
 
@@ -43,6 +52,13 @@ export const apiKeyRouter = router({
       // RLS scopes the delete to the caller's org; a foreign id removes nothing.
       const { count } = await ctx.tenantDb.gatewayApiKey.deleteMany({ where: { id: input.id } });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'api_key.revoked',
+        targetType: 'api_key',
+        targetId: input.id,
+      });
       return { ok: true };
     }),
 });

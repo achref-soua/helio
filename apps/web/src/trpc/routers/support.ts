@@ -2,6 +2,8 @@ import { newId, supportKindSchema, supportStatusSchema } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { writeAudit } from '@/lib/audit';
+
 import { orgProcedure, requirePermission, router } from '../init';
 
 /**
@@ -29,6 +31,13 @@ export const supportRouter = router({
           body: input.body,
           url: input.url,
         },
+      });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'support.created',
+        targetType: 'support_ticket',
+        targetId: ticket.id,
       });
       return { id: ticket.id };
     }),
@@ -63,6 +72,13 @@ export const supportRouter = router({
         data: { status: input.status },
       });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'support.status_changed',
+        targetType: 'support_ticket',
+        targetId: input.id,
+      });
       return { id: input.id };
     }),
 });

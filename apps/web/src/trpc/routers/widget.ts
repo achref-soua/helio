@@ -2,6 +2,8 @@ import { newId, widgetTypeSchema } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { writeAudit } from '@/lib/audit';
+
 import { orgProcedure, requirePermission, router } from '../init';
 
 const ctaUrlSchema = z.string().trim().url().max(2000);
@@ -46,6 +48,13 @@ export const widgetRouter = router({
           ctaUrl: input.ctaUrl || null,
         },
       });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'widget.created',
+        targetType: 'widget',
+        targetId: widget.id,
+      });
       return { id: widget.id };
     }),
 
@@ -78,6 +87,13 @@ export const widgetRouter = router({
         },
       });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'widget.updated',
+        targetType: 'widget',
+        targetId: id,
+      });
       return { id };
     }),
 
@@ -87,6 +103,13 @@ export const widgetRouter = router({
       requirePermission(ctx.memberRole, 'widgets:write');
       const { count } = await ctx.tenantDb.widget.deleteMany({ where: { id: input.id } });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'widget.deleted',
+        targetType: 'widget',
+        targetId: input.id,
+      });
       return { ok: true };
     }),
 });
