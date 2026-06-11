@@ -20,6 +20,8 @@ dependencies = [
     "cryptography>=43,<46",
     "onnxruntime>=1.20,<1.21",
     "xgboost>=2.1,<2.2",
+    # FastAPI needs this for multipart form parsing (the model upload route).
+    "python-multipart>=0.0.18",
 ]
 
 [dependency-groups]

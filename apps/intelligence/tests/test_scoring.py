@@ -127,6 +127,12 @@ class _FakeScoped:
     async def fetchval(self, query: str, *args: Any) -> Any:
         return self._workspace_events
 
+    async def fetchrow(self, query: str, *args: Any) -> Any:
+        return None  # no custom churn model — built-in path
+
+    async def execute(self, query: str, *args: Any) -> str:
+        return "OK"
+
     async def executemany(self, query: str, args: list[tuple[Any, ...]]) -> None:
         self._sink.extend(args)
 
