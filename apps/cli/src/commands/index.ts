@@ -6,3 +6,4 @@
  */
 import './doctor';
 import './install';
+import './lifecycle';
