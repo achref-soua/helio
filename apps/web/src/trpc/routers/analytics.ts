@@ -12,6 +12,7 @@ import {
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { writeAudit } from '@/lib/audit';
 import { getClickHouse } from '@/lib/clickhouse';
 
 import { orgProcedure, requirePermission, router } from '../init';
@@ -336,6 +337,15 @@ export const analyticsRouter = router({
       const guard = guardAnalyticsQuery(input.sql);
       if (!guard.ok) return { ok: false as const, error: guard.error, columns: [], rows: [] };
 
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'analytics.sql_executed',
+        targetType: 'workspace',
+        targetId: input.workspaceId,
+        workspaceId: input.workspaceId,
+        metadata: { chars: input.sql.length },
+      });
       try {
         const result = await getClickHouse().query({
           query: guard.sql,

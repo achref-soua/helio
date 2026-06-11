@@ -2,6 +2,7 @@ import { generateScimToken, newId } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { writeAudit } from '@/lib/audit';
 import { auth, authDb } from '@/lib/auth';
 import { env } from '@/lib/env';
 
@@ -107,6 +108,14 @@ export const ssoRouter = router({
         message: error instanceof Error ? error.message : 'Could not register the SSO provider.',
       });
     }
+    await writeAudit(ctx.tenantDb, {
+      organizationId: ctx.organizationId,
+      actorId: ctx.session.user.id,
+      action: 'sso.provider_registered',
+      targetType: 'sso_provider',
+      targetId: input.providerId,
+      metadata: { domain: input.domain },
+    });
     return { providerId: input.providerId, callbackUrl: callbackUrl(input.providerId) };
   }),
 
@@ -119,6 +128,13 @@ export const ssoRouter = router({
         where: { id: input.id, organizationId: ctx.organizationId },
       });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'sso.provider_removed',
+        targetType: 'sso_provider',
+        targetId: input.id,
+      });
       return { ok: true };
     }),
 
@@ -147,6 +163,12 @@ export const ssoRouter = router({
       create: { id: newId('scim'), organizationId: ctx.organizationId, tokenHash: hash },
       update: { tokenHash: hash, lastUsedAt: null },
     });
+    await writeAudit(ctx.tenantDb, {
+      organizationId: ctx.organizationId,
+      actorId: ctx.session.user.id,
+      action: 'scim.token_generated',
+      targetType: 'scim_token',
+    });
     // The plaintext is returned exactly once; only its hash is stored.
     return { token, baseUrl: scimBaseUrl() };
   }),
@@ -154,6 +176,12 @@ export const ssoRouter = router({
   revokeScimToken: orgProcedure.mutation(async ({ ctx }) => {
     requirePermission(ctx.memberRole, 'settings:sso');
     await authDb.scimToken.deleteMany({ where: { organizationId: ctx.organizationId } });
+    await writeAudit(ctx.tenantDb, {
+      organizationId: ctx.organizationId,
+      actorId: ctx.session.user.id,
+      action: 'scim.token_revoked',
+      targetType: 'scim_token',
+    });
     return { ok: true };
   }),
 });

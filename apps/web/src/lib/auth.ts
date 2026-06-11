@@ -1,14 +1,32 @@
 import { apiKey } from '@better-auth/api-key';
 import { sso } from '@better-auth/sso';
-import { createPrismaClient } from '@helio/db';
+import { createPrismaClient, forTenant } from '@helio/db';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
+import { createAuthMiddleware, getSessionFromCtx } from 'better-auth/api';
 import { nextCookies } from 'better-auth/next-js';
 import { organization, twoFactor } from 'better-auth/plugins';
 
+import { writeAudit } from './audit';
+import { appDb } from './db';
 import { env } from './env';
 import { sendMail } from './mailer';
 import { ac, roles } from './permissions';
+
+/** Auth-kernel paths that land in the organization audit log. */
+const AUDITED_AUTH_PATHS: Record<string, { action: string; targetType?: string }> = {
+  '/sign-in/email': { action: 'auth.signed_in' },
+  '/two-factor/enable': { action: 'auth.two_factor_enabled' },
+  '/two-factor/disable': { action: 'auth.two_factor_disabled' },
+  '/change-password': { action: 'auth.password_changed' },
+  '/organization/update-member-role': { action: 'member.role_changed', targetType: 'member' },
+  '/organization/remove-member': { action: 'member.removed', targetType: 'member' },
+  '/organization/invite-member': { action: 'member.invited', targetType: 'invitation' },
+  '/organization/cancel-invitation': {
+    action: 'member.invitation_canceled',
+    targetType: 'invitation',
+  },
+};
 
 /**
  * The auth kernel. Connects with the admin role (ADR-0004): Better-Auth
@@ -64,6 +82,41 @@ export const auth = betterAuth({
         text: `Welcome to Helio! Verify your email: ${url}`,
       });
     },
+  },
+  hooks: {
+    // Security-relevant auth events land in the org audit log (G2). The
+    // hook only runs after a SUCCESSFUL handler, and auditing is
+    // best-effort here — failing a sign-in over audit storage would be
+    // worse than a missing row.
+    after: createAuthMiddleware(async (ctx) => {
+      const audited = AUDITED_AUTH_PATHS[ctx.path];
+      if (!audited) return;
+      try {
+        const session = ctx.context.newSession ?? (await getSessionFromCtx(ctx));
+        if (!session) return;
+        const body = (ctx.body ?? {}) as Record<string, unknown>;
+        const organizationId =
+          (typeof body.organizationId === 'string' && body.organizationId) ||
+          session.session.activeOrganizationId;
+        if (!organizationId) return;
+        const targetId =
+          (typeof body.memberId === 'string' && body.memberId) ||
+          (typeof body.invitationId === 'string' && body.invitationId) ||
+          (typeof body.email === 'string' && body.email) ||
+          undefined;
+        const role = typeof body.role === 'string' ? body.role : undefined;
+        await writeAudit(forTenant(appDb, organizationId), {
+          organizationId,
+          actorId: session.user.id,
+          action: audited.action,
+          targetType: audited.targetType,
+          targetId,
+          metadata: role ? { role } : undefined,
+        });
+      } catch {
+        // Never let auditing break the auth flow.
+      }
+    }),
   },
   databaseHooks: {
     session: {

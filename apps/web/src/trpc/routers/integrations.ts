@@ -2,6 +2,7 @@ import { newId } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { writeAudit } from '@/lib/audit';
 import { sealRowSecret } from '@/lib/vault';
 
 import { orgProcedure, requirePermission, router } from '../init';
@@ -80,6 +81,22 @@ export const integrationsRouter = router({
             enabled: true,
           },
         });
+        await writeAudit(ctx.tenantDb, {
+          organizationId: ctx.organizationId,
+          actorId: ctx.session.user.id,
+          action: 'integration.connected',
+          targetType: 'integration',
+          targetId: integration.id,
+          metadata: { kind: 'shopify' },
+        });
+        await writeAudit(ctx.tenantDb, {
+          organizationId: ctx.organizationId,
+          actorId: ctx.session.user.id,
+          action: 'integration.connected',
+          targetType: 'integration',
+          targetId: integration.id,
+          metadata: { kind: 'salesforce' },
+        });
         return { id: integration.id };
       } catch (error) {
         if (error instanceof Error && error.message.includes('HELIO_ENCRYPTION_KEY')) {
@@ -150,6 +167,14 @@ export const integrationsRouter = router({
         data: { enabled: input.enabled },
       });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'integration.toggled',
+        targetType: 'integration',
+        targetId: input.id,
+        metadata: { enabled: input.enabled },
+      });
       return { id: input.id };
     }),
 
@@ -159,6 +184,13 @@ export const integrationsRouter = router({
       requirePermission(ctx.memberRole, 'settings:integrations');
       const { count } = await ctx.tenantDb.integration.deleteMany({ where: { id: input.id } });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'integration.disconnected',
+        targetType: 'integration',
+        targetId: input.id,
+      });
       return { ok: true };
     }),
 });

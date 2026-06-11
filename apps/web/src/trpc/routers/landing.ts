@@ -3,6 +3,8 @@ import { type Prisma } from '@helio/db';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { writeAudit } from '@/lib/audit';
+
 import { orgProcedure, requirePermission, router } from '../init';
 
 /**
@@ -37,6 +39,13 @@ export const landingRouter = router({
           blocks: [],
         },
       });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'landing.created',
+        targetType: 'landing_page',
+        targetId: page.id,
+      });
       return { id: page.id };
     }),
 
@@ -61,6 +70,13 @@ export const landingRouter = router({
         },
       });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'landing.updated',
+        targetType: 'landing_page',
+        targetId: id,
+      });
       return { id };
     }),
 
@@ -70,6 +86,13 @@ export const landingRouter = router({
       requirePermission(ctx.memberRole, 'landing:write');
       const { count } = await ctx.tenantDb.landingPage.deleteMany({ where: { id: input.id } });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'landing.deleted',
+        targetType: 'landing_page',
+        targetId: input.id,
+      });
       return { ok: true };
     }),
 });
