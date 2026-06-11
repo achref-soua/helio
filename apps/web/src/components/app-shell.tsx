@@ -107,7 +107,25 @@ function Wordmark({ brand }: { brand?: BrandMark }) {
   );
 }
 
-export function AppShell({ children, brand }: { children: React.ReactNode; brand?: BrandMark }) {
+function VersionBadge({ version }: { version?: string }) {
+  const t = useTranslations('app');
+  if (!version) return null;
+  return (
+    <div className="text-sidebar-foreground/50 mt-auto px-4 text-xs">
+      {t('versionBadge', { version })}
+    </div>
+  );
+}
+
+export function AppShell({
+  children,
+  brand,
+  version,
+}: {
+  children: React.ReactNode;
+  brand?: BrandMark;
+  version?: string;
+}) {
   const t = useTranslations('nav');
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -116,6 +134,7 @@ export function AppShell({ children, brand }: { children: React.ReactNode; brand
       <aside className="bg-sidebar border-sidebar-border hidden w-60 shrink-0 flex-col gap-6 border-r py-4 md:flex">
         <Wordmark brand={brand} />
         <NavLinks />
+        <VersionBadge version={version} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">

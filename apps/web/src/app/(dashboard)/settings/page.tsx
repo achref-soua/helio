@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server';
 
 import { auth } from '@/lib/auth';
 
+import { AboutPanel } from './about-panel';
 import { ApiKeysPanel } from './api-keys-panel';
 import { BrandingPanel } from './branding-panel';
 import { DeliverabilityPanel } from './deliverability-panel';
@@ -66,6 +67,7 @@ export default async function SettingsPage() {
           <SupportPanel canManage />
         </>
       )}
+      <AboutPanel />
     </div>
   );
 }

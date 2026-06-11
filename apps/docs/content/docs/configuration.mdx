@@ -104,6 +104,18 @@ runs over the RLS-bound application role, never the admin connection — so the
 model can never reach another tenant's data. For full data sovereignty, point
 `INTEL_LLM_PROVIDER` at `ollama` or `local`.
 
+## Release identity & updates
+
+Release images bake the version and commit in at build time; every service
+reports them on `/healthz`, and the dashboard shows them in the sidebar and
+under **Settings → About**. Source checkouts report `dev`.
+
+| Variable             | Required | Purpose                                                                                                                            |
+| -------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `HELIO_VERSION`      | —        | Release version (set by image build args; leave unset in dev).                                                                     |
+| `HELIO_COMMIT`       | —        | Build commit hash (set by image build args).                                                                                       |
+| `HELIO_UPDATE_CHECK` | —        | The dashboard polls GitHub's public releases feed (cached, anonymous, sends nothing) and shows an update notice. `false` disables. |
+
 ## Auth & email
 
 | Variable                  | Required | Purpose                                                  |

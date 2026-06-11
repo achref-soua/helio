@@ -1,3 +1,4 @@
+import os
 import time
 
 import structlog
@@ -8,6 +9,18 @@ from .logging import configure_logging
 from .settings import get_settings
 
 log = structlog.get_logger()
+
+
+def release_identity() -> tuple[str, str | None]:
+    """Version/commit baked into release images (HELIO_VERSION / HELIO_COMMIT).
+
+    Source checkouts report ("dev", None) — the same contract as
+    @helio/core's healthPayload on the TypeScript services.
+    """
+    version = (os.environ.get("HELIO_VERSION") or "").strip().removeprefix("v") or "dev"
+    commit = (os.environ.get("HELIO_COMMIT") or "").strip()[:12] or None
+    return version, commit
+
 
 REQUEST_DURATION = Histogram(
     "helio_intelligence_http_request_duration_seconds",
@@ -119,8 +132,14 @@ def create_app() -> FastAPI:
         return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
     @app.get("/healthz")
-    def healthz() -> dict[str, str]:
-        return {"status": "ok", "service": settings.service_name}
+    def healthz() -> dict[str, str | None]:
+        version, commit = release_identity()
+        return {
+            "status": "ok",
+            "service": settings.service_name,
+            "version": version,
+            "commit": commit,
+        }
 
     @app.get("/readyz")
     def readyz() -> dict[str, str]:

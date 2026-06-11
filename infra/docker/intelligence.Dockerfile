@@ -17,6 +17,11 @@ RUN groupadd --system helio && useradd --system --gid helio helio \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=builder --chown=helio:helio /app /app
 ENV PATH="/app/.venv/bin:$PATH"
+# Release identity baked at build time; surfaced on /healthz and in the UI.
+ARG HELIO_VERSION
+ARG HELIO_COMMIT
+ENV HELIO_VERSION=$HELIO_VERSION \
+    HELIO_COMMIT=$HELIO_COMMIT
 USER helio
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=5s --retries=5 \

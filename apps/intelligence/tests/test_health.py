@@ -7,7 +7,22 @@ def test_healthz_reports_ok() -> None:
     client = TestClient(create_app())
     response = client.get("/healthz")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "service": "intelligence"}
+    # Source checkouts report "dev"; release images bake HELIO_VERSION.
+    assert response.json() == {
+        "status": "ok",
+        "service": "intelligence",
+        "version": "dev",
+        "commit": None,
+    }
+
+
+def test_healthz_reports_the_baked_release(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setenv("HELIO_VERSION", "v2.0.0")
+    monkeypatch.setenv("HELIO_COMMIT", "abcdef0123456789")
+    client = TestClient(create_app())
+    body = client.get("/healthz").json()
+    assert body["version"] == "2.0.0"
+    assert body["commit"] == "abcdef012345"
 
 
 def test_readyz_reports_ok() -> None:

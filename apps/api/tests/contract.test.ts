@@ -86,6 +86,11 @@ describe('gateway contract', () => {
     const health = await app.request('/healthz');
     expect(health.status).toBe(200);
     expect(health.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(await health.json()).toMatchObject({
+      status: 'ok',
+      service: 'api',
+      version: expect.any(String),
+    });
     const ready = await app.request('/readyz');
     expect(ready.status).toBe(200);
     expect(await ready.json()).toMatchObject({

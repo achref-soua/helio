@@ -245,6 +245,7 @@ export {
   unsubscribeUrl,
   verifyUnsubscribeToken,
 } from './unsubscribe';
+export { healthPayload, helioCommit, helioVersion, isNewerHelioVersion } from './version';
 export {
   endpointsForEvent,
   generateWebhookSecret,

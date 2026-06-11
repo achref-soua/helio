@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Helio",
-    "tagline": "The open-source growth platform"
+    "tagline": "The open-source growth platform",
+    "versionBadge": "Helio {version}"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -1140,5 +1141,17 @@
         }
       }
     }
+  },
+  "about": {
+    "title": "About",
+    "subtitle": "Version, license, and project links for this Helio deployment.",
+    "version": "Version",
+    "devBuild": "dev build",
+    "license": "License",
+    "updateAvailable": "Update available: {version} — view the release notes",
+    "upToDate": "You're on the latest release.",
+    "repo": "GitHub repository",
+    "releases": "Releases & changelog",
+    "docs": "Documentation"
   }
 }

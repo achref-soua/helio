@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import {
   eventBatchSchema,
+  healthPayload,
   pushSubscriptionSchema,
   toProblemDetails,
   trackedEventSchema,
@@ -110,7 +111,7 @@ export function createApp(deps: IngestDeps) {
 
   app.use('*', secureHeaders());
 
-  app.get('/healthz', (c) => c.json({ status: 'ok', service: 'ingest' }));
+  app.get('/healthz', (c) => c.json(healthPayload('ingest')));
 
   app.get('/metrics', async (c) =>
     c.text(await metricsRegistry.metrics(), 200, { 'content-type': metricsRegistry.contentType }),

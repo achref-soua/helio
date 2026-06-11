@@ -5,7 +5,7 @@ type: application
 # Chart version — bumped independently of the application it deploys.
 version: 0.1.0
 # Default application version (image tag) this chart deploys.
-appVersion: '0.8.0'
+appVersion: '1.0.0'
 home: https://github.com/achref-soua/helio
 sources:
   - https://github.com/achref-soua/helio

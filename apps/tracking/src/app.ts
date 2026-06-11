@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { newId, verifyClickTarget } from '@helio/core';
+import { healthPayload, newId, verifyClickTarget } from '@helio/core';
 import { Hono } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
 import { pino } from 'pino';
@@ -68,7 +68,7 @@ export function createApp(deps: TrackingDeps) {
   // service must not send Cross-Origin-Resource-Policy: same-origin.
   app.use('*', secureHeaders({ crossOriginResourcePolicy: false }));
 
-  app.get('/healthz', (c) => c.json({ status: 'ok', service: 'tracking' }));
+  app.get('/healthz', (c) => c.json(healthPayload('tracking')));
 
   app.get('/metrics', async (c) =>
     c.text(await metricsRegistry.metrics(), 200, { 'content-type': metricsRegistry.contentType }),
