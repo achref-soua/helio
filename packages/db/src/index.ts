@@ -13,6 +13,7 @@ export type {
   Journey,
   JourneyRun,
   Organization,
+  ProviderCredential,
   PushSubscription,
   ScoringRule,
   Segment,
@@ -23,9 +24,11 @@ export { Prisma } from './generated/prisma/client';
 export {
   CampaignStatus,
   ContactStatus,
+  CredentialStatus,
   EmailSendStatus,
   JourneyRunStatus,
   JourneyStatus,
+  ProviderCredentialKind,
 } from './generated/prisma/enums';
 export { seedDemoWorkspace, type SeedSummary, type SeedTarget } from './seed-demo';
 export { forTenant, type TenantClient } from './tenant';

@@ -56,11 +56,59 @@ model Organization {
   supportTickets    SupportTicket[]
   sendingDomains    SendingDomain[]
   landingPages      LandingPage[]
-  widgets           Widget[]
-  inAppMessages     InAppMessage[]
-  inAppDeliveries   InAppDelivery[]
+  widgets             Widget[]
+  inAppMessages       InAppMessage[]
+  inAppDeliveries     InAppDelivery[]
+  providerCredentials ProviderCredential[]
 
   @@map("organization")
+}
+
+/// Which third-party surface a credential connects (ADR-0019).
+enum ProviderCredentialKind {
+  EMAIL_SMTP
+  EMAIL_POSTMARK
+  EMAIL_RESEND
+  EMAIL_MAILGUN
+  SMS_TWILIO
+  WHATSAPP_CLOUD
+  LLM
+  CHURN_ENDPOINT
+  IMPORT_HUBSPOT
+  IMPORT_MAILCHIMP
+  IMPORT_KLAVIYO
+}
+
+enum CredentialStatus {
+  UNVERIFIED
+  VERIFIED
+  FAILED
+}
+
+/// A per-organization third-party credential (ADR-0019). Non-secret
+/// connection config lives in `config`; secret fields are sealed into
+/// `secrets` as enc:v1 envelopes (AES-256-GCM under HELIO_ENCRYPTION_KEY)
+/// and are NEVER selected by read paths — masked display comes from
+/// `secretsMeta` ({ field: { last4, setAt } }, captured at write time).
+model ProviderCredential {
+  id             String                 @id
+  organizationId String                 @map("organization_id")
+  kind           ProviderCredentialKind
+  name           String
+  config         Json                   @default("{}")
+  secrets        Json                   @default("{}")
+  secretsMeta    Json                   @default("{}") @map("secrets_meta")
+  status         CredentialStatus       @default(UNVERIFIED)
+  lastVerifiedAt DateTime?              @map("last_verified_at")
+  lastError      String?                @map("last_error")
+  createdAt      DateTime               @default(now()) @map("created_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, kind, name])
+  @@index([organizationId])
+  @@map("provider_credential")
 }
 
 /// A working environment inside an organization (e.g. "Production",
