@@ -19,6 +19,7 @@ import { compileSegmentRule, type Prisma, type PrismaClient } from '@helio/db';
 import { renderEmail } from '@helio/emails';
 
 import type { ActivityConfig } from './activities';
+import { raiseOrgAlert } from './alerts';
 import type { EmailSenderResolver } from './email-provider-factory';
 import type { PushProvider } from './push-provider';
 import type { SmsProvider } from './sms-provider';
@@ -109,10 +110,19 @@ export function createJourneyActivities(
         });
         return { sent: true };
       } catch (error) {
+        const reason = error instanceof Error ? error.message : 'unknown';
         await prisma.emailSend.update({
           where: { id: send.id },
-          data: { status: 'FAILED', error: error instanceof Error ? error.message : 'unknown' },
+          data: { status: 'FAILED', error: reason },
         });
+        await raiseOrgAlert(
+          prisma,
+          contact.organizationId,
+          'journey_send_failed',
+          `A journey email to ${contact.email} failed: ${reason.slice(0, 140)}`,
+          { journeyId, sendId: send.id, contactId },
+          { path: ['sendId'], equals: send.id },
+        );
         throw error;
       }
     },

@@ -1190,6 +1190,8 @@
       "FAILED": "Failed"
     },
     "encryptionMissing": "HELIO_ENCRYPTION_KEY is not set on this deployment, so credentials cannot be stored. Add it to your environment and restart.",
-    "genericError": "Something went wrong"
+    "genericError": "Something went wrong",
+    "testSend": "Send test",
+    "testSent": "Test email sent to {to}"
   }
 }

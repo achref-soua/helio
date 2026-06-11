@@ -5,7 +5,7 @@ import {
   type OutgoingEmail,
   PostmarkEmailProvider,
   ResendEmailProvider,
-} from '../src/email-provider';
+} from '../src/email-providers';
 
 const message: OutgoingEmail = {
   from: 'Acme <hello@acme.test>',

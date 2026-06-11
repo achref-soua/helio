@@ -90,6 +90,13 @@ export {
   type PersonalizationContact,
   renderTokens,
 } from './email-doc';
+export {
+  type EmailProvider,
+  MailgunEmailProvider,
+  type OutgoingEmail,
+  PostmarkEmailProvider,
+  ResendEmailProvider,
+} from './email-providers';
 export { createEnv } from './env';
 export {
   HelioError,
