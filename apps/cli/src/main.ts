@@ -5,29 +5,14 @@
  * helio — install and operate a self-hosted Helio.
  *
  * Zero runtime dependencies; compiled to single binaries per platform at
- * release time (bun build --compile). Command modules register here; the
- * pure logic they share lives in src/lib with unit coverage.
+ * release time (bun build --compile). Command modules live under
+ * src/commands and register themselves in src/registry; the pure logic
+ * they share lives in src/lib with unit coverage.
  */
 
-export const CLI_VERSION = process.env.HELIO_CLI_VERSION?.trim() || 'dev';
+import './commands/index';
 
-const COMMANDS: Record<string, { summary: string; run: (argv: string[]) => Promise<number> }> = {
-  version: {
-    summary: 'Print the CLI version',
-    run: () => {
-      console.log(`helio ${CLI_VERSION}`);
-      return Promise.resolve(0);
-    },
-  },
-};
-
-export function registerCommand(
-  name: string,
-  summary: string,
-  run: (argv: string[]) => Promise<number>,
-): void {
-  COMMANDS[name] = { summary, run };
-}
+import { CLI_VERSION, getCommand, listCommands } from './registry';
 
 function help(): void {
   console.log(`helio ${CLI_VERSION} — self-hosted Helio, one command at a time
@@ -35,16 +20,13 @@ function help(): void {
 Usage: helio <command> [options]
 
 Commands:`);
-  for (const [name, command] of Object.entries(COMMANDS)) {
+  for (const [name, command] of listCommands()) {
     console.log(`  ${name.padEnd(12)} ${command.summary}`);
   }
   console.log(`\nDocs: https://github.com/achref-soua/helio`);
 }
 
 async function main(): Promise<void> {
-  // Command modules self-register on import.
-  await import('./commands/index');
-
   const [command, ...rest] = process.argv.slice(2);
   if (!command || command === 'help' || command === '--help' || command === '-h') {
     help();
@@ -54,7 +36,7 @@ async function main(): Promise<void> {
     console.log(`helio ${CLI_VERSION}`);
     process.exit(0);
   }
-  const entry = COMMANDS[command];
+  const entry = getCommand(command);
   if (!entry) {
     console.error(`unknown command "${command}"\n`);
     help();
