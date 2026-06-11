@@ -154,6 +154,11 @@ services:
       INTEL_CLICKHOUSE_USER: ${CLICKHOUSE_USER:-helio}
       INTEL_CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
       INTEL_CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB:-helio}
+      INTEL_MODELS_PATH: /var/lib/helio/models
+      # LAN model servers are the normal self-host case.
+      INTEL_ALLOW_PRIVATE_MODEL_ENDPOINTS: 'true'
+    volumes:
+      - models-data:/var/lib/helio/models
     depends_on:
       postgres:
         condition: service_healthy
@@ -302,6 +307,7 @@ services:
 
 volumes:
   postgres-data:
+  models-data:
   redis-data:
   clickhouse-data:
   redpanda-data:
