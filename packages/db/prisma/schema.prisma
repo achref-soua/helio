@@ -27,41 +27,43 @@ model Organization {
   brandColor String?  @map("brand_color")
   createdAt  DateTime @default(now()) @map("created_at")
 
-  workspaces        Workspace[]
-  auditLogs         AuditLog[]
-  members           Member[]
-  invitations       Invitation[]
-  contacts          Contact[]
-  contactLists      ContactList[]
-  writeKeys         WriteKey[]
-  segments          Segment[]
-  emailTemplates    EmailTemplate[]
-  emailSends        EmailSend[]
-  campaigns         Campaign[]
-  journeys          Journey[]
-  forms             Form[]
-  scoringRules      ScoringRule[]
-  pushSubscriptions PushSubscription[]
-  pipelines         Pipeline[]
-  pipelineStages    PipelineStage[]
-  deals             Deal[]
-  tasks             Task[]
-  ssoProviders      SsoProvider[]
-  scimToken         ScimToken?
-  gatewayApiKeys    GatewayApiKey[]
-  webhookEndpoints  WebhookEndpoint[]
-  bookingPages      BookingPage[]
-  meetings          Meeting[]
-  integrations      Integration[]
-  supportTickets    SupportTicket[]
-  sendingDomains    SendingDomain[]
-  landingPages      LandingPage[]
+  workspaces          Workspace[]
+  auditLogs           AuditLog[]
+  members             Member[]
+  invitations         Invitation[]
+  contacts            Contact[]
+  contactLists        ContactList[]
+  writeKeys           WriteKey[]
+  segments            Segment[]
+  emailTemplates      EmailTemplate[]
+  emailSends          EmailSend[]
+  campaigns           Campaign[]
+  journeys            Journey[]
+  forms               Form[]
+  scoringRules        ScoringRule[]
+  pushSubscriptions   PushSubscription[]
+  pipelines           Pipeline[]
+  pipelineStages      PipelineStage[]
+  deals               Deal[]
+  tasks               Task[]
+  ssoProviders        SsoProvider[]
+  scimToken           ScimToken?
+  gatewayApiKeys      GatewayApiKey[]
+  webhookEndpoints    WebhookEndpoint[]
+  bookingPages        BookingPage[]
+  meetings            Meeting[]
+  integrations        Integration[]
+  supportTickets      SupportTicket[]
+  sendingDomains      SendingDomain[]
+  landingPages        LandingPage[]
   widgets             Widget[]
   inAppMessages       InAppMessage[]
   inAppDeliveries     InAppDelivery[]
   providerCredentials ProviderCredential[]
   systemAlerts        SystemAlert[]
   churnModels         ChurnModel[]
+  notes               Note[]
+  companies           Company[]
 
   @@map("organization")
 }
@@ -214,16 +216,16 @@ model ProviderCredential {
 /// A working environment inside an organization (e.g. "Production",
 /// "Sandbox"). Most product objects will belong to a workspace.
 model Workspace {
-  id             String   @id
-  organizationId String   @map("organization_id")
-  name           String
-  slug           String
+  id               String   @id
+  organizationId   String   @map("organization_id")
+  name             String
+  slug             String
   /// Event names that count as a conversion for predictive scoring in
   /// this workspace (string array); null falls back to the deployment
   /// default (INTEL_SCORING_CONVERSION_EVENTS).
-  conversionEvents Json? @map("conversion_events")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  conversionEvents Json?    @map("conversion_events")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   auditLogs         AuditLog[]
@@ -241,6 +243,8 @@ model Workspace {
   pipelines         Pipeline[]
   deals             Deal[]
   tasks             Task[]
+  notes             Note[]
+  companies         Company[]
   bookingPages      BookingPage[]
   meetings          Meeting[]
   integrations      Integration[]
@@ -316,6 +320,7 @@ model Contact {
   createdAt             DateTime      @default(now()) @map("created_at")
   updatedAt             DateTime      @updatedAt @map("updated_at")
 
+  companyId         String?             @map("company_id")
   organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   workspace         Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   listMembers       ContactListMember[]
@@ -326,6 +331,8 @@ model Contact {
   tasks             Task[]
   meetings          Meeting[]
   inAppDeliveries   InAppDelivery[]
+  notes             Note[]
+  company           Company?            @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   @@unique([workspaceId, email])
   @@index([organizationId])
@@ -753,10 +760,10 @@ model Invitation {
 }
 
 model TwoFactor {
-  id          String @id
+  id          String  @id
   secret      String
-  backupCodes String @map("backup_codes")
-  userId      String @map("user_id")
+  backupCodes String  @map("backup_codes")
+  userId      String  @map("user_id")
   /// False between enrollment and the first successful TOTP verification —
   /// Better-Auth 1.6 only activates 2FA once a code proves the enrollment.
   /// Defaults true so any pre-1.6 row keeps working.
@@ -940,6 +947,7 @@ model Deal {
   /// Sort order within the stage column (0-based).
   position       Int        @default(0)
   contactId      String?    @map("contact_id")
+  companyId      String?    @map("company_id")
   /// The owning member's auth user id (no hard FK across the auth split).
   ownerId        String?    @map("owner_id")
   closedAt       DateTime?  @map("closed_at")
@@ -951,11 +959,61 @@ model Deal {
   pipeline     Pipeline      @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
   stage        PipelineStage @relation(fields: [stageId], references: [id], onDelete: Restrict)
   contact      Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  company      Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
   tasks        Task[]
+  notes        Note[]
 
   @@index([organizationId])
   @@index([workspaceId, stageId, position])
   @@map("deal")
+}
+
+/// A free-text note pinned to a contact or a deal (CRM, H1). Author is
+/// the member's auth user id — no hard FK across the auth split.
+model Note {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  contactId      String?  @map("contact_id")
+  dealId         String?  @map("deal_id")
+  authorId       String?  @map("author_id")
+  body           String
+  pinned         Boolean  @default(false)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contact      Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  deal         Deal?        @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([workspaceId, contactId])
+  @@index([workspaceId, dealId])
+  @@map("note")
+}
+
+/// A B2B company/account object (CRM, H1). Contacts and deals associate
+/// to at most one company.
+model Company {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  name           String
+  domain         String?
+  industry       String?
+  website        String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contacts     Contact[]
+  deals        Deal[]
+
+  @@unique([workspaceId, name])
+  @@index([organizationId])
+  @@map("company")
 }
 
 enum TaskStatus {
@@ -1283,8 +1341,8 @@ model InAppMessage {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  workspace    Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   deliveries   InAppDelivery[]
 
   @@index([organizationId])
