@@ -12,6 +12,7 @@ import { SmtpEmailProvider } from './email-provider';
 import { createEmailSenderResolver } from './email-provider-factory';
 import { env } from './env';
 import { createJourneyActivities } from './journey-activities';
+import { createSmsResolver, createWhatsAppResolver } from './messaging-provider-factory';
 import { WebPushProvider } from './push-provider';
 import { TwilioSmsProvider } from './sms-provider';
 import { JourneyTriggerConsumer } from './trigger-consumer';
@@ -69,19 +70,25 @@ const worker = await Worker.create({
             subject: env.VAPID_SUBJECT,
           })
         : undefined,
-      env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM
-        ? new TwilioSmsProvider({
-            accountSid: env.TWILIO_ACCOUNT_SID,
-            authToken: env.TWILIO_AUTH_TOKEN,
-            from: env.TWILIO_FROM,
-          })
-        : undefined,
-      env.WHATSAPP_PHONE_NUMBER_ID && env.WHATSAPP_ACCESS_TOKEN
-        ? new CloudWhatsAppProvider({
-            phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID,
-            accessToken: env.WHATSAPP_ACCESS_TOKEN,
-          })
-        : undefined,
+      createSmsResolver(
+        prisma as unknown as CredentialReader,
+        env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM
+          ? new TwilioSmsProvider({
+              accountSid: env.TWILIO_ACCOUNT_SID,
+              authToken: env.TWILIO_AUTH_TOKEN,
+              from: env.TWILIO_FROM,
+            })
+          : undefined,
+      ),
+      createWhatsAppResolver(
+        prisma as unknown as CredentialReader,
+        env.WHATSAPP_PHONE_NUMBER_ID && env.WHATSAPP_ACCESS_TOKEN
+          ? new CloudWhatsAppProvider({
+              phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID,
+              accessToken: env.WHATSAPP_ACCESS_TOKEN,
+            })
+          : undefined,
+      ),
     ),
     ...createWebhookActivities(),
   },

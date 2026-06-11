@@ -20,6 +20,7 @@ const app = createApp({
   emailWebhook: env.EMAIL_WEBHOOK_TOKEN
     ? { token: env.EMAIL_WEBHOOK_TOKEN, fetch: (url) => fetch(url) }
     : undefined,
+  smsWebhook: env.SMS_WEBHOOK_TOKEN ? { token: env.SMS_WEBHOOK_TOKEN } : undefined,
   vault: env.HELIO_ENCRYPTION_KEY
     ? {
         key: env.HELIO_ENCRYPTION_KEY,
