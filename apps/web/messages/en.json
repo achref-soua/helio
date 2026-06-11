@@ -659,7 +659,9 @@
     "emailPlaceholder": "e.g. win back trial users whose trial ends this week",
     "emailBlocks": "{count, plural, one {# block} other {# blocks}}",
     "createEmail": "Save as template",
-    "emailCreated": "Email template created"
+    "emailCreated": "Email template created",
+    "providerOrganization": "Your AI: {provider} · {model}",
+    "providerDeployment": "Deployment AI: {provider} · {model}"
   },
   "tasks": {
     "title": "Tasks",
@@ -1195,5 +1197,14 @@
     "testSend": "Send test",
     "testSent": "Test email sent to {to}",
     "emailFallbackNotice": "No provider connected — mail uses the deployment fallback SMTP. In local setups that is Mailpit, a test inbox: nothing reaches real recipients until you connect a provider here."
+  },
+  "analyticsSettings": {
+    "title": "Workspace analytics",
+    "subtitle": "Which event names count as a conversion for predictive scoring in the active workspace. Leave empty to use the deployment default.",
+    "label": "Conversion events (comma-separated)",
+    "placeholder": "Order Completed, Signed Up",
+    "save": "Save",
+    "saved": "Conversion events saved",
+    "genericError": "Something went wrong"
   }
 }

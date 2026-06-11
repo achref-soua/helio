@@ -26,6 +26,15 @@ function parseDraft<T>(schema: { parse: (value: unknown) => T }, value: unknown)
  * goes through the normal segment/journey routers, which re-validate.
  */
 export const copilotRouter = router({
+  /** Which AI provider serves this org — null when the AI plane is down. */
+  providerInfo: orgProcedure.query(async ({ ctx }) => {
+    try {
+      return await intelligence.llmInfo({ organization_id: ctx.organizationId });
+    } catch {
+      return null;
+    }
+  }),
+
   chat: orgProcedure
     .input(
       z.object({

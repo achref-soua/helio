@@ -12,7 +12,7 @@ import {
 } from '@helio/ui/components/card';
 import { Input } from '@helio/ui/components/input';
 import { Skeleton } from '@helio/ui/components/skeleton';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bot, Mail, Send, Sparkles, User, Workflow } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -50,6 +50,7 @@ export function CopilotView() {
     document: EmailDocument;
   } | null>(null);
 
+  const providerInfo = useQuery(trpc.copilot.providerInfo.queryOptions());
   const chat = useMutation(trpc.copilot.chat.mutationOptions());
   const draftSegment = useMutation(trpc.copilot.draftSegment.mutationOptions());
   const draftJourney = useMutation(trpc.copilot.draftJourney.mutationOptions());
@@ -160,10 +161,20 @@ export function CopilotView() {
 
   return (
     <div className="grid gap-4">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Sparkles className="text-primary size-5" aria-hidden />
         <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
         <Badge variant="outline">{t('beta')}</Badge>
+        {providerInfo.data ? (
+          <Badge variant="secondary" data-testid="copilot-provider">
+            {t(
+              providerInfo.data.source === 'organization'
+                ? 'providerOrganization'
+                : 'providerDeployment',
+              { provider: providerInfo.data.provider, model: providerInfo.data.model },
+            )}
+          </Badge>
+        ) : null}
       </div>
       <p className="text-muted-foreground -mt-2 text-sm">{t('subtitle')}</p>
 
