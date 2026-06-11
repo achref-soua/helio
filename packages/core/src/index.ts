@@ -80,6 +80,7 @@ export {
   isLikelyDomain,
   type RecordOptions,
   spfPasses,
+  suggestedSpfInclude,
 } from './deliverability';
 export {
   type EmailBlock,
