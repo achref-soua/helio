@@ -59,3 +59,13 @@ describe('waitForHttpOk', () => {
     ).resolves.toBe(false);
   });
 });
+
+describe('readManifest resilience', () => {
+  it('answers null for corrupt manifests instead of crashing', async () => {
+    const { writeFileSync } = await import('node:fs');
+    const home = mkdtempSync(path.join(tmpdir(), 'helio-home-'));
+    const paths = installPaths(home);
+    writeFileSync(paths.manifestFile, '{not json');
+    expect(readManifest(paths)).toBeNull();
+  });
+});
