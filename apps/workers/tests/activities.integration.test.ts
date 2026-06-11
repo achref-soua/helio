@@ -18,6 +18,12 @@ const CONFIG = {
   unsubscribeSecret: 'unsubscribe-secret-for-tests-1',
 };
 
+/** Static resolution: every org sends through the test double. */
+function senderFor(emailProvider: InMemoryEmailProvider) {
+  return () =>
+    Promise.resolve({ provider: emailProvider, from: CONFIG.mailFrom, viaOrgCredential: false });
+}
+
 describe('campaign activities against Postgres', () => {
   let container: StartedPostgreSqlContainer;
   let prisma: PrismaClient;
@@ -49,7 +55,7 @@ describe('campaign activities against Postgres', () => {
     });
     prisma = createPrismaClient(adminUrl);
     provider = new InMemoryEmailProvider();
-    activities = createActivities(prisma, provider, CONFIG);
+    activities = createActivities(prisma, senderFor(provider), CONFIG);
 
     await prisma.organization.create({ data: { id: orgId, name: 'W', slug: 'workers' } });
     await prisma.workspace.create({
@@ -353,7 +359,7 @@ describe('campaign activities against Postgres', () => {
           ],
         }),
       } as unknown as Parameters<typeof createActivities>[3];
-      const withCh = createActivities(prisma, provider, CONFIG, fakeClickhouse);
+      const withCh = createActivities(prisma, senderFor(provider), CONFIG, fakeClickhouse);
       const chStats = await runActivity(withCh.abVariantStats, id);
       expect(chStats.a).toEqual({ sent: 2, opens: 1 });
       expect(chStats.b).toEqual({ sent: 1, opens: 3 });

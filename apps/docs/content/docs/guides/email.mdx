@@ -47,13 +47,24 @@ Every marketing email carries a **one-click unsubscribe** (RFC 8058) header and
 link, plus a hosted **preference center**. Unsubscribes hit the suppression list
 immediately and are honored across all future sends.
 
+## Connect your provider
+
+Each organization sends through **its own** provider, connected once under
+**Settings → Provider credentials → Email sending**: native adapters for
+Postmark, Resend, and Mailgun, plus SMTP for any relay (Amazon SES, Gmail,
+Brevo, your own server — use their SMTP endpoints). The credential carries
+your From name and address, is encrypted at rest, and can be verified with
+one click before anything is sent. Until a provider is connected, sends use
+the deployment's fallback SMTP — which in local development is Mailpit, a
+test inbox that delivers nothing.
+
 ## Deliverability
 
 - Transactional and marketing streams are kept separate.
 - Bounce and complaint webhooks feed the suppression list automatically.
-- Helio sends through your relay (SMTP, SES, Postmark, Resend, or Mailgun) — it
-  deliberately does **not** ship its own MTA, which would be a deliverability
-  trap. In local development, all mail is caught by
+- Helio sends through your relay or provider — it deliberately does **not**
+  ship its own MTA, which would be a deliverability trap. In local
+  development, all mail is caught by
   [Mailpit](https://mailpit.axllent.org/) so nothing real is sent.
 
 ## Natural language → email

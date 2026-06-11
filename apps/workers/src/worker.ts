@@ -7,7 +7,9 @@ import { NativeConnection, Worker } from '@temporalio/worker';
 import { pino } from 'pino';
 
 import { createActivities } from './activities';
+import type { CredentialReader } from './credential-store';
 import { SmtpEmailProvider } from './email-provider';
+import { createEmailSenderResolver } from './email-provider-factory';
 import { env } from './env';
 import { createJourneyActivities } from './journey-activities';
 import { WebPushProvider } from './push-provider';
@@ -27,8 +29,14 @@ const provider = new SmtpEmailProvider({
   password: env.SMTP_PASSWORD,
 });
 
+// Structural cast at the composition root: the store reads one delegate
+// with a fixed query shape; tests stub that same narrow surface.
+const resolveEmailSender = createEmailSenderResolver(prisma as unknown as CredentialReader, {
+  provider,
+  from: env.MAIL_FROM,
+});
+
 const activityConfig = {
-  mailFrom: env.MAIL_FROM,
   appUrl: env.APP_URL,
   trackingUrl: env.PUBLIC_TRACKING_URL,
   trackingSecret: env.TRACKING_SECRET,
@@ -49,10 +57,10 @@ const worker = await Worker.create({
   taskQueue: SENDS_TASK_QUEUE,
   workflowsPath: new URL('./workflows.ts', import.meta.url).pathname,
   activities: {
-    ...createActivities(prisma, provider, activityConfig, clickhouse),
+    ...createActivities(prisma, resolveEmailSender, activityConfig, clickhouse),
     ...createJourneyActivities(
       prisma,
-      provider,
+      resolveEmailSender,
       activityConfig,
       env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY
         ? new WebPushProvider({
