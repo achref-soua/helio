@@ -6,6 +6,7 @@ import { campaignRouter } from './campaign';
 import { contactRouter } from './contact';
 import { contactListRouter } from './contact-list';
 import { copilotRouter } from './copilot';
+import { credentialsRouter } from './credentials';
 import { crmRouter } from './crm';
 import { deliverabilityRouter } from './deliverability';
 import { emailTemplateRouter } from './email-template';
@@ -43,6 +44,7 @@ export const appRouter = router({
   scoring: scoringRouter,
   scheduling: schedulingRouter,
   crm: crmRouter,
+  credentials: credentialsRouter,
   sso: ssoRouter,
   apiKey: apiKeyRouter,
   webhook: webhookRouter,

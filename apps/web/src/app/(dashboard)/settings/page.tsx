@@ -7,6 +7,7 @@ import { auth } from '@/lib/auth';
 import { AboutPanel } from './about-panel';
 import { ApiKeysPanel } from './api-keys-panel';
 import { BrandingPanel } from './branding-panel';
+import { CredentialsPanel } from './credentials-panel';
 import { DeliverabilityPanel } from './deliverability-panel';
 import { IntegrationsPanel } from './integrations-panel';
 import { MembersPanel } from './members-panel';
@@ -57,6 +58,7 @@ export default async function SettingsPage() {
       <SecurityPanel />
       {(me?.role === 'owner' || me?.role === 'admin') && (
         <>
+          <CredentialsPanel canManage />
           <SsoPanel canManage />
           <ScimPanel canManage />
           <ApiKeysPanel canManage />

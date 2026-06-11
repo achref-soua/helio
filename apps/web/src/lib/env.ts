@@ -18,6 +18,11 @@ export const env = createEnv({
   TEMPORAL_NAMESPACE: z.string().min(1).default('default'),
   // Verifies the stateless unsubscribe tokens minted by the senders.
   UNSUBSCRIBE_SECRET: z.string().min(24),
+  // Seals per-org provider credentials at rest (base64 of 32 bytes; the
+  // installer generates it). The vault is disabled until set. During a
+  // key rotation the previous key stays readable via _PREVIOUS.
+  HELIO_ENCRYPTION_KEY: z.string().optional(),
+  HELIO_ENCRYPTION_KEY_PREVIOUS: z.string().optional(),
   // Analytics reads (full profile); callers degrade gracefully without it.
   CLICKHOUSE_URL: z.string().min(1).default('http://localhost:8123'),
   CLICKHOUSE_USER: z.string().min(1).default('helio'),
