@@ -42,6 +42,11 @@ export function DealDetail({ dealId }: { dealId: string }) {
   const deal = useQuery(trpc.crm.getDeal.queryOptions({ id: dealId }));
   const history = useQuery(trpc.crm.dealHistory.queryOptions({ id: dealId }));
   const members = useQuery(trpc.crm.members.queryOptions());
+  const companies = useQuery({
+    ...trpc.crm.companies.queryOptions({ workspaceId: deal.data?.workspaceId ?? '' }),
+    enabled: Boolean(deal.data?.workspaceId),
+  });
+  const setCompany = useMutation(trpc.crm.setDealCompany.mutationOptions());
   const setOwner = useMutation(trpc.crm.setDealOwner.mutationOptions());
   const setStatus = useMutation(trpc.crm.setDealStatus.mutationOptions());
   const moveDeal = useMutation(trpc.crm.moveDeal.mutationOptions());
@@ -209,10 +214,29 @@ export function DealDetail({ dealId }: { dealId: string }) {
                 <span className="text-muted-foreground">—</span>
               )}
             </div>
-            <div className="flex justify-between gap-2">
+            <label className="grid gap-1">
               <span className="text-muted-foreground">{t('company')}</span>
-              <span className="truncate">{data.company?.name ?? '—'}</span>
-            </div>
+              <select
+                aria-label={t('company')}
+                className="border-input bg-background h-9 rounded-md border px-2"
+                value={data.companyId ?? ''}
+                onChange={(event) =>
+                  run(() =>
+                    setCompany.mutateAsync({
+                      dealId: data.id,
+                      companyId: event.target.value || null,
+                    }),
+                  )
+                }
+              >
+                <option value="">{t('noCompany')}</option>
+                {(companies.data ?? []).map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            </label>
           </CardContent>
         </Card>
 

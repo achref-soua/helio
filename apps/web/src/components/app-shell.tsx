@@ -6,6 +6,7 @@ import { cn } from '@helio/ui/lib/utils';
 import {
   AppWindow,
   BarChart3,
+  Building2,
   CalendarClock,
   CircleHelp,
   FileText,
@@ -52,6 +53,7 @@ const NAV_ITEMS = [
   { key: 'journeys', href: '/journeys', icon: Workflow },
   { key: 'insights', href: '/insights', icon: BarChart3 },
   { key: 'deals', href: '/deals', icon: Handshake },
+  { key: 'companies', href: '/companies', icon: Building2 },
   { key: 'tasks', href: '/tasks', icon: ListTodo },
   { key: 'scheduling', href: '/scheduling', icon: CalendarClock },
   { key: 'copilot', href: '/copilot', icon: Sparkles },

@@ -1,4 +1,5 @@
 import { newId, taskPrioritySchema, taskStatusSchema, taskTypeSchema } from '@helio/core';
+import { Prisma } from '@helio/db';
 import { type inferProcedureBuilderResolverOptions, TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
@@ -501,6 +502,115 @@ export const crmRouter = router({
       const task = await ctx.tenantDb.task.delete({ where: { id: input.id } });
       await writeAudit(ctx, task.workspaceId, 'task.deleted', 'task', input.id);
       return { id: input.id };
+    }),
+
+  // ── Companies (H4): the B2B account object ─────────────────────────────
+
+  companies: orgProcedure
+    .input(
+      z.object({ workspaceId: z.string().min(1), search: z.string().trim().max(120).optional() }),
+    )
+    .query(({ ctx, input }) =>
+      ctx.tenantDb.company.findMany({
+        where: {
+          workspaceId: input.workspaceId,
+          ...(input.search
+            ? { name: { contains: input.search, mode: 'insensitive' as const } }
+            : {}),
+        },
+        orderBy: { name: 'asc' },
+        take: 200,
+        include: { _count: { select: { contacts: true, deals: true } } },
+      }),
+    ),
+
+  createCompany: orgProcedure
+    .input(
+      z.object({
+        workspaceId: z.string().min(1),
+        name: z.string().trim().min(1).max(160),
+        domain: z.string().trim().max(160).optional(),
+        industry: z.string().trim().max(120).optional(),
+        website: z.string().trim().url().max(300).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      try {
+        const company = await ctx.tenantDb.company.create({
+          data: {
+            id: newId('co'),
+            organizationId: ctx.organizationId,
+            workspaceId: input.workspaceId,
+            name: input.name,
+            domain: input.domain,
+            industry: input.industry,
+            website: input.website,
+          },
+        });
+        await writeAudit(ctx, input.workspaceId, 'company.created', 'company', company.id);
+        return { id: company.id };
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+          throw new TRPCError({ code: 'CONFLICT', message: 'A company with this name exists' });
+        }
+        throw error;
+      }
+    }),
+
+  updateCompany: orgProcedure
+    .input(
+      z.object({
+        id: z.string().min(1),
+        name: z.string().trim().min(1).max(160).optional(),
+        domain: z.string().trim().max(160).nullable().optional(),
+        industry: z.string().trim().max(120).nullable().optional(),
+        website: z.string().trim().url().max(300).nullable().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const { id, ...rest } = input;
+      const company = await ctx.tenantDb.company.update({ where: { id }, data: rest });
+      await writeAudit(ctx, company.workspaceId, 'company.updated', 'company', id);
+      return { id };
+    }),
+
+  deleteCompany: orgProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const company = await ctx.tenantDb.company.delete({ where: { id: input.id } });
+      await writeAudit(ctx, company.workspaceId, 'company.deleted', 'company', input.id);
+      return { id: input.id };
+    }),
+
+  setContactCompany: orgProcedure
+    .input(z.object({ contactId: z.string().min(1), companyId: z.string().min(1).nullable() }))
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const contact = await ctx.tenantDb.contact.update({
+        where: { id: input.contactId },
+        data: { companyId: input.companyId },
+      });
+      await writeAudit(ctx, contact.workspaceId, 'contact.company_changed', 'contact', contact.id, {
+        companyId: input.companyId,
+      });
+      return { id: contact.id };
+    }),
+
+  setDealCompany: orgProcedure
+    .input(z.object({ dealId: z.string().min(1), companyId: z.string().min(1).nullable() }))
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const deal = await ctx.tenantDb.deal.update({
+        where: { id: input.dealId },
+        data: { companyId: input.companyId },
+      });
+      await writeAudit(ctx, deal.workspaceId, 'deal.company_changed', 'deal', deal.id, {
+        companyId: input.companyId,
+      });
+      return { id: deal.id };
     }),
 
   // ── Notes (H2/H3): free text on a contact or a deal ────────────────────
