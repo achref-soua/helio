@@ -132,12 +132,32 @@ flowchart TB
 
 TypeScript owns the product surface (dashboard, APIs, journey workers on Temporal for durable execution); Python owns the intelligence plane (scoring, content generation, segment compute, MCP). PostgreSQL holds transactional state with row-level security per tenant; ClickHouse holds the event firehose for analytics; Redpanda is the backbone between them.
 
-## Quickstart
+## Install in one command
+
+No git, no IDE — just Docker ([Desktop](https://docs.docker.com/desktop/) on Windows/macOS, [Engine](https://docs.docker.com/engine/install/) on servers).
+
+**Linux / macOS / servers & VMs**
+
+```bash
+curl -fsSL https://github.com/achref-soua/helio/releases/latest/download/install.sh | sh
+```
+
+**Windows (PowerShell)**
+
+```powershell
+irm https://github.com/achref-soua/helio/releases/latest/download/install.ps1 | iex
+```
+
+The installer downloads the `helio` CLI for your machine, checks Docker, generates this installation's secrets, pulls release-pinned images, runs migrations, starts the stack, and opens the dashboard — create the first account there and it becomes the administrator. Day 2 is just as boring: `helio status`, `helio logs`, `helio backup`, `helio update` (which takes a safety backup first), `helio doctor` when something looks off.
+
+Everything lives under `~/.helio` (compose file, `.env` with your secrets, backups). The default **core** profile (~2.5 GB RAM) runs the dashboard, REST API, and AI service; `helio up --full` adds campaign sending, event ingestion, tracking, and analytics for bigger hosts. Mail goes to the bundled [Mailpit](https://mailpit.axllent.org/) test inbox until an organization connects its real provider under **Settings → Provider credentials** — so you can explore without sending anyone anything.
+
+## Develop from source
 
 ```bash
 git clone https://github.com/achref-soua/helio.git
 cd helio
-cp .env.example .env       # set BETTER_AUTH_SECRET + API_BOOTSTRAP_TOKEN (openssl rand -hex 32)
+cp .env.example .env       # set BETTER_AUTH_SECRET (openssl rand -hex 32) + HELIO_ENCRYPTION_KEY (openssl rand -base64 32)
 task setup                 # install dependencies + git hooks
 task up                    # Postgres (+pgvector), Redis, Mailpit
 task db:migrate && task db:seed

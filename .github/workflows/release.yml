@@ -1,0 +1,81 @@
+# The ONLY workflow in this repository, by design: day-to-day CI is the
+# local `task verify` gate, and Actions runs exclusively on release tags —
+# no push/PR jobs, no schedules, no notification noise.
+#
+# Release mechanic (docs/runbooks/production-ops.md):
+#   1. `gh release create vX.Y.Z --target main --notes …` creates the tag
+#      and the release (use --prerelease for RCs).
+#   2. The tag event runs this workflow, which publishes the images and
+#      uploads the CLI binaries + install bundle to that existing release.
+# Everything here is also reproducible locally without Actions:
+# `task release:images`, `task release:binaries`, `task release:bundle`.
+
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [web, api, ingest, tracking, workers, intelligence, migrate]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/${{ matrix.service }}.Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/helio-${{ matrix.service }}:${{ github.ref_name }}
+          build-args: |
+            HELIO_VERSION=${{ github.ref_name }}
+            HELIO_COMMIT=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,scope=${{ matrix.service }},mode=max
+      - name: Scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/helio-${{ matrix.service }}:${{ github.ref_name }}
+          severity: CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
+
+  assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: oven-sh/setup-bun@v2
+      - run: pnpm install --frozen-lockfile
+      - name: Build the CLI binaries
+        run: bash scripts/release/build-binaries.sh ${{ github.ref_name }}
+      - name: Build the install bundle
+        run: pnpm exec tsx scripts/release/build-bundle.ts --version ${{ github.ref_name }}
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            dist/helio-* dist/checksums.txt \
+            scripts/install.sh scripts/install.ps1 \
+            --clobber
