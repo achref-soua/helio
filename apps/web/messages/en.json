@@ -1312,6 +1312,34 @@
       "actions": "Actions",
       "csv": "CSV",
       "empty": "Nothing here yet."
+    },
+    "health": {
+      "services": "Services",
+      "servicesHint": "Every Helio service, with the version it reports.",
+      "stores": "Stores & checks",
+      "storesHint": "Data stores by reachability, plus the operational pulse.",
+      "up": "Up",
+      "down": "Down",
+      "off": "Off",
+      "lastBackup": "Last successful backup",
+      "never": "never",
+      "hoursAgo": "{hours}h ago",
+      "failedCredentials": "Failed credentials",
+      "failedModels": "Failed churn models",
+      "alerts": "System alerts",
+      "alertsHint": "Raised by send, backup, and model failures. One unread alert per cause.",
+      "when": "When",
+      "kind": "Kind",
+      "message": "Message",
+      "markRead": "Mark read",
+      "markAllRead": "Mark all read",
+      "noAlerts": "No alerts — quiet skies."
+    },
+    "bell": {
+      "open": "Open system alerts ({count} unread)",
+      "title": "System alerts",
+      "empty": "No alerts.",
+      "markAllRead": "Mark all read"
     }
   }
 }

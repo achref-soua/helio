@@ -102,6 +102,11 @@ services:
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
       CLICKHOUSE_DB: ${CLICKHOUSE_DB:-helio}
       INTELLIGENCE_URL: http://intelligence:8000
+      # Admin → Health checks (service-DNS targets inside the network).
+      API_URL: http://api:4000
+      INGEST_URL: http://ingest:4100
+      TRACKING_URL: http://tracking:4200
+      REDIS_URL: redis://redis:6379
       BACKUPS_PANEL_ENABLED: ${BACKUPS_PANEL_ENABLED:-true}
       HELIO_BACKUPS_PATH: /var/lib/helio/backups
     volumes:

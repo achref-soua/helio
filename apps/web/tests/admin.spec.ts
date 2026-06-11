@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process';
+
 import { expect, test } from '@playwright/test';
 
 /**
@@ -50,4 +52,52 @@ test('reports render Postgres numbers and degrade engagement without ClickHouse'
   await page.getByTestId('report-journeys').getByRole('button', { name: 'CSV' }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('helio-journey-report.csv');
+});
+
+function psql(query: string): string {
+  return execFileSync('docker', [
+    'exec',
+    'helio-postgres-1',
+    'psql',
+    '-U',
+    'helio',
+    '-d',
+    'helio',
+    '-t',
+    '-A',
+    '-c',
+    query,
+  ])
+    .toString()
+    .trim();
+}
+
+test('health shows honest service status and the alert bell round-trips', async ({ page }) => {
+  // This run's organization is the newest one; seed it one unread alert
+  // (the superuser connection bypasses RLS, like the backups spec).
+  const orgId = psql('SELECT id FROM organization ORDER BY created_at DESC LIMIT 1');
+  psql(
+    `INSERT INTO system_alert (id, organization_id, kind, message, context) ` +
+      `VALUES ('alrt_e2e_${Date.now()}', '${orgId}', 'e2e_probe', 'Test alert from the e2e suite', '{}')`,
+  );
+
+  await page.goto('/admin/health');
+  await expect(page.getByTestId('health-view')).toBeVisible();
+  // The e2e profile runs core only: postgres is up, the intelligence
+  // service is down, and the optional stores read as Off — not as errors.
+  const services = page.getByTestId('health-services');
+  await expect(services.getByText('web', { exact: true })).toBeVisible();
+  await expect(services.getByText('intelligence')).toBeVisible();
+  await expect(services.getByText('Down').first()).toBeVisible();
+  const stores = page.getByTestId('health-stores');
+  await expect(stores.getByText('postgres')).toBeVisible();
+  await expect(stores.getByText('Up').first()).toBeVisible();
+
+  // The seeded alert is in the feed and on the bell.
+  await expect(page.getByTestId('health-alerts')).toContainText('Test alert from the e2e suite');
+  await expect(page.getByTestId('alert-badge')).toBeVisible();
+
+  // Mark all read: the feed greys out and the badge goes away.
+  await page.getByRole('button', { name: 'Mark all read' }).click();
+  await expect(page.getByTestId('alert-badge')).toHaveCount(0);
 });

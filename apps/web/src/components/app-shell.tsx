@@ -30,6 +30,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { AlertBell } from '@/components/alert-bell';
 import { HelpMenu } from '@/components/help-menu';
 import { ReportDialog } from '@/components/report-dialog';
 import { SunSplash } from '@/components/sun-splash';
@@ -162,6 +163,7 @@ export function AppShell({
           </Sheet>
           <div className="ml-auto flex items-center gap-1">
             <WorkspaceSwitcher />
+            <AlertBell />
             <HelpMenu />
             <ReportDialog />
             <ThemeToggle />

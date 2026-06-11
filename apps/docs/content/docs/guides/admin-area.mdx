@@ -49,7 +49,23 @@ provisioning included.
 Tabular cards download as CSV. Numbers come from Helio's own database
 first, so the page works on the core profile without ClickHouse.
 
+## System health
+
+**Admin → Health** is the page to open when something feels off:
+
+- **Services** — every Helio service with the version it reports, checked
+  live. A core-profile install shows the full-profile services as _Off_,
+  not as errors.
+- **Stores & checks** — Postgres, Redis, ClickHouse, and Temporal
+  reachability; the age of the last successful backup (flagged after 36
+  hours); failed provider credentials and churn models that need
+  attention.
+- **System alerts** — the feed that send, backup, and model failures
+  raise (one unread alert per cause). The bell in the top bar shows the
+  unread count everywhere in the app; mark alerts read here or from the
+  bell.
+
 <Callout type="info">
-  Who can see this? `admin:audit` / `admin:reports` — admins and owners. The full role matrix lives
-  in [Roles & permissions](/docs/security/permissions).
+  Who can see this? `admin:audit` / `admin:reports` / `admin:health` — admins and owners. The full
+  role matrix lives in [Roles & permissions](/docs/security/permissions).
 </Callout>

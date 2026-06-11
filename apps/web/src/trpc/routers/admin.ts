@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { authDb } from '@/lib/auth';
 import { getClickHouse } from '@/lib/clickhouse';
+import { collectSystemHealth } from '@/lib/system-health';
 
 import { orgProcedure, requirePermission, router } from '../init';
 
@@ -238,6 +239,60 @@ export const adminRouter = router({
       actions: entry._count._all,
     }));
   }),
+
+  /** Service + store reachability, backup staleness, config trouble spots. */
+  health: orgProcedure.query(async ({ ctx }) => {
+    requirePermission(ctx.memberRole, 'admin:health');
+    const [system, latestBackup, failedModels, failedCredentials] = await Promise.all([
+      collectSystemHealth(),
+      ctx.appDb.backupRun
+        .findFirst({ where: { status: 'OK' }, orderBy: { startedAt: 'desc' } })
+        .catch(() => null),
+      ctx.tenantDb.churnModel.count({ where: { status: 'FAILED' } }),
+      ctx.tenantDb.providerCredential.count({ where: { status: 'FAILED' } }),
+    ]);
+    const backupAgeHours = latestBackup
+      ? Math.floor((Date.now() - latestBackup.startedAt.getTime()) / 3_600_000)
+      : null;
+    return {
+      ...system,
+      backup: {
+        lastOkAgeHours: backupAgeHours,
+        stale: backupAgeHours === null || backupAgeHours > 36,
+      },
+      failedModels,
+      failedCredentials,
+    };
+  }),
+
+  alertsList: orgProcedure.query(async ({ ctx }) => {
+    requirePermission(ctx.memberRole, 'admin:health');
+    const [alerts, unread] = await Promise.all([
+      ctx.tenantDb.systemAlert.findMany({ orderBy: { createdAt: 'desc' }, take: 50 }),
+      ctx.tenantDb.systemAlert.count({ where: { readAt: null } }),
+    ]);
+    return {
+      unread,
+      alerts: alerts.map((alert) => ({
+        id: alert.id,
+        kind: alert.kind,
+        message: alert.message,
+        readAt: alert.readAt,
+        createdAt: alert.createdAt,
+      })),
+    };
+  }),
+
+  alertsMarkRead: orgProcedure
+    .input(z.object({ id: z.string().min(1).optional() }))
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'admin:health');
+      await ctx.tenantDb.systemAlert.updateMany({
+        where: { readAt: null, ...(input.id ? { id: input.id } : {}) },
+        data: { readAt: new Date() },
+      });
+      return { ok: true };
+    }),
 
   auditExportCsv: orgProcedure.input(auditFilters).mutation(async ({ ctx, input }) => {
     requirePermission(ctx.memberRole, 'admin:audit');
