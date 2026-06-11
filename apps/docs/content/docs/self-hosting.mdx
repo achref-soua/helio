@@ -3,9 +3,60 @@ title: Self-hosting
 description: Bring the whole Helio platform up locally with one command, then deploy it however you like.
 ---
 
-Helio is built to be self-hosted. A reviewer cloning the repository should have
-the platform live locally in minutes, with seeded demo data. This page is the
-shortest path there, plus the full build-and-run reference.
+Helio is built to be self-hosted — by anyone, not just engineers. The
+supported path is one command; cloning the repository is only for people
+hacking on Helio itself.
+
+## Install in one command
+
+The only prerequisite is Docker ([Docker Desktop](https://docs.docker.com/desktop/)
+on Windows and macOS — Windows uses its WSL 2 backend, which Desktop sets up —
+or [Docker Engine](https://docs.docker.com/engine/install/) on Linux servers
+and VMs).
+
+**Linux / macOS / servers**
+
+```bash
+curl -fsSL https://github.com/achref-soua/helio/releases/latest/download/install.sh | sh
+```
+
+**Windows (PowerShell)**
+
+```powershell
+irm https://github.com/achref-soua/helio/releases/latest/download/install.ps1 | iex
+```
+
+The installer fetches the `helio` CLI for your platform, verifies Docker (and
+tells you exactly what to fix if it isn't ready), generates this
+installation's secrets into `~/.helio/.env`, downloads the release-pinned
+compose bundle, pulls images, runs migrations, starts everything, and opens
+the dashboard. The first account you create becomes the administrator.
+
+Pick the **core** profile (default, ~2.5 GB RAM: dashboard, REST API, AI
+copilot) or **full** (adds campaign sending, event ingestion, tracking, and
+analytics — recommended on ≥ 8 GB hosts; switch later with `helio up --full`).
+
+### Operating it
+
+| Command             | What it does                                                             |
+| ------------------- | ------------------------------------------------------------------------ |
+| `helio status`      | Services, installed version, and a dashboard health probe.               |
+| `helio logs [svc]`  | Tail logs (all services or one).                                         |
+| `helio update`      | Move to a newer release — takes a safety backup first, then migrates.    |
+| `helio backup`      | Local database backups (see the backup & restore guide).                 |
+| `helio rotate-key`  | Rotate the credential-vault encryption key with zero downtime.           |
+| `helio doctor`      | Check Docker, ports, disk, and the installation when something is off.   |
+| `helio down` / `up` | Stop / start without losing anything.                                    |
+| `helio uninstall`   | Remove Helio (`--purge-data` erases volumes and config — it asks twice). |
+
+Everything lives in `~/.helio`: the pinned compose file, your `.env`
+(secrets — keep a copy with your backups), downloaded releases, and local
+backups. Pin a version with `HELIO_VERSION=vX.Y.Z` before the install
+one-liner, or `helio install --version vX.Y.Z`.
+
+## Developing from source
+
+Everything below is for working on Helio itself.
 
 ## Prerequisites
 
@@ -79,8 +130,8 @@ stream into the dashboard.
 ## Deployment
 
 Multi-stage, non-root, healthchecked images for every service live in
-`infra/docker/` and publish to GHCR on every `main` push (Trivy-gated, with an
-SBOM attached):
+`infra/docker/` and publish to GHCR **on release tags** (Trivy-gated) — the
+repository's single workflow; `task release:images` reproduces it locally:
 
 ```bash
 for service in web api ingest tracking workers intelligence; do

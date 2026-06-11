@@ -101,6 +101,24 @@ tasks:
     cmds:
       - pnpm --filter @helio/web exec tsx scripts/demo-video.ts
 
+  release:images:
+    desc: 'Build + push every release image locally (sequential — OOM-safe; needs: docker login ghcr.io, VERSION=vX.Y.Z)'
+    cmds:
+      - |
+        set -eu
+        : "${VERSION:?set VERSION=vX.Y.Z}"
+        COMMIT=$(git rev-parse HEAD)
+        for svc in web api ingest tracking workers intelligence migrate; do
+          echo "── building helio-$svc:$VERSION"
+          docker build -f infra/docker/$svc.Dockerfile             --build-arg HELIO_VERSION=$VERSION --build-arg HELIO_COMMIT=$COMMIT             -t ghcr.io/achref-soua/helio-$svc:$VERSION .
+          docker push ghcr.io/achref-soua/helio-$svc:$VERSION
+        done
+
+  release:binaries:
+    desc: 'Cross-compile the helio CLI for all platforms (needs bun; VERSION=vX.Y.Z)'
+    cmds:
+      - bash scripts/release/build-binaries.sh {{.VERSION | default "vDEV"}}
+
   release:bundle:
     desc: 'Build the pinned self-host install bundle (dist/helio-bundle-<v>.tar.gz)'
     cmds:
