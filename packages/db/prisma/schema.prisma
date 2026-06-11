@@ -61,6 +61,7 @@ model Organization {
   inAppDeliveries     InAppDelivery[]
   providerCredentials ProviderCredential[]
   systemAlerts        SystemAlert[]
+  churnModels         ChurnModel[]
 
   @@map("organization")
 }
@@ -94,6 +95,54 @@ model BackupRequest {
   pickedUpAt  DateTime? @map("picked_up_at")
 
   @@map("backup_request")
+}
+
+/// Which artifact format a bring-your-own churn model uses (ADR-0021).
+enum ChurnModelFormat {
+  ONNX
+  XGBOOST_JSON
+  HTTP
+}
+
+enum ChurnModelStatus {
+  VALIDATING
+  ACTIVE
+  FAILED
+  DISABLED
+}
+
+/// A bring-your-own churn model: an uploaded ONNX/XGBoost artifact (file
+/// lives on the intelligence service's models volume) or an HTTPS predict
+/// endpoint. featureMapping is an ordered subset of the scoring feature
+/// names — validated in core (zod) AND in the Python runtime, so renames
+/// break loudly instead of producing garbage predictions. One ACTIVE
+/// model per workspace, enforced transactionally.
+model ChurnModel {
+  id             String           @id
+  organizationId String           @map("organization_id")
+  workspaceId    String           @map("workspace_id")
+  name           String
+  format         ChurnModelFormat
+  filename       String?
+  sizeBytes      Int?             @map("size_bytes")
+  sha256         String?
+  endpointUrl    String?          @map("endpoint_url")
+  /// Optional vault credential (kind CHURN_ENDPOINT) carrying the
+  /// endpoint's Authorization header value.
+  credentialId   String?          @map("credential_id")
+  featureMapping Json             @map("feature_mapping")
+  status         ChurnModelStatus @default(VALIDATING)
+  lastError      String?          @map("last_error")
+  validatedAt    DateTime?        @map("validated_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, name])
+  @@index([organizationId])
+  @@index([workspaceId, status])
+  @@map("churn_model")
 }
 
 /// An operational notice for an organization — provider send failures,

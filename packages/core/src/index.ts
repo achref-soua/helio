@@ -28,6 +28,16 @@ export {
 } from './attribution';
 export { isHexColor, readableTextColor } from './branding';
 export {
+  CHURN_FEATURE_NAMES,
+  CHURN_MODEL_FORMATS,
+  CHURN_UPLOAD_EXTENSIONS,
+  type ChurnFeatureMapping,
+  churnFeatureMappingSchema,
+  type ChurnFeatureName,
+  type ChurnModelFormat,
+  defaultChurnFeatureMapping,
+} from './churn-model';
+export {
   contactEmailSchema,
   detectImportSource,
   type ImportSource,
