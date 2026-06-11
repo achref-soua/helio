@@ -4,6 +4,7 @@
  *   D6 — update, rotate-key
  *   E4 — backup, restore
  */
+import './backup';
 import './doctor';
 import './install';
 import './lifecycle';

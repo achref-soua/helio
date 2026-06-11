@@ -21,6 +21,10 @@ the retention to your compliance window. Self-managed:
 
 ```bash
 # Nightly logical dump (the admin role owns the schema)
+# Bundle installs (helio CLI): backups are automatic — the helio-backup
+# sidecar takes a nightly pg_dump, Settings → Backups shows them, and
+# `helio backup` / `helio restore <file>` run them by hand (ADR-0020).
+# The manual command below is for source/managed deployments:
 pg_dump "$DATABASE_ADMIN_URL" --format=custom --file=helio-$(date +%F).dump
 
 # Restore into a fresh database, then verify RLS roles exist

@@ -16,6 +16,7 @@
     "crm",
     "scheduling",
     "integrations",
-    "white-labeling"
+    "white-labeling",
+    "backup-restore"
   ]
 }
