@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
-// System health (G5) appends here when it lands.
 const SECTIONS = [
   { key: 'audit', href: '/admin/audit' },
   { key: 'reports', href: '/admin/reports' },
+  { key: 'health', href: '/admin/health' },
 ] as const;
 
 export function AdminNav() {

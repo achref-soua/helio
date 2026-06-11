@@ -38,6 +38,12 @@ export const env = createEnv({
   // The intelligence service (AI copilot). The BFF authenticates the user
   // and forwards the verified org/workspace; this is the only caller.
   INTELLIGENCE_URL: z.string().min(1).default('http://localhost:8000'),
+  // Sibling services + stores for the admin health page (G5). HTTP ones
+  // answer /healthz; Redis/Temporal get a TCP reachability probe.
+  API_URL: z.string().min(1).default('http://localhost:4000'),
+  INGEST_URL: z.string().min(1).default('http://localhost:4100'),
+  TRACKING_URL: z.string().min(1).default('http://localhost:4200'),
+  REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
   // Per-replica abuse damping on the public, unauthenticated endpoints
   // (forms, booking, widget/in-app delivery, SCIM). Disable for load tests.
   PUBLIC_RATE_LIMITS_ENABLED: z
