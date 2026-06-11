@@ -9,6 +9,7 @@ import { AnalyticsPanel } from './analytics-panel';
 import { ApiKeysPanel } from './api-keys-panel';
 import { BackupsPanel } from './backups-panel';
 import { BrandingPanel } from './branding-panel';
+import { ChurnModelPanel } from './churn-model-panel';
 import { CredentialsPanel } from './credentials-panel';
 import { DeliverabilityPanel } from './deliverability-panel';
 import { IntegrationsPanel } from './integrations-panel';
@@ -69,6 +70,7 @@ export default async function SettingsPage() {
           <BrandingPanel canManage />
           <DeliverabilityPanel canManage />
           <AnalyticsPanel canManage />
+          <ChurnModelPanel canManage />
           <BackupsPanel isOwner={me?.role === 'owner'} />
           <SupportPanel canManage />
         </>

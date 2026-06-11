@@ -25,6 +25,10 @@ const BUDGETS = {
   booking: { max: 30, windowSeconds: 60 },
   /** Backup downloads — authenticated owners pulling dump files. */
   backupDownload: { max: 20, windowSeconds: 60 },
+  /** Churn-model artifact uploads — admin-only, large bodies. */
+  modelUpload: { max: 10, windowSeconds: 60 },
+  /** Churn training-data CSV exports — admin-only, heavy reads. */
+  modelExport: { max: 10, windowSeconds: 60 },
   /** SCIM provisioning — sized for an IdP sync burst. */
   scim: { max: 240, windowSeconds: 60 },
 } as const;

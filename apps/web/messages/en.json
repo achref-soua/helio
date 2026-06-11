@@ -1227,5 +1227,37 @@
     "downloadAria": "Download {file}",
     "restoreHint": "Keep a copy of your .env with these files — restoring on a new machine needs the same encryption key.",
     "genericError": "Something went wrong"
+  },
+  "churnModel": {
+    "title": "Churn prediction model",
+    "subtitle": "Bring your own churn model: upload an ONNX or XGBoost file, or point Helio at a model server. The active model scores every contact on the next recompute, and Helio falls back to its built-in model if yours ever fails.",
+    "status": {
+      "ACTIVE": "Active",
+      "DISABLED": "Ready",
+      "VALIDATING": "Validating",
+      "FAILED": "Failed"
+    },
+    "featuresShort": "features",
+    "uploadTitle": "Upload a model file",
+    "uploadHint": "ONNX (.onnx) or XGBoost JSON (.json), up to 50 MiB. Pickle files are not accepted — export scikit-learn models with skl2onnx.",
+    "endpointTitle": "Or connect a model server",
+    "endpointHint": "Helio POSTs JSON with feature_names and inputs (rows of numbers) and expects predictions back — one probability per row. See the docs for the exact contract.",
+    "nameLabel": "Model name",
+    "fileLabel": "Model file",
+    "urlLabel": "Endpoint URL",
+    "authLabel": "Authorization header (optional)",
+    "authHint": "Stored encrypted in the credential vault; sent as the Authorization header on every call.",
+    "mappingLabel": "Feature mapping (which inputs your model expects, in order)",
+    "upload": "Upload & validate",
+    "register": "Connect & validate",
+    "activate": "Activate",
+    "disable": "Deactivate",
+    "revalidate": "Re-validate",
+    "delete": "Delete",
+    "validated": "Model validated — it is ready to activate.",
+    "validationFailed": "Validation failed",
+    "exportHint": "Download this workspace’s training data (features + churn label) as CSV.",
+    "export": "Training CSV",
+    "genericError": "Something went wrong — try again."
   }
 }
