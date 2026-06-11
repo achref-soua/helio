@@ -2,6 +2,7 @@ import { newId, taskPrioritySchema, taskStatusSchema, taskTypeSchema } from '@he
 import { type inferProcedureBuilderResolverOptions, TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { authDb } from '@/lib/auth';
 import { emitWebhookEvent } from '@/lib/webhooks';
 
 import { orgProcedure, requirePermission, router } from '../init';
@@ -235,6 +236,146 @@ export const crmRouter = router({
       return { id: input.id };
     }),
 
+  /** Everything the deal detail page shows in one round-trip (H3). */
+  getDeal: orgProcedure.input(z.object({ id: z.string().min(1) })).query(async ({ ctx, input }) => {
+    const deal = await ctx.tenantDb.deal.findUnique({
+      where: { id: input.id },
+      include: {
+        stage: { select: { id: true, name: true } },
+        pipeline: { select: { id: true, name: true, stages: { orderBy: { position: 'asc' } } } },
+        contact: { select: { id: true, email: true, firstName: true, lastName: true } },
+        company: { select: { id: true, name: true } },
+        tasks: {
+          select: { id: true, title: true, status: true, dueAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        },
+        notes: { orderBy: [{ pinned: 'desc' }, { createdAt: 'desc' }], take: 50 },
+      },
+    });
+    if (!deal) throw new TRPCError({ code: 'NOT_FOUND', message: 'Deal not found' });
+    const userIds = [
+      ...new Set(
+        [...deal.notes.map((note) => note.authorId), deal.ownerId].filter(
+          (id): id is string => !!id,
+        ),
+      ),
+    ];
+    const users = userIds.length
+      ? await authDb.user
+          .findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, name: true, email: true },
+          })
+          .catch(() => [])
+      : [];
+    const names = new Map(users.map((user) => [user.id, user.name || user.email]));
+    return {
+      ...deal,
+      owner: deal.ownerId ? (names.get(deal.ownerId) ?? deal.ownerId) : null,
+      notes: deal.notes.map((note) => ({
+        ...note,
+        author: note.authorId ? (names.get(note.authorId) ?? null) : null,
+      })),
+    };
+  }),
+
+  /** Org members for the owner picker — names come from the auth kernel. */
+  members: orgProcedure.query(async ({ ctx }) => {
+    const members = await authDb.member.findMany({
+      where: { organizationId: ctx.organizationId },
+      select: { userId: true, user: { select: { name: true, email: true } } },
+    });
+    return members.map((member) => ({
+      userId: member.userId,
+      name: member.user.name || member.user.email,
+    }));
+  }),
+
+  setDealOwner: orgProcedure
+    .input(z.object({ id: z.string().min(1), ownerId: z.string().min(1).nullable() }))
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const deal = await ctx.tenantDb.deal.update({
+        where: { id: input.id },
+        data: { ownerId: input.ownerId },
+      });
+      await writeAudit(ctx, deal.workspaceId, 'deal.owner_changed', 'deal', deal.id, {
+        ownerId: input.ownerId,
+      });
+      return { id: deal.id };
+    }),
+
+  /** Close (or reopen) a deal; the loss reason lives in the audit trail. */
+  setDealStatus: orgProcedure
+    .input(
+      z.object({
+        id: z.string().min(1),
+        status: z.enum(['OPEN', 'WON', 'LOST']),
+        reason: z.string().trim().max(500).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const deal = await ctx.tenantDb.deal.update({
+        where: { id: input.id },
+        data: {
+          status: input.status,
+          closedAt: input.status === 'OPEN' ? null : new Date(),
+        },
+      });
+      await writeAudit(
+        ctx,
+        deal.workspaceId,
+        input.status === 'OPEN'
+          ? 'deal.reopened'
+          : input.status === 'WON'
+            ? 'deal.won'
+            : 'deal.lost',
+        'deal',
+        deal.id,
+        input.reason ? { reason: input.reason } : undefined,
+      );
+      if (input.status === 'WON' || input.status === 'LOST') {
+        await emitWebhookEvent(ctx, input.status === 'WON' ? 'deal.won' : 'deal.lost', {
+          id: deal.id,
+          status: deal.status,
+          workspaceId: deal.workspaceId,
+        });
+      }
+      return { id: deal.id, status: deal.status };
+    }),
+
+  /** The deal's recorded history: moves, edits, closes — actor-resolved. */
+  dealHistory: orgProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const rows = await ctx.tenantDb.auditLog.findMany({
+        where: { targetId: input.id, action: { startsWith: 'deal.' } },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      });
+      const actorIds = [
+        ...new Set(rows.map((row) => row.actorId).filter((id): id is string => !!id)),
+      ];
+      const users = actorIds.length
+        ? await authDb.user
+            .findMany({
+              where: { id: { in: actorIds } },
+              select: { id: true, name: true, email: true },
+            })
+            .catch(() => [])
+        : [];
+      const names = new Map(users.map((user) => [user.id, user.name || user.email]));
+      return rows.map((row) => ({
+        id: row.id,
+        action: row.action,
+        actor: row.actorId ? (names.get(row.actorId) ?? row.actorId) : null,
+        metadata: row.metadata as Record<string, unknown> | null,
+        createdAt: row.createdAt,
+      }));
+    }),
+
   // ── Tasks: workspace-scoped to-dos, optionally tied to a contact/deal ──
 
   tasks: orgProcedure
@@ -422,6 +563,7 @@ async function writeAudit(
   action: string,
   targetType: string,
   targetId: string,
+  metadata?: Record<string, unknown>,
 ) {
   await ctx.tenantDb.auditLog.create({
     data: {
@@ -432,6 +574,7 @@ async function writeAudit(
       action,
       targetType,
       targetId,
+      metadata: metadata as never,
     },
   });
 }

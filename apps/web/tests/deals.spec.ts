@@ -15,10 +15,13 @@ test('deals appears in the primary navigation', async ({ page }) => {
 test('create a pipeline, add a deal, move it to Won, then delete it', async ({ page }) => {
   await page.goto('/deals');
 
-  // Empty state → seed the default pipeline.
-  await expect(page.getByTestId('deals-empty')).toBeVisible();
-  await page.getByRole('button', { name: 'Create pipeline' }).click();
-  await expect(page.getByText('Pipeline created')).toBeVisible();
+  // Another spec may have seeded the pipeline already; create it only
+  // when the empty state is what renders.
+  await expect(page.getByTestId('deals-empty').or(page.getByTestId('deal-board'))).toBeVisible();
+  if (await page.getByTestId('deals-empty').isVisible()) {
+    await page.getByRole('button', { name: 'Create pipeline' }).click();
+    await expect(page.getByText('Pipeline created')).toBeVisible();
+  }
   await expect(page.getByTestId('deal-board')).toBeVisible();
 
   // Add a deal to the first stage (Lead).

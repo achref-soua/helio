@@ -2,6 +2,7 @@ import { contactEmailSchema, contactsToCsv, newId, normalizeContactRows } from '
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { authDb } from '@/lib/auth';
 import { getClickHouse } from '@/lib/clickhouse';
 import { pushContactToSalesforce } from '@/lib/salesforce';
 import { emitWebhookEvent } from '@/lib/webhooks';
@@ -49,7 +50,7 @@ export const contactRouter = router({
       ...new Set(contact.notes.map((note) => note.authorId).filter((id): id is string => !!id)),
     ];
     const authors = authorIds.length
-      ? await ctx.appDb.user
+      ? await authDb.user
           .findMany({
             where: { id: { in: authorIds } },
             select: { id: true, name: true, email: true },

@@ -16,6 +16,7 @@ import { Label } from '@helio/ui/components/label';
 import { Skeleton } from '@helio/ui/components/skeleton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Handshake, Plus, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -185,7 +186,12 @@ export function DealsView() {
                     className="bg-background grid gap-2 rounded-md border p-2 text-sm shadow-xs"
                     data-testid="deal-card"
                   >
-                    <span className="font-medium">{deal.title}</span>
+                    <Link
+                      href={`/deals/${deal.id}`}
+                      className="font-medium underline-offset-4 hover:underline"
+                    >
+                      {deal.title}
+                    </Link>
                     <span className="text-muted-foreground text-xs tabular-nums">
                       {formatMoney(deal.valueCents, deal.currency)}
                     </span>

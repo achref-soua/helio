@@ -1377,5 +1377,41 @@
       "audit": "Change"
     },
     "genericError": "Something went wrong — try again."
+  },
+  "dealDetail": {
+    "loading": "Loading deal…",
+    "notFound": "This deal does not exist (or belongs to another workspace).",
+    "back": "Back to deals",
+    "status": {
+      "OPEN": "Open",
+      "WON": "Won",
+      "LOST": "Lost"
+    },
+    "markWon": "Mark won",
+    "markLost": "Mark lost",
+    "reopen": "Reopen",
+    "details": "Details",
+    "stage": "Stage",
+    "owner": "Owner",
+    "unassigned": "Unassigned",
+    "closedAt": "Closed",
+    "linked": "Linked records",
+    "contact": "Contact",
+    "company": "Company",
+    "tasks": "Tasks",
+    "noTasks": "No tasks yet.",
+    "notes": "Notes",
+    "notesHint": "Pinned notes stay on top. Visible to your whole team.",
+    "noteLabel": "New note",
+    "addNote": "Add note",
+    "pin": "Pin note",
+    "unpin": "Unpin note",
+    "deleteNote": "Delete note",
+    "history": "History",
+    "historyHint": "Every recorded change to this deal, newest first.",
+    "noHistory": "No history yet.",
+    "reasonLabel": "Reason (optional — kept in the history)",
+    "confirmClose": "Confirm",
+    "genericError": "Something went wrong — try again."
   }
 }

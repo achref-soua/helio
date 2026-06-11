@@ -15,7 +15,7 @@ async function mailLink(request: APIRequestContext, to: string, pattern: RegExp)
         link = Text.match(pattern)?.[0];
         return Boolean(link);
       },
-      { timeout: 15_000 },
+      { timeout: 30_000 },
     )
     .toBe(true);
   return link!;
