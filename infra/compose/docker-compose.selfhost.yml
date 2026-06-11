@@ -53,6 +53,20 @@ services:
       timeout: 5s
       retries: 12
 
+  backup:
+    image: ghcr.io/achref-soua/helio-backup:__HELIO_VERSION__
+    restart: unless-stopped
+    environment:
+      DATABASE_ADMIN_URL: postgresql://${POSTGRES_USER:-helio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-helio}
+      BACKUP_KEEP: ${BACKUP_KEEP:-14}
+      BACKUP_TIME: ${BACKUP_TIME:-03:30}
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:-}
+    volumes:
+      - ${HELIO_BACKUPS_PATH:-./backups}:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   migrate:
     image: ghcr.io/achref-soua/helio-migrate:__HELIO_VERSION__
     profiles: ['ops']
@@ -88,6 +102,10 @@ services:
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
       CLICKHOUSE_DB: ${CLICKHOUSE_DB:-helio}
       INTELLIGENCE_URL: http://intelligence:8000
+      BACKUPS_PANEL_ENABLED: ${BACKUPS_PANEL_ENABLED:-true}
+      HELIO_BACKUPS_PATH: /var/lib/helio/backups
+    volumes:
+      - ${HELIO_BACKUPS_PATH:-./backups}:/var/lib/helio/backups:ro
     depends_on:
       postgres:
         condition: service_healthy
