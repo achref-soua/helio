@@ -200,6 +200,45 @@ describe('row-level security tenant isolation', () => {
     expect(await tenantA.task.count()).toBe(1);
   });
 
+  it('CRM notes and companies are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const companyId = newId('co');
+    await tenantA.company.create({
+      data: {
+        id: companyId,
+        organizationId: orgA.id,
+        workspaceId: workspaceA,
+        name: 'Acme Industries',
+      },
+    });
+    await tenantA.note.create({
+      data: {
+        id: newId('note'),
+        organizationId: orgA.id,
+        workspaceId: workspaceA,
+        body: 'Spoke with procurement — renewal looks good.',
+      },
+    });
+
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.company.count()).toBe(0);
+    expect(await tenantB.note.count()).toBe(0);
+    expect(await tenantB.company.findUnique({ where: { id: companyId } })).toBeNull();
+    await expect(
+      tenantB.note.create({
+        data: {
+          id: newId('note'),
+          organizationId: orgA.id,
+          workspaceId: workspaceA,
+          body: 'Smuggled note',
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.company.count()).toBe(1);
+    expect(await tenantA.note.count()).toBe(1);
+  });
+
   it('webhook endpoints (and their secrets) are tenant-isolated', async () => {
     const tenantA = forTenant(app, orgA.id);
     const endpointId = newId('whe');
