@@ -27,7 +27,8 @@
     "inApp": "In-app",
     "insights": "Insights",
     "help": "Help",
-    "admin": "Admin"
+    "admin": "Admin",
+    "companies": "Companies"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -1376,7 +1377,9 @@
       "event": "Event",
       "audit": "Change"
     },
-    "genericError": "Something went wrong — try again."
+    "genericError": "Something went wrong — try again.",
+    "companyLabel": "Company",
+    "noCompany": "No company"
   },
   "dealDetail": {
     "loading": "Loading deal…",
@@ -1412,6 +1415,29 @@
     "noHistory": "No history yet.",
     "reasonLabel": "Reason (optional — kept in the history)",
     "confirmClose": "Confirm",
+    "genericError": "Something went wrong — try again.",
+    "noCompany": "No company"
+  },
+  "companies": {
+    "title": "Companies",
+    "subtitle": "B2B accounts — attach contacts and deals from their detail pages.",
+    "searchLabel": "Search companies",
+    "searchPlaceholder": "Search…",
+    "add": "Add company",
+    "addTitle": "Add a company",
+    "editTitle": "Edit company",
+    "name": "Name",
+    "domain": "Domain",
+    "industry": "Industry",
+    "website": "Website",
+    "contacts": "Contacts",
+    "deals": "Deals",
+    "edit": "Edit {name}",
+    "delete": "Delete {name}",
+    "create": "Create company",
+    "save": "Save changes",
+    "saved": "Company saved",
+    "empty": "No companies yet — add the first one.",
     "genericError": "Something went wrong — try again."
   }
 }

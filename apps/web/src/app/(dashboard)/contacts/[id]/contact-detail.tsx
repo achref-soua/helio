@@ -34,6 +34,11 @@ export function ContactDetail({ contactId }: { contactId: string }) {
 
   const contact = useQuery(trpc.contact.get.queryOptions({ id: contactId }));
   const timeline = useQuery(trpc.contact.timeline.queryOptions({ id: contactId }));
+  const companies = useQuery({
+    ...trpc.crm.companies.queryOptions({ workspaceId: contact.data?.workspaceId ?? '' }),
+    enabled: Boolean(contact.data?.workspaceId),
+  });
+  const setCompany = useMutation(trpc.crm.setContactCompany.mutationOptions());
   const createNote = useMutation(trpc.crm.createNote.mutationOptions());
   const pinNote = useMutation(trpc.crm.setNotePinned.mutationOptions());
   const deleteNote = useMutation(trpc.crm.deleteNote.mutationOptions());
@@ -87,7 +92,23 @@ export function ContactDetail({ contactId }: { contactId: string }) {
           <p className="text-muted-foreground text-sm">{data.email}</p>
         </div>
         <Badge variant={data.status === 'ACTIVE' ? 'secondary' : 'outline'}>{data.status}</Badge>
-        {data.company && <Badge variant="outline">{data.company.name}</Badge>}
+        <select
+          aria-label={t('companyLabel')}
+          className="border-input bg-background h-8 rounded-md border px-2 text-sm"
+          value={data.company?.id ?? ''}
+          onChange={(event) =>
+            run(() =>
+              setCompany.mutateAsync({ contactId: data.id, companyId: event.target.value || null }),
+            )
+          }
+        >
+          <option value="">{t('noCompany')}</option>
+          {(companies.data ?? []).map((company) => (
+            <option key={company.id} value={company.id}>
+              {company.name}
+            </option>
+          ))}
+        </select>
         <div className="ml-auto">
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             <Pencil className="size-4" aria-hidden /> {t('edit')}
