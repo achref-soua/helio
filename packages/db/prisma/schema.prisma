@@ -65,6 +65,37 @@ model Organization {
   @@map("organization")
 }
 
+/// One local backup run (instance-level — no tenant column). Written by
+/// the backup sidecar on the ADMIN connection; the app role may read
+/// (ENABLE not FORCE RLS, explicit SELECT policy) so owners can see
+/// backup health in the dashboard.
+model BackupRun {
+  id         String    @id
+  filename   String
+  label      String    @default("scheduled")
+  status     String
+  sizeBytes  BigInt?   @map("size_bytes")
+  sha256     String?
+  encrypted  Boolean   @default(false)
+  appVersion String?   @map("app_version")
+  startedAt  DateTime  @default(now()) @map("started_at")
+  finishedAt DateTime? @map("finished_at")
+  error      String?
+
+  @@index([startedAt])
+  @@map("backup_run")
+}
+
+/// Run-now requests from the dashboard, claimed by the sidecar's poll.
+model BackupRequest {
+  id          String    @id
+  label       String    @default("manual")
+  requestedAt DateTime  @default(now()) @map("requested_at")
+  pickedUpAt  DateTime? @map("picked_up_at")
+
+  @@map("backup_request")
+}
+
 /// An operational notice for an organization — provider send failures,
 /// backup problems, model errors. Surfaced in the dashboard bell;
 /// dismissed by setting readAt. Writers dedupe against unread alerts so

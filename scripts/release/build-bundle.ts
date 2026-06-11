@@ -70,7 +70,11 @@ writeFileSync(path.join(bundleDir, 'manifest.json'), `${JSON.stringify(manifest,
 const probeEnv = Object.fromEntries(
   [...envTemplate.matchAll(/^([A-Z0-9_]+)=/gm)].map((match) => [
     match[1]!,
-    match[1]!.endsWith('_PORT') ? '65000' : 'placeholder-value-x',
+    match[1]!.endsWith('_PORT')
+      ? '65000'
+      : match[1]!.endsWith('_PATH')
+        ? './placeholder'
+        : 'placeholder-value-x',
   ]),
 );
 const config = spawnSync(
@@ -85,7 +89,20 @@ if (config.error) {
   process.exit(1);
 }
 
-// 5. Tarball + checksums.
+// 5. The backup image's pg_dump major must match the bundled server major
+// (a newer pg_dump cannot be read by an older server on restore).
+const composeMajor = /pgvector\/pgvector:pg(\d+)/.exec(compose)?.[1];
+const backupMajor = /FROM postgres:(\d+)-alpine/.exec(
+  readFileSync(path.join(root, 'infra/docker/backup.Dockerfile'), 'utf8'),
+)?.[1];
+if (composeMajor !== backupMajor) {
+  console.error(
+    `postgres major mismatch: compose pg${composeMajor} vs backup image pg${backupMajor}`,
+  );
+  process.exit(1);
+}
+
+// 6. Tarball + checksums.
 const tarName = `helio-bundle-${version}.tar.gz`;
 const tar = spawnSync(
   'tar',
