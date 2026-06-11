@@ -1,0 +1,74 @@
+---
+title: Backups & restore
+description: Nightly local database backups, run-now from the dashboard, and command-line restore — including encrypted backups and key handling.
+---
+
+Every self-hosted Helio ships with a backup service: a nightly `pg_dump` of
+the entire database (custom format, compressed, checksummed), kept locally
+under `~/.helio/backups`. Nothing leaves your machine.
+
+## What gets backed up
+
+| Store      | Covered                                                                                   | How                                                                      |
+| ---------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| PostgreSQL | **Everything that matters**: contacts, journeys, settings, credentials (encrypted), users | Nightly + run-now dumps via the bundled service.                         |
+| ClickHouse | Behavioral events (analytics)                                                             | Re-derivable analytics; optional manual `BACKUP DATABASE` (appendix).    |
+| Redis      | Cache/rate limits                                                                         | Ephemeral — rebuilt automatically; not backed up.                        |
+| `.env`     | Your secrets, **including the credential-vault key**                                      | `helio backup` snapshots it to `backups/env/`; keep an offline copy too. |
+
+<Callout type="warn">
+  A database dump **without the matching `HELIO_ENCRYPTION_KEY` cannot reveal stored provider
+  credentials — and you cannot recover them either.** Keep the `.env` snapshot (or an offline copy
+  of the key) with your backups. Re-entering credentials is the recovery path if the key is lost.
+</Callout>
+
+## Day to day
+
+- **Settings → Backups** (owners): every run with size and status, a warning
+  when nothing succeeded in 36 hours, **Back up now**, and downloads.
+- `helio backup` — the same, from the terminal (and it snapshots `.env`).
+- `helio update` takes a `pre-update` backup automatically before touching
+  anything; the five newest pre-update dumps never age out.
+- Retention: the newest `BACKUP_KEEP` (default 14) are kept; older dumps are
+  pruned and marked as such in the dashboard.
+
+### Encrypted backups
+
+Set `BACKUP_PASSPHRASE` in `~/.helio/.env` and every new dump is encrypted
+(AES-256, PBKDF2). The dashboard shows an _encrypted_ badge. Restores prompt
+for the passphrase. **Losing the passphrase makes those backups unreadable —
+by design.**
+
+## Restoring
+
+```bash
+helio restore helio-20260611-033000-scheduled.dump
+```
+
+You'll be asked to type `restore` — this **replaces** the current database
+with the backup; anything newer is lost. The flow: stop services → verify the
+checksum → (decrypt) → `pg_restore --clean` → re-apply migrations (so an
+older dump rolls forward to the installed schema) → start → health check.
+
+Moving to a **new machine**: install Helio, copy a dump (and your `.env`
+snapshot — at minimum the same `HELIO_ENCRYPTION_KEY`) into
+`~/.helio/backups`, then `helio restore <file>`.
+
+<Callout type="info">
+  Restoring a dump made on a **newer** Helio than you're running is unsupported — update first
+  (`helio update`), then restore.
+</Callout>
+
+## Appendix: ClickHouse events
+
+Behavioral events power analytics and can be re-collected; most installs
+skip backing them up. If you want them too:
+
+```bash
+docker compose -f ~/.helio/docker-compose.yml exec clickhouse \
+  clickhouse-client --query "BACKUP DATABASE helio TO Disk('default', 'helio-events-backup.zip')"
+```
+
+and `RESTORE DATABASE … FROM …` to bring them back. See the
+[ClickHouse backup docs](https://clickhouse.com/docs/en/operations/backup)
+for retention and incremental options.

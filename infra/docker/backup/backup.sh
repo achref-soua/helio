@@ -114,8 +114,33 @@ prune_backups() {
 restore_backup() {
   file="$BACKUP_DIR/$1"
   [ -f "$file" ] || { echo "no such backup: $1" >&2; exit 1; }
+
+  # Integrity first: the sum written at backup time must still match.
+  if [ -f "${file}.sha256" ]; then
+    actual=$(sha256sum "$file" | awk '{print $1}')
+    expected=$(cat "${file}.sha256")
+    if [ "$actual" != "$expected" ]; then
+      echo "checksum mismatch for $1 — the file is corrupted" >&2
+      exit 1
+    fi
+  fi
+
+  dump="$file"
+  case "$file" in
+    *.enc)
+      : "${BACKUP_PASSPHRASE:?this backup is encrypted — set BACKUP_PASSPHRASE}"
+      dump="/tmp/$(basename "$file" .enc)"
+      if ! openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000         -pass env:BACKUP_PASSPHRASE -in "$file" -out "$dump"; then
+        rm -f "$dump"
+        echo "decryption failed — wrong passphrase?" >&2
+        exit 1
+      fi
+      ;;
+  esac
+
   echo "restoring $1 …"
-  pg_restore --clean --if-exists --no-owner -d "$DATABASE_ADMIN_URL" "$file"
+  pg_restore --clean --if-exists --no-owner -d "$DATABASE_ADMIN_URL" "$dump"
+  [ "$dump" != "$file" ] && rm -f "$dump"
   echo "restore complete"
 }
 

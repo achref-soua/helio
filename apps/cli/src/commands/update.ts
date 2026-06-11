@@ -16,6 +16,7 @@ import { waitForHttpOk } from '../lib/health';
 import { helioHome, installPaths, isInstalled, readManifest, writeManifest } from '../lib/state';
 import { confirm, fail, say, warn } from '../lib/ui';
 import { registerCommand } from '../registry';
+import { runBackupNow } from './backup';
 
 function newerThan(candidate: string, current: string): boolean {
   const parse = (v: string) => v.replace(/^v/, '').split('-')[0]!.split('.').map(Number);
@@ -60,9 +61,7 @@ async function run(argv: string[]): Promise<number> {
     if (!values.yes && !(await confirm('Continue without a safety backup?', false))) return 1;
   } else {
     say('taking a pre-update backup…');
-    const code = await compose(paths, ['run', '--rm', 'backup', 'run', 'pre-update'], {
-      profiles: ['ops'],
-    });
+    const code = await runBackupNow(paths, 'pre-update');
     if (code !== 0) {
       fail(
         'the pre-update backup failed — fix that first, or re-run with --no-backup at your own risk',
