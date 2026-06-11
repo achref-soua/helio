@@ -1,6 +1,7 @@
 import { protectedProcedure, publicProcedure, router } from '../init';
 import { analyticsRouter } from './analytics';
 import { apiKeyRouter } from './api-key';
+import { backupsRouter } from './backups';
 import { brandingRouter } from './branding';
 import { campaignRouter } from './campaign';
 import { contactRouter } from './contact';
@@ -47,6 +48,7 @@ export const appRouter = router({
   credentials: credentialsRouter,
   sso: ssoRouter,
   apiKey: apiKeyRouter,
+  backups: backupsRouter,
   webhook: webhookRouter,
   branding: brandingRouter,
   integrations: integrationsRouter,

@@ -1206,5 +1206,22 @@
     "save": "Save",
     "saved": "Conversion events saved",
     "genericError": "Something went wrong"
+  },
+  "backups": {
+    "title": "Backups",
+    "subtitle": "Nightly local database backups, taken by the bundled backup service. Restore from the command line: helio restore <file>.",
+    "runNow": "Back up now",
+    "queued": "Backup queued — it appears below within ~20 seconds",
+    "stale": "No successful backup in the last 36 hours — check helio logs backup.",
+    "empty": "No backups yet. The nightly run is scheduled; you can also back up now.",
+    "when": "When",
+    "label": "Label",
+    "size": "Size",
+    "status": "Status",
+    "encrypted": "encrypted",
+    "download": "Download",
+    "downloadAria": "Download {file}",
+    "restoreHint": "Keep a copy of your .env with these files — restoring on a new machine needs the same encryption key.",
+    "genericError": "Something went wrong"
   }
 }
