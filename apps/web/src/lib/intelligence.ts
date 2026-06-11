@@ -82,12 +82,21 @@ export interface ScoringResult {
   churned: number;
 }
 
+export interface LlmInfo {
+  provider: string;
+  model: string;
+  configured: boolean;
+  source: 'organization' | 'deployment';
+}
+
 export const intelligence = {
   chat: (input: {
     organization_id: string;
     workspace_id: string;
     messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   }) => call<ChatReply>('/v1/copilot/chat', input),
+
+  llmInfo: (input: { organization_id: string }) => call<LlmInfo>('/v1/llm/config', input),
 
   draftSegment: (input: { organization_id: string; workspace_id: string; prompt: string }) =>
     call<DraftSegment>('/v1/copilot/segment', input),

@@ -1,4 +1,6 @@
 import { newId } from '@helio/core';
+import { Prisma } from '@helio/db';
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 import { orgProcedure, requireRole, router } from '../init';
@@ -13,6 +15,38 @@ export const workspaceRouter = router({
   list: orgProcedure.query(({ ctx }) =>
     ctx.tenantDb.workspace.findMany({ orderBy: { createdAt: 'asc' } }),
   ),
+
+  /** Per-workspace conversion events for predictive scoring; empty list
+   *  clears back to the deployment default. Admin-gated. */
+  setConversionEvents: orgProcedure
+    .input(
+      z.object({
+        workspaceId: z.string().min(1),
+        events: z.array(z.string().trim().min(1).max(80)).max(20),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requireRole(ctx.memberRole, 'admin');
+      const events = [...new Set(input.events)];
+      const { count } = await ctx.tenantDb.workspace.updateMany({
+        where: { id: input.workspaceId },
+        data: { conversionEvents: events.length > 0 ? events : Prisma.DbNull },
+      });
+      if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await ctx.tenantDb.auditLog.create({
+        data: {
+          id: newId('audit'),
+          organizationId: ctx.organizationId,
+          workspaceId: input.workspaceId,
+          actorId: ctx.session.user.id,
+          action: 'workspace.conversion_events_updated',
+          targetType: 'workspace',
+          targetId: input.workspaceId,
+          metadata: { events },
+        },
+      });
+      return { events };
+    }),
 
   create: orgProcedure
     .input(z.object({ name: z.string().min(1).max(80), slug: slugSchema }))
