@@ -17,7 +17,7 @@ import { runCredentialProbe } from '@/lib/credential-verify';
 import { env } from '@/lib/env';
 import { senderFromCredentialRow } from '@/lib/mailer';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 /**
  * The org credential vault (ADR-0019). Secrets are sealed into enc:v1
@@ -77,7 +77,7 @@ const saveInput = z.object({
 
 export const credentialsRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
-    requireRole(ctx.memberRole, 'admin');
+    requirePermission(ctx.memberRole, 'settings:credentials');
     const rows = await ctx.tenantDb.providerCredential.findMany({
       select: MASKED_SELECT,
       orderBy: [{ kind: 'asc' }, { name: 'asc' }],
@@ -89,7 +89,7 @@ export const credentialsRouter = router({
   }),
 
   save: orgProcedure.input(saveInput).mutation(async ({ ctx, input }) => {
-    requireRole(ctx.memberRole, 'admin');
+    requirePermission(ctx.memberRole, 'settings:credentials');
     const keys = encryptionKeys();
 
     let validated;
@@ -184,7 +184,7 @@ export const credentialsRouter = router({
   verify: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:credentials');
       const keys = encryptionKeys();
       const existing = await ctx.tenantDb.providerCredential.findUnique({
         where: { id: input.id },
@@ -242,7 +242,7 @@ export const credentialsRouter = router({
   sendTest: orgProcedure
     .input(z.object({ id: z.string().min(1), to: z.string().email().optional() }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:credentials');
       encryptionKeys();
       const existing = await ctx.tenantDb.providerCredential.findUnique({
         where: { id: input.id },
@@ -288,7 +288,7 @@ export const credentialsRouter = router({
   remove: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:credentials');
       const existing = await ctx.tenantDb.providerCredential.findUnique({
         where: { id: input.id },
         select: { id: true, kind: true, name: true },

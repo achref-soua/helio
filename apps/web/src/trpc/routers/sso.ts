@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { auth, authDb } from '@/lib/auth';
 import { env } from '@/lib/env';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 /** Base URL an IdP points SCIM at, e.g. https://app/scim/v2. */
 function scimBaseUrl(): string {
@@ -65,7 +65,7 @@ function callbackUrl(providerId: string): string {
  */
 export const ssoRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
-    requireRole(ctx.memberRole, 'admin');
+    requirePermission(ctx.memberRole, 'settings:sso');
     const providers = await authDb.ssoProvider.findMany({
       where: { organizationId: ctx.organizationId },
       select: { id: true, providerId: true, issuer: true, domain: true },
@@ -75,7 +75,7 @@ export const ssoRouter = router({
   }),
 
   register: orgProcedure.input(registerInput).mutation(async ({ ctx, input }) => {
-    requireRole(ctx.memberRole, 'admin');
+    requirePermission(ctx.memberRole, 'settings:sso');
     const manual = Boolean(input.authorizationEndpoint);
     try {
       await auth.api.registerSSOProvider({
@@ -113,7 +113,7 @@ export const ssoRouter = router({
   remove: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:sso');
       // Scope the delete to the active org: a foreign id removes nothing.
       const { count } = await authDb.ssoProvider.deleteMany({
         where: { id: input.id, organizationId: ctx.organizationId },
@@ -125,7 +125,7 @@ export const ssoRouter = router({
   // ── SCIM provisioning token (one per org) ──────────────────────────────
 
   scimStatus: orgProcedure.query(async ({ ctx }) => {
-    requireRole(ctx.memberRole, 'admin');
+    requirePermission(ctx.memberRole, 'settings:sso');
     const token = await authDb.scimToken.findUnique({
       where: { organizationId: ctx.organizationId },
       select: { createdAt: true, lastUsedAt: true },
@@ -139,7 +139,7 @@ export const ssoRouter = router({
   }),
 
   generateScimToken: orgProcedure.mutation(async ({ ctx }) => {
-    requireRole(ctx.memberRole, 'admin');
+    requirePermission(ctx.memberRole, 'settings:sso');
     const { token, hash } = await generateScimToken();
     // One token per org: regenerating replaces (and invalidates) the old one.
     await authDb.scimToken.upsert({
@@ -152,7 +152,7 @@ export const ssoRouter = router({
   }),
 
   revokeScimToken: orgProcedure.mutation(async ({ ctx }) => {
-    requireRole(ctx.memberRole, 'admin');
+    requirePermission(ctx.memberRole, 'settings:sso');
     await authDb.scimToken.deleteMany({ where: { organizationId: ctx.organizationId } });
     return { ok: true };
   }),

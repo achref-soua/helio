@@ -1,0 +1,84 @@
+---
+title: Roles & permissions
+description: The four organization roles, the named permissions each one grants, and how enforcement works end to end.
+---
+
+Every member of an organization has one of four roles, strictly ordered —
+each role holds everything the roles below it hold:
+
+| Role       | In one sentence                                                                      |
+| ---------- | ------------------------------------------------------------------------------------ |
+| **Viewer** | Sees dashboards, contacts, campaigns, and reports. Changes nothing.                  |
+| **Editor** | Runs the marketing day to day: contacts, segments, emails, campaigns, journeys, CRM. |
+| **Admin**  | Everything an editor can, plus organization configuration and the admin area.        |
+| **Owner**  | Everything, plus instance-critical operations like backups.                          |
+
+Roles are assigned when you invite someone (**Settings → Members**) and can
+be changed there by an admin at any time. Ownership transfers are explicit.
+
+## The permission matrix
+
+Every gated action in Helio has a named permission; the tables below are
+generated from the same catalog the code enforces (`@helio/core`
+`permissions.ts`).
+
+### Editor and above
+
+| Permission          | What it allows                                 |
+| ------------------- | ---------------------------------------------- |
+| `contacts:write`    | Create, edit, import, and delete contacts      |
+| `contacts:export`   | Export contact CSVs and GDPR data bundles      |
+| `lists:write`       | Manage static lists and memberships            |
+| `segments:write`    | Create and edit segments                       |
+| `templates:write`   | Create and edit email templates                |
+| `campaigns:manage`  | Create, edit, and launch campaigns             |
+| `journeys:manage`   | Create, edit, activate, and version journeys   |
+| `forms:write`       | Create and edit hosted forms                   |
+| `landing:write`     | Create and publish landing pages               |
+| `widgets:write`     | Create and edit on-site widgets                |
+| `inapp:write`       | Create and edit in-app messages                |
+| `crm:write`         | Manage pipelines, deals, and tasks             |
+| `scheduling:write`  | Manage booking pages                           |
+| `scoring:manage`    | Manage scoring rules and recompute predictions |
+| `analytics:sql`     | Run read-only SQL in the analytics explorer    |
+| `workspaces:create` | Create new workspaces                          |
+
+### Admin and above
+
+| Permission                | What it allows                                    |
+| ------------------------- | ------------------------------------------------- |
+| `settings:workspace`      | Workspace settings (conversion events, …)         |
+| `settings:credentials`    | Provider credentials (email/SMS/WhatsApp/AI keys) |
+| `settings:sso`            | SSO and SCIM configuration                        |
+| `settings:api-keys`       | Mint and revoke REST API keys                     |
+| `settings:webhooks`       | Outbound webhook endpoints                        |
+| `settings:integrations`   | Shopify/Salesforce connections                    |
+| `settings:branding`       | White-labeling                                    |
+| `settings:deliverability` | Sending domains and DNS records                   |
+| `settings:churn-model`    | Bring-your-own churn models                       |
+| `settings:support`        | Support and bug-report inbox                      |
+| `admin:audit`             | The audit-log viewer                              |
+| `admin:reports`           | Organization-wide reports                         |
+| `admin:health`            | System health and alerts                          |
+| `admin:database`          | The built-in database studio                      |
+
+### Owner only
+
+| Permission      | What it allows                             |
+| --------------- | ------------------------------------------ |
+| `admin:backups` | Run, download, and manage database backups |
+
+## How enforcement works
+
+- **Every mutation re-checks on the server.** tRPC procedures call
+  `requirePermission(role, name)`; upload/download routes check the same
+  catalog. Hiding a button is never the security boundary.
+- **Tenant isolation is below all of this.** Even an owner only ever
+  reaches their own organization's rows — PostgreSQL row-level security
+  scopes every query before roles are considered.
+- **The UI follows the matrix.** Panels and nav entries you cannot use are
+  hidden via the same `can(role, permission)` call the server uses.
+- Sensitive role checks (SSO secrets, SCIM tokens, API keys) additionally
+  live behind dedicated database lockdowns — see
+  [the credential vault](/docs/security/credential-vault) and
+  [SSO](/docs/security/sso).

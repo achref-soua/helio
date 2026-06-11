@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { emitWebhookEvent } from '@/lib/webhooks';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 type OrgContext = inferProcedureBuilderResolverOptions<typeof orgProcedure>['ctx'];
 
@@ -71,7 +71,7 @@ export const crmRouter = router({
   createPipeline: orgProcedure
     .input(z.object({ workspaceId: z.string().min(1), name: z.string().trim().min(1).max(80) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const existing = await ctx.tenantDb.pipeline.findFirst({
         where: { workspaceId: input.workspaceId, name: input.name },
       });
@@ -117,7 +117,7 @@ export const crmRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const stage = await ctx.tenantDb.pipelineStage.findFirst({
         where: { id: input.stageId, pipelineId: input.pipelineId },
         select: { kind: true },
@@ -168,7 +168,7 @@ export const crmRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const deal = await ctx.tenantDb.deal.findUnique({
         where: { id: input.id },
         select: { pipelineId: true, workspaceId: true },
@@ -211,7 +211,7 @@ export const crmRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const { id, ...rest } = input;
       const deal = await ctx.tenantDb.deal.update({
         where: { id },
@@ -229,7 +229,7 @@ export const crmRouter = router({
   deleteDeal: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const deal = await ctx.tenantDb.deal.delete({ where: { id: input.id } });
       await writeAudit(ctx, deal.workspaceId, 'deal.deleted', 'deal', input.id);
       return { id: input.id };
@@ -281,7 +281,7 @@ export const crmRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const task = await ctx.tenantDb.task.create({
         data: {
           id: newId('task'),
@@ -314,7 +314,7 @@ export const crmRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const { id, ...rest } = input;
       const task = await ctx.tenantDb.task.update({
         where: { id },
@@ -334,7 +334,7 @@ export const crmRouter = router({
   setTaskStatus: orgProcedure
     .input(z.object({ id: z.string().min(1), status: taskStatusSchema }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const done = input.status === 'DONE';
       const task = await ctx.tenantDb.task.update({
         where: { id: input.id },
@@ -356,7 +356,7 @@ export const crmRouter = router({
   deleteTask: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const task = await ctx.tenantDb.task.delete({ where: { id: input.id } });
       await writeAudit(ctx, task.workspaceId, 'task.deleted', 'task', input.id);
       return { id: input.id };

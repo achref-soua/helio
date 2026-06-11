@@ -3,7 +3,7 @@ import { TRPCError } from '@trpc/server';
 
 import { env } from '@/lib/env';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 /**
  * Local backup visibility (ADR-0020). The tables are instance-level —
@@ -25,7 +25,7 @@ function requirePanel() {
 
 export const backupsRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
-    requireRole(ctx.memberRole, 'owner');
+    requirePermission(ctx.memberRole, 'admin:backups');
     if (!env.BACKUPS_PANEL_ENABLED) return { enabled: false as const, stale: false, runs: [] };
     const rows = await ctx.tenantDb.backupRun.findMany({
       orderBy: { startedAt: 'desc' },
@@ -52,7 +52,7 @@ export const backupsRouter = router({
 
   /** Queue a run-now; the sidecar's 15s poll picks it up. */
   runNow: orgProcedure.mutation(async ({ ctx }) => {
-    requireRole(ctx.memberRole, 'owner');
+    requirePermission(ctx.memberRole, 'admin:backups');
     requirePanel();
     await ctx.tenantDb.backupRequest.create({
       data: { id: newId('bkr'), label: 'dashboard' },

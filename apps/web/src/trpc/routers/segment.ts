@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 import { resolveEventConditions } from '@/lib/segment-events';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 const PREVIEW_SAMPLE_SIZE = 5;
 
@@ -50,7 +50,7 @@ export const segmentRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'segments:write');
       const existing = await ctx.tenantDb.segment.findFirst({
         where: { workspaceId: input.workspaceId, name: input.name },
       });
@@ -92,7 +92,7 @@ export const segmentRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'segments:write');
       const segment = await ctx.tenantDb.segment.update({
         where: { id: input.id },
         data: {
@@ -118,7 +118,7 @@ export const segmentRouter = router({
   delete: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'segments:write');
       const segment = await ctx.tenantDb.segment.delete({ where: { id: input.id } });
       await ctx.tenantDb.auditLog.create({
         data: {

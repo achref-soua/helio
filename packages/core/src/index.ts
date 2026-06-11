@@ -162,6 +162,14 @@ export {
   type LandingDocument,
   landingDocumentSchema,
 } from './landing';
+export {
+  can,
+  minimumRoleFor,
+  type Permission,
+  permissionMatrix,
+  PERMISSIONS,
+  permissionsForRole,
+} from './permissions';
 export { type PushNotification, type PushSubscriptionInput, pushSubscriptionSchema } from './push';
 export {
   FixedWindowRateLimiter,

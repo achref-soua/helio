@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { getTemporalClient } from '@/lib/temporal';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 export const campaignRouter = router({
   list: orgProcedure
@@ -64,7 +64,7 @@ export const campaignRouter = router({
         }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'campaigns:manage');
       const existing = await ctx.tenantDb.campaign.findFirst({
         where: { workspaceId: input.workspaceId, name: input.name },
       });
@@ -102,7 +102,7 @@ export const campaignRouter = router({
 
   /** Launch the durable send workflow (idempotent per campaign). */
   send: orgProcedure.input(z.object({ id: z.string().min(1) })).mutation(async ({ ctx, input }) => {
-    requireRole(ctx.memberRole, 'editor');
+    requirePermission(ctx.memberRole, 'campaigns:manage');
     const campaign = await ctx.tenantDb.campaign.findUnique({ where: { id: input.id } });
     if (!campaign) throw new TRPCError({ code: 'NOT_FOUND', message: 'Campaign not found' });
     if (campaign.status !== 'DRAFT' && campaign.status !== 'FAILED') {
@@ -142,7 +142,7 @@ export const campaignRouter = router({
   delete: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'campaigns:manage');
       const campaign = await ctx.tenantDb.campaign.findUnique({ where: { id: input.id } });
       if (!campaign) throw new TRPCError({ code: 'NOT_FOUND', message: 'Campaign not found' });
       if (campaign.status !== 'DRAFT') {

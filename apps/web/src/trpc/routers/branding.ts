@@ -2,7 +2,7 @@ import { isHexColor, newId } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 const hexColorSchema = z.string().trim().refine(isHexColor, 'Must be a #rgb or #rrggbb hex color');
 
@@ -38,7 +38,7 @@ export const brandingRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:branding');
       await ctx.tenantDb.organization.update({
         where: { id: ctx.organizationId },
         data: {

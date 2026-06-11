@@ -2,7 +2,7 @@ import { newId } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 const ctaUrlSchema = z.string().trim().url().max(2000);
 
@@ -31,7 +31,7 @@ export const inAppMessageRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'inapp:write');
       const message = await ctx.tenantDb.inAppMessage.create({
         data: {
           id: newId('iam'),
@@ -60,7 +60,7 @@ export const inAppMessageRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'inapp:write');
       const { id, ...rest } = input;
       const { count } = await ctx.tenantDb.inAppMessage.updateMany({
         where: { id },
@@ -80,7 +80,7 @@ export const inAppMessageRouter = router({
   remove: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'inapp:write');
       const { count } = await ctx.tenantDb.inAppMessage.deleteMany({ where: { id: input.id } });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
       return { ok: true };

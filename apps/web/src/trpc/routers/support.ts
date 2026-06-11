@@ -2,7 +2,7 @@ import { newId, supportKindSchema, supportStatusSchema } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 /**
  * In-app support / bug reports. Any member can file a ticket; admins triage
@@ -36,7 +36,7 @@ export const supportRouter = router({
   list: orgProcedure
     .input(z.object({ status: supportStatusSchema.optional() }).optional())
     .query(({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:support');
       return ctx.tenantDb.supportTicket.findMany({
         where: input?.status ? { status: input.status } : {},
         orderBy: { createdAt: 'desc' },
@@ -57,7 +57,7 @@ export const supportRouter = router({
   setStatus: orgProcedure
     .input(z.object({ id: z.string().min(1), status: supportStatusSchema }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:support');
       const { count } = await ctx.tenantDb.supportTicket.updateMany({
         where: { id: input.id },
         data: { status: input.status },

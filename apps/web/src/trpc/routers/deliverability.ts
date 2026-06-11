@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 import { sealRowSecret, vaultReady } from '@/lib/vault';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 /** An RSA-2048 DKIM key pair: a PEM private key and the base64 DER public key. */
 function generateDkimKeys() {
@@ -59,7 +59,7 @@ export const deliverabilityRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:deliverability');
       const keys = generateDkimKeys();
       const id = newId('dom');
       // Seal the private key at rest when the vault is configured; rows
@@ -88,7 +88,7 @@ export const deliverabilityRouter = router({
   verify: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:deliverability');
       const domain = await ctx.tenantDb.sendingDomain.findUnique({ where: { id: input.id } });
       if (!domain) throw new TRPCError({ code: 'NOT_FOUND' });
 
@@ -116,7 +116,7 @@ export const deliverabilityRouter = router({
   remove: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:deliverability');
       const { count } = await ctx.tenantDb.sendingDomain.deleteMany({ where: { id: input.id } });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
       return { ok: true };

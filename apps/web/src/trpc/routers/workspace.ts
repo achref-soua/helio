@@ -3,7 +3,7 @@ import { Prisma } from '@helio/db';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 const slugSchema = z
   .string()
@@ -26,7 +26,7 @@ export const workspaceRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:workspace');
       const events = [...new Set(input.events)];
       const { count } = await ctx.tenantDb.workspace.updateMany({
         where: { id: input.workspaceId },
@@ -51,7 +51,7 @@ export const workspaceRouter = router({
   create: orgProcedure
     .input(z.object({ name: z.string().min(1).max(80), slug: slugSchema }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'workspaces:create');
       const workspace = await ctx.tenantDb.workspace.create({
         data: {
           id: newId('ws'),

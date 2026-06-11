@@ -1,3 +1,5 @@
+import { authDb } from '@/lib/auth';
+
 import { protectedProcedure, publicProcedure, router } from '../init';
 import { analyticsRouter } from './analytics';
 import { apiKeyRouter } from './api-key';
@@ -28,10 +30,24 @@ import { workspaceRouter } from './workspace';
 
 export const appRouter = router({
   health: publicProcedure.query(() => ({ ok: true })),
-  me: protectedProcedure.query(({ ctx }) => ({
-    user: ctx.session.user,
-    activeOrganizationId: ctx.session.session.activeOrganizationId ?? null,
-  })),
+  me: protectedProcedure.query(async ({ ctx }) => {
+    const organizationId = ctx.session.session.activeOrganizationId ?? null;
+    // The member role rides along so the client can hide what the server
+    // would refuse anyway (the server check stays authoritative).
+    const member = organizationId
+      ? await authDb.member.findUnique({
+          where: {
+            organizationId_userId: { organizationId, userId: ctx.session.user.id },
+          },
+          select: { role: true },
+        })
+      : null;
+    return {
+      user: ctx.session.user,
+      activeOrganizationId: organizationId,
+      memberRole: member?.role ?? null,
+    };
+  }),
   workspace: workspaceRouter,
   contact: contactRouter,
   contactList: contactListRouter,
