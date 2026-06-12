@@ -1317,7 +1317,8 @@
     "nav": {
       "audit": "Audit log",
       "reports": "Reports",
-      "health": "System health"
+      "health": "System health",
+      "database": "Database"
     },
     "audit": {
       "actionFilter": "Action starts with",
@@ -1390,6 +1391,26 @@
       "title": "System alerts",
       "empty": "No alerts.",
       "markAllRead": "Mark all read"
+    },
+    "database": {
+      "table": "Table",
+      "search": "Search",
+      "apply": "Apply",
+      "newRow": "New row",
+      "empty": "No rows here yet.",
+      "editRow": "Edit row {id}",
+      "deleteRow": "Delete row {id}",
+      "editTitle": "Edit row",
+      "editSubtitle": "Validated server-side; every change lands in the audit log.",
+      "badJson": "{field} is not valid JSON",
+      "save": "Save changes",
+      "saved": "Row saved",
+      "deleteTitle": "Delete this row?",
+      "deleteSubtitle": "Row {id} will be permanently deleted (owners only). Related data may cascade.",
+      "deletePrompt": "Type delete to confirm",
+      "deleteConfirm": "Delete row",
+      "deleted": "Row deleted",
+      "genericError": "Something went wrong — try again."
     }
   },
   "contactDetail": {

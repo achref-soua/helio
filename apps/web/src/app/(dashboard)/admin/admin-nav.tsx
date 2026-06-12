@@ -9,6 +9,7 @@ const SECTIONS = [
   { key: 'audit', href: '/admin/audit' },
   { key: 'reports', href: '/admin/reports' },
   { key: 'health', href: '/admin/health' },
+  { key: 'database', href: '/admin/database' },
 ] as const;
 
 export function AdminNav() {

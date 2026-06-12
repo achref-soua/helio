@@ -72,6 +72,38 @@ function psql(query: string): string {
     .trim();
 }
 
+test('database studio browses, edits, and deletes with a typed confirm', async ({ page }) => {
+  const email = `studio-${Date.now()}@example.com`;
+  await page.goto('/contacts');
+  await page.getByRole('button', { name: 'Add contact' }).click();
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByRole('button', { name: 'Create contact' }).click();
+  await expect(page.getByText(email)).toBeVisible();
+
+  await page.goto('/admin/database');
+  await expect(page.getByTestId('database-studio')).toBeVisible();
+  // The allow-list is the security boundary: no auth or secret tables.
+  const tablePicker = page.getByLabel('Table', { exact: true });
+  const options = await tablePicker.locator('option').allInnerTexts();
+  expect(options.join(',')).not.toMatch(/user|credential|key|token|session/i);
+
+  const row = page.getByTestId('studio-row').filter({ hasText: email });
+  await expect(row).toBeVisible();
+
+  // Edit a field; the change shows in the table.
+  await row.getByRole('button', { name: /Edit row/ }).click();
+  await page.getByLabel('firstName', { exact: true }).fill('Studio');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(row).toContainText('Studio');
+
+  // Delete only proceeds after typing the word.
+  await row.getByRole('button', { name: /Delete row/ }).click();
+  await expect(page.getByRole('button', { name: 'Delete row', exact: true })).toBeDisabled();
+  await page.getByPlaceholder('delete').fill('delete');
+  await page.getByRole('button', { name: 'Delete row', exact: true }).click();
+  await expect(page.getByTestId('studio-row').filter({ hasText: email })).toHaveCount(0);
+});
+
 test('health shows honest service status and the alert bell round-trips', async ({ page }) => {
   // This run's organization is the newest one; seed it one unread alert
   // (the superuser connection bypasses RLS, like the backups spec).
