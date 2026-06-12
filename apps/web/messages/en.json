@@ -6,7 +6,8 @@
     "splash": {
       "starting": "Helio is starting",
       "signingOut": "Signing you out"
-    }
+    },
+    "backToTop": "Back to top"
   },
   "nav": {
     "dashboard": "Dashboard",

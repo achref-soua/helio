@@ -33,6 +33,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 import { AlertBell } from '@/components/alert-bell';
+import { BackToTop } from '@/components/back-to-top';
 import { HelpMenu } from '@/components/help-menu';
 import { ReportDialog } from '@/components/report-dialog';
 import { RequireTwoFactor } from '@/components/require-two-factor';
@@ -271,6 +272,7 @@ export function AppShell({
           <RequireTwoFactor />
           {children}
         </main>
+        <BackToTop />
       </div>
     </div>
   );
