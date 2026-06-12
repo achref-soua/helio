@@ -64,6 +64,7 @@ model Organization {
   churnModels         ChurnModel[]
   notes               Note[]
   companies           Company[]
+  importJobs          ImportJob[]
 
   @@map("organization")
 }
@@ -966,6 +967,41 @@ model Deal {
   @@index([organizationId])
   @@index([workspaceId, stageId, position])
   @@map("deal")
+}
+
+/// One contact-import run (the wizard, I1; the API connectors, I2/I3).
+/// Created RUNNING, updated chunk by chunk, finished DONE or FAILED —
+/// the dashboard polls it for live progress.
+model ImportJob {
+  id             String          @id
+  organizationId String          @map("organization_id")
+  workspaceId    String          @map("workspace_id")
+  source         String
+  status         ImportJobStatus @default(RUNNING)
+  totalRows      Int             @default(0) @map("total_rows")
+  created        Int             @default(0)
+  updated        Int             @default(0)
+  skipped        Int             @default(0)
+  suppressed     Int             @default(0)
+  /// Row-level rejection reasons, capped (see core MAX_ERROR_ROWS).
+  errorRows      Json            @default("[]") @map("error_rows")
+  error          String?
+  createdAt      DateTime        @default(now()) @map("created_at")
+  finishedAt     DateTime?       @map("finished_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([workspaceId, createdAt])
+  @@map("import_job")
+}
+
+enum ImportJobStatus {
+  RUNNING
+  DONE
+  FAILED
+
+  @@map("import_job_status")
 }
 
 /// A free-text note pinned to a contact or a deal (CRM, H1). Author is

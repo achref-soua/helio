@@ -38,13 +38,19 @@ export {
   defaultChurnFeatureMapping,
 } from './churn-model';
 export {
+  type ColumnMapping,
   contactEmailSchema,
   detectImportSource,
   type ImportSource,
   type ImportStatus,
+  type MappedNormalizeResult,
+  MAPPING_TARGETS,
+  type MappingTarget,
   normalizeContactRows,
   type NormalizedContactRow,
+  normalizeMappedRows,
   type NormalizeResult,
+  suggestColumnMapping,
 } from './contacts';
 export { probeOutcome, type ProbeRequest, probeRequestFor } from './credential-probes';
 export {

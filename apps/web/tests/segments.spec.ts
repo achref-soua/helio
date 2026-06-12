@@ -39,8 +39,10 @@ test('seed contacts with attributes via CSV import', async ({ page }) => {
   await page
     .getByLabel('CSV file')
     .setInputFiles({ name: 'plans.csv', mimeType: 'text/csv', buffer: CSV });
+  await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Import', exact: true }).click();
-  await expect(page.getByText(/Imported 3 contacts/)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('import-counts')).toContainText('3 created', { timeout: 15_000 });
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
 });
 
 test('build a segment with live preview and save it', async ({ page }) => {
