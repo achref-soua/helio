@@ -15,7 +15,7 @@
  */
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -114,6 +114,8 @@ const tar = spawnSync(
 if (tar.status !== 0) process.exit(tar.status ?? 1);
 
 const tarBytes = readFileSync(path.join(distDir, tarName));
-writeFileSync(path.join(distDir, 'checksums.txt'), `${sha256(tarBytes)}  ${tarName}\n`);
+// Append: the release flow writes the CLI binaries' checksums first, and
+// this file is the single published manifest covering every asset.
+appendFileSync(path.join(distDir, 'checksums.txt'), `${sha256(tarBytes)}  ${tarName}\n`);
 console.log(`bundle: dist/${tarName} (${(tarBytes.length / 1024).toFixed(1)} KiB)`);
 console.log(`sha256: ${sha256(tarBytes)}`);
