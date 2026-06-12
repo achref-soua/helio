@@ -12,12 +12,13 @@ import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
 import { Skeleton } from '@helio/ui/components/skeleton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Palette } from 'lucide-react';
+import { Palette, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 
+import { useActiveWorkspaceId } from '@/components/workspace-switcher';
 import { useTRPC } from '@/trpc/client';
 
 const DEFAULT_ACCENT = '#f59e0b';
@@ -35,6 +36,36 @@ export function BrandingPanel({ canManage }: { canManage: boolean }) {
   const [color, setColor] = useState('');
   const [logo, setLogo] = useState('');
   const [seeded, setSeeded] = useState(false);
+  const workspaceId = useActiveWorkspaceId();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  // Same asset pipeline as email images: stored in Helio, served from
+  // /a/<id> on this instance — no external host needed for a logo.
+  async function onUpload(file: File) {
+    if (!workspaceId) return;
+    const body = new FormData();
+    body.set('file', file);
+    body.set('workspaceId', workspaceId);
+    setUploading(true);
+    try {
+      const response = await fetch('/api/assets', { method: 'POST', body });
+      const payload = (await response.json().catch(() => ({}))) as {
+        url?: string;
+        error?: string;
+      };
+      if (!response.ok || !payload.url) {
+        toast.error(payload.error ?? t('genericError'));
+        return;
+      }
+      setLogo(payload.url);
+    } catch {
+      toast.error(t('genericError'));
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  }
 
   // Seed the form from the loaded branding exactly once — React's documented
   // "adjust state while rendering" pattern, no effect and no cascading render.
@@ -119,16 +150,47 @@ export function BrandingPanel({ canManage }: { canManage: boolean }) {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="brand-logo">{t('logo')}</Label>
-              <Input
-                id="brand-logo"
-                type="url"
-                value={logo}
-                onChange={(event) => setLogo(event.target.value)}
-                placeholder="https://cdn.example.com/logo.png"
-                maxLength={2000}
-                disabled={!canManage}
-                data-testid="brand-logo"
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="brand-logo"
+                  type="url"
+                  value={logo}
+                  onChange={(event) => setLogo(event.target.value)}
+                  placeholder="https://cdn.example.com/logo.png"
+                  maxLength={2000}
+                  disabled={!canManage}
+                  data-testid="brand-logo"
+                />
+                {canManage && (
+                  <>
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/gif,image/webp"
+                      className="sr-only"
+                      aria-label={t('uploadLogo')}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) void onUpload(file);
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={uploading || !workspaceId}
+                      onClick={() => fileRef.current?.click()}
+                      data-testid="brand-logo-upload"
+                    >
+                      <Upload aria-hidden /> {uploading ? t('uploading') : t('uploadLogo')}
+                    </Button>
+                  </>
+                )}
+              </div>
+              {logo && (
+                // Live check that the URL actually renders before saving.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logo} alt="" className="size-10 rounded border object-contain p-1" />
+              )}
             </div>
             {canManage && (
               <div>
