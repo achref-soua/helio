@@ -5,6 +5,7 @@ import {
   mergeDailySeries,
   newId,
   STUDIO_MODELS,
+  studioGroupableFields,
   studioModel,
   validateStudioWrite,
 } from '@helio/core';
@@ -12,7 +13,7 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 import { writeAudit } from '@/lib/audit';
-import { authDb } from '@/lib/auth';
+import { auth, authDb } from '@/lib/auth';
 import { getClickHouse } from '@/lib/clickhouse';
 import { collectSystemHealth } from '@/lib/system-health';
 
@@ -70,6 +71,8 @@ interface StudioDelegate {
   update: (args: Record<string, unknown>) => Promise<unknown>;
   create: (args: Record<string, unknown>) => Promise<unknown>;
   delete: (args: Record<string, unknown>) => Promise<unknown>;
+  count: (args: Record<string, unknown>) => Promise<number>;
+  groupBy: (args: Record<string, unknown>) => Promise<unknown[]>;
 }
 
 /** Registry-checked dynamic access to the RLS-scoped client. */
@@ -329,6 +332,55 @@ export const adminRouter = router({
     }));
   }),
 
+  /** Row counts per table — the studio's entity browser. */
+  dbStats: orgProcedure
+    .input(z.object({ workspaceId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'admin:database');
+      const counts = await Promise.all(
+        STUDIO_MODELS.map(async (model) => ({
+          name: model.name,
+          count: await studioDelegate(ctx.tenantDb, model.name).count({
+            where: { workspaceId: input.workspaceId },
+          }),
+        })),
+      );
+      return { counts };
+    }),
+
+  /** Category counts for a groupable field — feeds the studio's charts. */
+  dbAggregate: orgProcedure
+    .input(
+      z.object({
+        model: z.string().min(1),
+        workspaceId: z.string().min(1),
+        field: z.string().min(1).max(50),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'admin:database');
+      const spec = studioModel(input.model);
+      if (!spec) throw new TRPCError({ code: 'NOT_FOUND', message: 'Unknown table' });
+      if (!studioGroupableFields(spec).includes(input.field)) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Field is not groupable' });
+      }
+      const delegate = studioDelegate(ctx.tenantDb, spec.name);
+      const groups = (await delegate.groupBy({
+        by: [input.field],
+        where: { workspaceId: input.workspaceId },
+        _count: true,
+      })) as Array<Record<string, unknown>>;
+      return {
+        groups: groups
+          .map((group) => ({
+            value: String(group[input.field] ?? '—'),
+            count: Number(group._count ?? 0),
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 12),
+      };
+    }),
+
   dbRows: orgProcedure
     .input(
       z.object({
@@ -434,13 +486,53 @@ export const adminRouter = router({
       return { id: String(row.id) };
     }),
 
-  /** Deletes are owner-only and confirmed by typed word client-side. */
+  /** Deletes are admin-only and re-authenticated: the caller proves the
+   *  account password (and a TOTP code when 2FA is enabled) server-side;
+   *  the typed "I understand" phrase is the client's own gate on top. */
   dbDeleteRow: orgProcedure
-    .input(z.object({ model: z.string().min(1), id: z.string().min(1) }))
+    .input(
+      z.object({
+        model: z.string().min(1),
+        id: z.string().min(1),
+        password: z.string().min(1).max(256),
+        totpCode: z.string().trim().max(10).optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
-      requirePermission(ctx.memberRole, 'admin:backups');
+      requirePermission(ctx.memberRole, 'admin:database');
       const spec = studioModel(input.model);
       if (!spec) throw new TRPCError({ code: 'NOT_FOUND', message: 'Unknown table' });
+
+      // Re-authenticate: a live session is not enough to destroy data.
+      const account = await authDb.account.findFirst({
+        where: { userId: ctx.session.user.id, providerId: 'credential' },
+        select: { password: true },
+      });
+      if (!account?.password) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Deleting requires a password on the account (SSO-only accounts cannot).',
+        });
+      }
+      const passwordOk = await (
+        await auth.$context
+      ).password.verify({ hash: account.password, password: input.password });
+      if (!passwordOk) {
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Wrong password.' });
+      }
+      if (ctx.session.user.twoFactorEnabled) {
+        if (!input.totpCode) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Enter your authenticator code.' });
+        }
+        try {
+          await auth.api.verifyTOTP({
+            body: { code: input.totpCode },
+            headers: ctx.headers,
+          });
+        } catch {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid authenticator code.' });
+        }
+      }
       const delegate = studioDelegate(ctx.tenantDb, spec.name);
       await delegate.delete({ where: { id: input.id } });
       await writeAudit(ctx.tenantDb, {

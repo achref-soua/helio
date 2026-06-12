@@ -1,7 +1,8 @@
 'use client';
 
+import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
-import { Card, CardContent } from '@helio/ui/components/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@helio/ui/components/card';
 import {
   Dialog,
   DialogContent,
@@ -15,9 +16,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { toast } from 'sonner';
 
+import { CHART_AXIS, ChartTooltip } from '@/components/charts';
+import { ThemedSelect } from '@/components/themed-select';
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
+import { useSession } from '@/lib/auth-client';
 import { useTRPC } from '@/trpc/client';
 
 /**
@@ -42,8 +47,19 @@ export function DatabaseStudio() {
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmWord, setConfirmWord] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [confirmTotp, setConfirmTotp] = useState('');
+  const [chartField, setChartField] = useState<string | null>(null);
+  const { data: session } = useSession();
+  const twoFactorOn = Boolean(
+    (session?.user as { twoFactorEnabled?: boolean | null } | undefined)?.twoFactorEnabled,
+  );
 
   const tables = useQuery(trpc.admin.dbTables.queryOptions());
+  const stats = useQuery({
+    ...trpc.admin.dbStats.queryOptions({ workspaceId: workspaceId ?? '' }),
+    enabled: Boolean(workspaceId),
+  });
   const rows = useQuery({
     ...trpc.admin.dbRows.queryOptions({
       model,
@@ -58,6 +74,26 @@ export function DatabaseStudio() {
 
   const spec = tables.data?.find((table) => table.name === model);
   const editableFields = (spec?.fields ?? []).filter((field) => field.editable);
+  // Mirrors the server's groupable rule; the server still validates.
+  const groupable = (spec?.fields ?? [])
+    .filter(
+      (field) =>
+        (field.type === 'string' || field.type === 'boolean') &&
+        /^(status|type|kind|priority|format|published|active|source|plan|role)$/.test(field.name),
+    )
+    .map((field) => field.name);
+  const activeChartField = chartField && groupable.includes(chartField) ? chartField : groupable[0];
+  const aggregate = useQuery({
+    ...trpc.admin.dbAggregate.queryOptions({
+      model,
+      workspaceId: workspaceId ?? '',
+      field: activeChartField ?? '',
+    }),
+    enabled: Boolean(workspaceId && activeChartField),
+  });
+  const countByModel = new Map(
+    (stats.data?.counts ?? []).map((entry) => [entry.name, entry.count]),
+  );
 
   async function refresh() {
     await queryClient.invalidateQueries(trpc.admin.dbRows.pathFilter());
@@ -134,6 +170,7 @@ export function DatabaseStudio() {
             {(tables.data ?? []).map((table) => (
               <option key={table.name} value={table.name}>
                 {table.label}
+                {countByModel.has(table.name) ? ` (${countByModel.get(table.name)})` : ''}
               </option>
             ))}
           </select>
@@ -169,6 +206,47 @@ export function DatabaseStudio() {
           </Button>
         )}
       </div>
+
+      {activeChartField && (
+        <Card data-testid="studio-chart">
+          <CardHeader>
+            <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+              {t('chartTitle', { table: spec?.label ?? model })}
+              <Badge variant="outline">{countByModel.get(model) ?? 0}</Badge>
+              {groupable.length > 1 && (
+                <ThemedSelect
+                  aria-label={t('chartField')}
+                  value={activeChartField}
+                  onValueChange={setChartField}
+                  size="sm"
+                  className="ml-auto"
+                  options={groupable.map((field) => ({ value: field, label: field }))}
+                />
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(aggregate.data?.groups ?? []).length === 0 ? (
+              <p className="text-muted-foreground py-6 text-center text-sm">{t('chartEmpty')}</p>
+            ) : (
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={aggregate.data?.groups ?? []} margin={{ top: 8, right: 12 }}>
+                    <XAxis dataKey="value" {...CHART_AXIS} />
+                    <YAxis {...CHART_AXIS} allowDecimals={false} width={36} />
+                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--muted)' }} />
+                    <Bar dataKey="count" name={t('chartCount')} radius={[6, 6, 0, 0]}>
+                      {(aggregate.data?.groups ?? []).map((entry, index) => (
+                        <Cell key={entry.value} fill={`var(--chart-${(index % 5) + 1})`} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="overflow-x-auto p-0">
@@ -217,6 +295,8 @@ export function DatabaseStudio() {
                       onClick={() => {
                         setConfirmDelete(String(row.id));
                         setConfirmWord('');
+                        setConfirmPassword('');
+                        setConfirmTotp('');
                       }}
                     >
                       <Trash2 className="size-4" aria-hidden />
@@ -304,21 +384,55 @@ export function DatabaseStudio() {
             </DialogDescription>
           </DialogHeader>
           <label className="grid gap-1.5 text-sm">
+            <span>{t('deletePassword')}</span>
+            <Input
+              type="password"
+              autoComplete="current-password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              data-testid="studio-delete-password"
+            />
+          </label>
+          {twoFactorOn && (
+            <label className="grid gap-1.5 text-sm">
+              <span>{t('deleteTotp')}</span>
+              <Input
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={confirmTotp}
+                onChange={(event) => setConfirmTotp(event.target.value)}
+                data-testid="studio-delete-totp"
+              />
+            </label>
+          )}
+          <label className="grid gap-1.5 text-sm">
             <span>{t('deletePrompt')}</span>
             <Input
               value={confirmWord}
               onChange={(event) => setConfirmWord(event.target.value)}
-              placeholder="delete"
+              placeholder="I understand"
             />
           </label>
           <DialogFooter>
             <Button
               variant="destructive"
-              disabled={confirmWord !== 'delete' || deleteRow.isPending}
+              disabled={
+                confirmWord !== 'I understand' ||
+                confirmPassword.length === 0 ||
+                (twoFactorOn && confirmTotp.length === 0) ||
+                deleteRow.isPending
+              }
               onClick={async () => {
                 try {
-                  await deleteRow.mutateAsync({ model, id: confirmDelete ?? '' });
+                  await deleteRow.mutateAsync({
+                    model,
+                    id: confirmDelete ?? '',
+                    password: confirmPassword,
+                    totpCode: twoFactorOn ? confirmTotp : undefined,
+                  });
                   setConfirmDelete(null);
+                  setConfirmPassword('');
+                  setConfirmTotp('');
                   await refresh();
                   toast.success(t('deleted'));
                 } catch (error) {

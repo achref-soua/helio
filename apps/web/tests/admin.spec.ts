@@ -96,11 +96,20 @@ test('database studio browses, edits, and deletes with a typed confirm', async (
   await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(row).toContainText('Studio');
 
-  // Delete only proceeds after typing the word.
+  // The category chart renders for tables with a groupable field.
+  await expect(page.getByTestId('studio-chart')).toBeVisible();
+
+  // Delete only proceeds after re-authenticating AND typing the phrase.
   await row.getByRole('button', { name: /Delete row/ }).click();
-  await expect(page.getByRole('button', { name: 'Delete row', exact: true })).toBeDisabled();
-  await page.getByPlaceholder('delete').fill('delete');
-  await page.getByRole('button', { name: 'Delete row', exact: true }).click();
+  const deleteButton = page.getByRole('button', { name: 'Delete row', exact: true });
+  await expect(deleteButton).toBeDisabled();
+  await page.getByPlaceholder('I understand').fill('I understand');
+  await expect(deleteButton).toBeDisabled(); // phrase alone is not enough
+  await page.getByTestId('studio-delete-password').fill('wrong-password');
+  await deleteButton.click();
+  await expect(page.getByText('Wrong password.')).toBeVisible(); // server re-auth rejects
+  await page.getByTestId('studio-delete-password').fill('correct-horse-battery');
+  await deleteButton.click();
   await expect(page.getByTestId('studio-row').filter({ hasText: email })).toHaveCount(0);
 });
 

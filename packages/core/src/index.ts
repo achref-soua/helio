@@ -92,6 +92,7 @@ export {
   STUDIO_MODELS,
   type StudioField,
   type StudioFieldType,
+  studioGroupableFields,
   type StudioModel,
   studioModel,
   validateStudioWrite,

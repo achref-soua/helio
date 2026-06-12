@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { STUDIO_MODELS, studioModel, validateStudioWrite } from '../src/db-studio';
+import {
+  STUDIO_MODELS,
+  studioGroupableFields,
+  studioModel,
+  validateStudioWrite,
+} from '../src/db-studio';
 
 describe('database studio registry', () => {
   it('never exposes auth, credential, or secret-bearing models', () => {
@@ -59,5 +64,17 @@ describe('database studio registry', () => {
 
     const required = validateStudioWrite(contact, { email: '' });
     expect(required).toEqual({ ok: false, error: 'email is required' });
+  });
+});
+
+describe('studioGroupableFields', () => {
+  it('offers category-shaped fields and never ids, text, or dates', () => {
+    const contact = studioModel('contact')!;
+    expect(studioGroupableFields(contact)).toEqual(['status']);
+    const landing = studioModel('landingPage')!;
+    expect(studioGroupableFields(landing)).toContain('published');
+    expect(studioGroupableFields(landing)).not.toContain('id');
+    const note = studioModel('note')!;
+    expect(studioGroupableFields(note)).toEqual([]);
   });
 });
