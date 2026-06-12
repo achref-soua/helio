@@ -194,6 +194,14 @@ export {
   unwrapOr,
 } from './result';
 export {
+  avgCycleDays,
+  ownerLeaderboard,
+  pipelineValueByStage,
+  type SalesDeal,
+  weightedForecastCents,
+  winRate,
+} from './sales';
+export {
   pushSalesforceLead,
   SALESFORCE_API_VERSION,
   type SalesforceLead,

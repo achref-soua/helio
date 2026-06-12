@@ -502,7 +502,8 @@
     "moveTo": "Move {title} to another stage",
     "deleteDeal": "Delete {title}",
     "cancel": "Cancel",
-    "genericError": "Something went wrong. Please try again."
+    "genericError": "Something went wrong. Please try again.",
+    "reports": "Reports"
   },
   "journeys": {
     "title": "Journeys",
@@ -1439,5 +1440,27 @@
     "saved": "Company saved",
     "empty": "No companies yet — add the first one.",
     "genericError": "Something went wrong — try again."
+  },
+  "salesReports": {
+    "title": "Sales reports",
+    "subtitle": "Pipeline, win rate, cycle time, and the leaderboard — for the active workspace.",
+    "back": "Back to deals",
+    "winRate": "Win rate",
+    "avgCycle": "Average cycle",
+    "days": "{days} days",
+    "forecast": "Forecast",
+    "forecastHint": "Open pipeline × win rate to date — a simple, honest estimate.",
+    "byStage": "Open pipeline by stage",
+    "byStageHint": "Open deals only; closed deals leave the pipeline.",
+    "stage": "Stage",
+    "deals": "Deals",
+    "value": "Value",
+    "leaderboard": "Owner leaderboard",
+    "leaderboardHint": "Won value per member.",
+    "owner": "Owner",
+    "won": "Won",
+    "unassigned": "Unassigned",
+    "empty": "No open deals yet.",
+    "noWins": "No wins yet — they will land here."
   }
 }

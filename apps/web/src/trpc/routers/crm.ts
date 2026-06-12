@@ -1,4 +1,15 @@
-import { newId, taskPrioritySchema, taskStatusSchema, taskTypeSchema } from '@helio/core';
+import {
+  avgCycleDays,
+  newId,
+  ownerLeaderboard,
+  pipelineValueByStage,
+  type SalesDeal,
+  taskPrioritySchema,
+  taskStatusSchema,
+  taskTypeSchema,
+  weightedForecastCents,
+  winRate,
+} from '@helio/core';
 import { Prisma } from '@helio/db';
 import { type inferProcedureBuilderResolverOptions, TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -502,6 +513,57 @@ export const crmRouter = router({
       const task = await ctx.tenantDb.task.delete({ where: { id: input.id } });
       await writeAudit(ctx, task.workspaceId, 'task.deleted', 'task', input.id);
       return { id: input.id };
+    }),
+
+  /** Sales reports (H5): pure Postgres + pure math from @helio/core. */
+  salesReport: orgProcedure
+    .input(z.object({ workspaceId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const rows = await ctx.tenantDb.deal.findMany({
+        where: { workspaceId: input.workspaceId },
+        select: {
+          valueCents: true,
+          status: true,
+          ownerId: true,
+          createdAt: true,
+          closedAt: true,
+          currency: true,
+          stage: { select: { name: true } },
+        },
+        take: 20_000,
+      });
+      const deals: SalesDeal[] = rows.map((row) => ({
+        valueCents: row.valueCents,
+        status: row.status,
+        stageName: row.stage.name,
+        ownerId: row.ownerId,
+        createdAt: row.createdAt,
+        closedAt: row.closedAt,
+      }));
+      const leaderboard = ownerLeaderboard(deals);
+      const ownerIds = leaderboard
+        .map((row) => row.ownerId)
+        .filter((id): id is string => Boolean(id));
+      const users = ownerIds.length
+        ? await authDb.user.findMany({
+            where: { id: { in: ownerIds } },
+            select: { id: true, name: true, email: true },
+          })
+        : [];
+      const names = new Map(users.map((user) => [user.id, user.name || user.email]));
+      return {
+        currency: rows[0]?.currency ?? 'USD',
+        totalDeals: deals.length,
+        byStage: pipelineValueByStage(deals),
+        winRate: winRate(deals),
+        avgCycleDays: avgCycleDays(deals),
+        forecastCents: weightedForecastCents(deals),
+        leaderboard: leaderboard.map((row) => ({
+          owner: row.ownerId ? (names.get(row.ownerId) ?? row.ownerId) : null,
+          wonCents: row.wonCents,
+          wonCount: row.wonCount,
+        })),
+      };
     }),
 
   // ── Companies (H4): the B2B account object ─────────────────────────────
