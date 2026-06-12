@@ -4,6 +4,7 @@ import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -61,21 +62,19 @@ export function ScimPanel({ canManage }: { canManage: boolean }) {
 
   return (
     <Card data-testid="scim-panel">
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div className="grid gap-1.5">
-          <CardTitle className="flex items-center gap-2">
-            <Users className="size-4" aria-hidden />
-            {t('title')}
-            {data?.configured && (
-              <Badge variant="secondary" data-testid="scim-configured">
-                {t('active')}
-              </Badge>
-            )}
-          </CardTitle>
-          <CardDescription>{t('subtitle')}</CardDescription>
-        </div>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Users className="size-4" aria-hidden />
+          {t('title')}
+          {data?.configured && (
+            <Badge variant="secondary" data-testid="scim-configured">
+              {t('active')}
+            </Badge>
+          )}
+        </CardTitle>
+        <CardDescription>{t('subtitle')}</CardDescription>
         {canManage && (
-          <div className="flex gap-2">
+          <CardAction className="flex gap-2">
             {data?.configured && (
               <Button
                 size="sm"
@@ -95,7 +94,7 @@ export function ScimPanel({ canManage }: { canManage: boolean }) {
             >
               {data?.configured ? t('regenerate') : t('generate')}
             </Button>
-          </div>
+          </CardAction>
         )}
       </CardHeader>
       <CardContent className="grid gap-3 text-sm">

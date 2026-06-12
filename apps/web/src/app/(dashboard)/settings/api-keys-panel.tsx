@@ -4,6 +4,7 @@ import { API_SCOPES } from '@helio/core';
 import { Button } from '@helio/ui/components/button';
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -81,64 +82,64 @@ export function ApiKeysPanel({ canManage }: { canManage: boolean }) {
 
   return (
     <Card data-testid="api-keys-panel">
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div className="grid gap-1.5">
-          <CardTitle className="flex items-center gap-2">
-            <KeySquare className="size-4" aria-hidden />
-            {t('title')}
-          </CardTitle>
-          <CardDescription>{t('subtitle')}</CardDescription>
-        </div>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <KeySquare className="size-4" aria-hidden />
+          {t('title')}
+        </CardTitle>
+        <CardDescription>{t('subtitle')}</CardDescription>
         {canManage && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" data-testid="api-key-create">
-                {t('createAction')}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>{t('createTitle')}</DialogTitle>
-                <DialogDescription>{t('createSubtitle')}</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={onCreate} className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="api-key-name">{t('name')}</Label>
-                  <Input
-                    id="api-key-name"
-                    name="name"
-                    placeholder="Production server"
-                    required
-                    data-testid="api-key-name"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <span className="text-sm font-medium">{t('scopesLabel')}</span>
-                  <p className="text-muted-foreground text-xs">{t('scopesHint')}</p>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {API_SCOPES.map((scope) => (
-                      <label key={scope} className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          className="accent-primary size-4"
-                          checked={scopePicks[scope] ?? false}
-                          onChange={() =>
-                            setScopePicks((current) => ({ ...current, [scope]: !current[scope] }))
-                          }
-                        />
-                        <code className="text-xs">{scope}</code>
-                      </label>
-                    ))}
+          <CardAction>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" data-testid="api-key-create">
+                  {t('createAction')}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{t('createTitle')}</DialogTitle>
+                  <DialogDescription>{t('createSubtitle')}</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={onCreate} className="grid gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="api-key-name">{t('name')}</Label>
+                    <Input
+                      id="api-key-name"
+                      name="name"
+                      placeholder="Production server"
+                      required
+                      data-testid="api-key-name"
+                    />
                   </div>
-                </div>
-                <DialogFooter>
-                  <Button type="submit" disabled={create.isPending} data-testid="api-key-submit">
-                    {create.isPending ? t('working') : t('createSubmit')}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+                  <div className="grid gap-2">
+                    <span className="text-sm font-medium">{t('scopesLabel')}</span>
+                    <p className="text-muted-foreground text-xs">{t('scopesHint')}</p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {API_SCOPES.map((scope) => (
+                        <label key={scope} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            className="accent-primary size-4"
+                            checked={scopePicks[scope] ?? false}
+                            onChange={() =>
+                              setScopePicks((current) => ({ ...current, [scope]: !current[scope] }))
+                            }
+                          />
+                          <code className="text-xs">{scope}</code>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" disabled={create.isPending} data-testid="api-key-submit">
+                      {create.isPending ? t('working') : t('createSubmit')}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </CardAction>
         )}
       </CardHeader>
       <CardContent>

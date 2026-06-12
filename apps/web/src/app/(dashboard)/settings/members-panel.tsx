@@ -5,6 +5,7 @@ import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -101,54 +102,54 @@ export function MembersPanel({
   return (
     <div className="grid gap-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div className="grid gap-1.5">
-            <CardTitle>{t('membersTitle')}</CardTitle>
-            <CardDescription>{t('membersSubtitle')}</CardDescription>
-          </div>
+        <CardHeader>
+          <CardTitle>{t('membersTitle')}</CardTitle>
+          <CardDescription>{t('membersSubtitle')}</CardDescription>
           {canManage && (
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm">
-                  <UserPlus aria-hidden /> {t('inviteAction')}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>{t('inviteTitle')}</DialogTitle>
-                  <DialogDescription>{t('inviteSubtitle')}</DialogDescription>
-                </DialogHeader>
-                <form onSubmit={invite} className="grid gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="invite-email">{t('email')}</Label>
-                    <Input id="invite-email" name="email" type="email" required />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>{t('role')}</Label>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button type="button" variant="outline" className="justify-between">
-                          {t(`roles.${role}`)}
-                          <ChevronDown aria-hidden />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        {INVITABLE_ROLES.map((value) => (
-                          <DropdownMenuItem key={value} onClick={() => setRole(value)}>
-                            {t(`roles.${value}`)}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit" disabled={pending}>
-                      {pending ? t('working') : t('inviteSend')}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <CardAction>
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <UserPlus aria-hidden /> {t('inviteAction')}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>{t('inviteTitle')}</DialogTitle>
+                    <DialogDescription>{t('inviteSubtitle')}</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={invite} className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="invite-email">{t('email')}</Label>
+                      <Input id="invite-email" name="email" type="email" required />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>{t('role')}</Label>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button type="button" variant="outline" className="justify-between">
+                            {t(`roles.${role}`)}
+                            <ChevronDown aria-hidden />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          {INVITABLE_ROLES.map((value) => (
+                            <DropdownMenuItem key={value} onClick={() => setRole(value)}>
+                              {t(`roles.${value}`)}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit" disabled={pending}>
+                        {pending ? t('working') : t('inviteSend')}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </CardAction>
           )}
         </CardHeader>
         <CardContent>

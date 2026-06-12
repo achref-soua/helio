@@ -131,7 +131,9 @@ test.describe('forced rotation', () => {
       .toBe(true);
     await page.goto(link!);
     await expect(page.getByText('Create your organization')).toBeVisible();
-    await page.getByLabel('Organization name').fill('Rotate Org');
+    // Unique per attempt — a retry must not collide with a half-finished
+    // first attempt's org slug.
+    await page.getByLabel('Organization name').fill(`Rotate Org ${Date.now()}`);
     await page.evaluate(() => localStorage.setItem('helio.tour.v1.done', '1'));
     await page.getByRole('button', { name: 'Create organization' }).click();
     await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible({

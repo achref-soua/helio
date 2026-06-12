@@ -4,6 +4,7 @@ import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -112,15 +113,15 @@ export function HealthView() {
       </div>
 
       <Card data-testid="health-alerts">
-        <CardHeader className="flex flex-row items-start justify-between space-y-0">
-          <div>
-            <CardTitle>{t('alerts')}</CardTitle>
-            <CardDescription>{t('alertsHint')}</CardDescription>
-          </div>
+        <CardHeader>
+          <CardTitle>{t('alerts')}</CardTitle>
+          <CardDescription>{t('alertsHint')}</CardDescription>
           {(alerts.data?.unread ?? 0) > 0 && (
-            <Button variant="outline" size="sm" onClick={() => onMarkRead()}>
-              {t('markAllRead')}
-            </Button>
+            <CardAction>
+              <Button variant="outline" size="sm" onClick={() => onMarkRead()}>
+                {t('markAllRead')}
+              </Button>
+            </CardAction>
           )}
         </CardHeader>
         <CardContent className="p-0">

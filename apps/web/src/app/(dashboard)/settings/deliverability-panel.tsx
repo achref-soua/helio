@@ -5,6 +5,7 @@ import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -101,59 +102,59 @@ export function DeliverabilityPanel({ canManage }: { canManage: boolean }) {
 
   return (
     <Card data-testid="deliverability-panel">
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div className="grid gap-1.5">
-          <CardTitle className="flex items-center gap-2">
-            <MailCheck className="size-4" aria-hidden />
-            {t('title')}
-          </CardTitle>
-          <CardDescription>{t('subtitle')}</CardDescription>
-        </div>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <MailCheck className="size-4" aria-hidden />
+          {t('title')}
+        </CardTitle>
+        <CardDescription>{t('subtitle')}</CardDescription>
         {canManage && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" data-testid="domain-add">
-                {t('addAction')}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>{t('addTitle')}</DialogTitle>
-                <DialogDescription>{t('addSubtitle')}</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={onAdd} className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="domain">{t('domain')}</Label>
-                  <Input
-                    id="domain"
-                    name="domain"
-                    placeholder="mail.acme.com"
-                    required
-                    data-testid="domain-name"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="spfInclude">{t('spfInclude')}</Label>
-                  <Input
-                    id="spfInclude"
-                    name="spfInclude"
-                    defaultValue={spfSuggestion ?? ''}
-                    placeholder="amazonses.com"
-                  />
-                  {spfSuggestion && emailCredential ? (
-                    <p className="text-muted-foreground text-xs">
-                      {t('spfSuggested', { name: emailCredential.name })}
-                    </p>
-                  ) : null}
-                </div>
-                <DialogFooter>
-                  <Button type="submit" disabled={add.isPending} data-testid="domain-submit">
-                    {add.isPending ? t('adding') : t('add')}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <CardAction>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" data-testid="domain-add">
+                  {t('addAction')}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{t('addTitle')}</DialogTitle>
+                  <DialogDescription>{t('addSubtitle')}</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={onAdd} className="grid gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="domain">{t('domain')}</Label>
+                    <Input
+                      id="domain"
+                      name="domain"
+                      placeholder="mail.acme.com"
+                      required
+                      data-testid="domain-name"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="spfInclude">{t('spfInclude')}</Label>
+                    <Input
+                      id="spfInclude"
+                      name="spfInclude"
+                      defaultValue={spfSuggestion ?? ''}
+                      placeholder="amazonses.com"
+                    />
+                    {spfSuggestion && emailCredential ? (
+                      <p className="text-muted-foreground text-xs">
+                        {t('spfSuggested', { name: emailCredential.name })}
+                      </p>
+                    ) : null}
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" disabled={add.isPending} data-testid="domain-submit">
+                      {add.isPending ? t('adding') : t('add')}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </CardAction>
         )}
       </CardHeader>
       <CardContent>

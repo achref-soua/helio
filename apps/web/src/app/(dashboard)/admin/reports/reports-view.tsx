@@ -4,6 +4,7 @@ import { csvDocument } from '@helio/core';
 import { Button } from '@helio/ui/components/button';
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -113,31 +114,31 @@ export function ReportsView() {
       </div>
 
       <Card data-testid="report-campaigns">
-        <CardHeader className="flex flex-row items-start justify-between space-y-0">
-          <div>
-            <CardTitle>{t('campaigns')}</CardTitle>
-            <CardDescription>
-              {campaigns.data?.clickhouseUp === false ? t('engagementDown') : t('campaignsHint')}
-            </CardDescription>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              downloadCsv(
-                'helio-campaign-report.csv',
-                ['campaign', 'sends', 'opens', 'clicks'],
-                (campaigns.data?.rows ?? []).map((row) => [
-                  row.campaign,
-                  row.sends,
-                  row.opens ?? '',
-                  row.clicks ?? '',
-                ]),
-              )
-            }
-          >
-            <Download className="size-4" aria-hidden /> {t('csv')}
-          </Button>
+        <CardHeader>
+          <CardTitle>{t('campaigns')}</CardTitle>
+          <CardDescription>
+            {campaigns.data?.clickhouseUp === false ? t('engagementDown') : t('campaignsHint')}
+          </CardDescription>
+          <CardAction>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                downloadCsv(
+                  'helio-campaign-report.csv',
+                  ['campaign', 'sends', 'opens', 'clicks'],
+                  (campaigns.data?.rows ?? []).map((row) => [
+                    row.campaign,
+                    row.sends,
+                    row.opens ?? '',
+                    row.clicks ?? '',
+                  ]),
+                )
+              }
+            >
+              <Download className="size-4" aria-hidden /> {t('csv')}
+            </Button>
+          </CardAction>
         </CardHeader>
         <CardContent className="p-0">
           <table className="w-full text-sm">
@@ -172,29 +173,29 @@ export function ReportsView() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card data-testid="report-journeys">
-          <CardHeader className="flex flex-row items-start justify-between space-y-0">
-            <div>
-              <CardTitle>{t('journeys')}</CardTitle>
-              <CardDescription>{t('journeysHint')}</CardDescription>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                downloadCsv(
-                  'helio-journey-report.csv',
-                  ['journey', 'running', 'completed', 'failed'],
-                  (journeys.data ?? []).map((row) => [
-                    row.journey,
-                    row.running,
-                    row.completed,
-                    row.failed,
-                  ]),
-                )
-              }
-            >
-              <Download className="size-4" aria-hidden /> {t('csv')}
-            </Button>
+          <CardHeader>
+            <CardTitle>{t('journeys')}</CardTitle>
+            <CardDescription>{t('journeysHint')}</CardDescription>
+            <CardAction>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  downloadCsv(
+                    'helio-journey-report.csv',
+                    ['journey', 'running', 'completed', 'failed'],
+                    (journeys.data ?? []).map((row) => [
+                      row.journey,
+                      row.running,
+                      row.completed,
+                      row.failed,
+                    ]),
+                  )
+                }
+              >
+                <Download className="size-4" aria-hidden /> {t('csv')}
+              </Button>
+            </CardAction>
           </CardHeader>
           <CardContent className="p-0">
             <table className="w-full text-sm">

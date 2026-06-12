@@ -3,6 +3,7 @@
 import { Button } from '@helio/ui/components/button';
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -90,144 +91,144 @@ export function SsoPanel({ canManage }: { canManage: boolean }) {
 
   return (
     <Card data-testid="sso-panel">
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div className="grid gap-1.5">
-          <CardTitle className="flex items-center gap-2">
-            <KeyRound className="size-4" aria-hidden />
-            {t('title')}
-          </CardTitle>
-          <CardDescription>{t('subtitle')}</CardDescription>
-        </div>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <KeyRound className="size-4" aria-hidden />
+          {t('title')}
+        </CardTitle>
+        <CardDescription>{t('subtitle')}</CardDescription>
         {canManage && (
-          <Dialog
-            open={open}
-            onOpenChange={(next) => {
-              setOpen(next);
-              if (!next) setManual(false);
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button size="sm" data-testid="sso-add">
-                {t('addAction')}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>{t('addTitle')}</DialogTitle>
-                <DialogDescription>{t('addSubtitle')}</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={onSubmit} className="grid gap-4">
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="grid gap-2">
-                    <Label htmlFor="sso-domain">{t('fields.domain')}</Label>
-                    <Input
-                      id="sso-domain"
-                      name="domain"
-                      placeholder="acme.com"
-                      required
-                      data-testid="sso-domain"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="sso-provider-id">{t('fields.providerId')}</Label>
-                    <Input
-                      id="sso-provider-id"
-                      name="providerId"
-                      placeholder="acme-okta"
-                      required
-                      data-testid="sso-provider-id"
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="sso-issuer">{t('fields.issuer')}</Label>
-                  <Input
-                    id="sso-issuer"
-                    name="issuer"
-                    type="url"
-                    placeholder="https://acme.okta.com"
-                    required
-                    data-testid="sso-issuer"
-                  />
-                </div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="grid gap-2">
-                    <Label htmlFor="sso-client-id">{t('fields.clientId')}</Label>
-                    <Input
-                      id="sso-client-id"
-                      name="clientId"
-                      required
-                      data-testid="sso-client-id"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="sso-client-secret">{t('fields.clientSecret')}</Label>
-                    <Input
-                      id="sso-client-secret"
-                      name="clientSecret"
-                      type="password"
-                      required
-                      data-testid="sso-client-secret"
-                    />
-                  </div>
-                </div>
-
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="size-4"
-                    checked={manual}
-                    onChange={(event) => setManual(event.target.checked)}
-                    data-testid="sso-manual-toggle"
-                  />
-                  {t('fields.manual')}
-                </label>
-
-                {manual && (
-                  <div className="grid gap-4 border-l-2 pl-4">
+          <CardAction>
+            <Dialog
+              open={open}
+              onOpenChange={(next) => {
+                setOpen(next);
+                if (!next) setManual(false);
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button size="sm" data-testid="sso-add">
+                  {t('addAction')}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>{t('addTitle')}</DialogTitle>
+                  <DialogDescription>{t('addSubtitle')}</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={onSubmit} className="grid gap-4">
+                  <div className="grid gap-2 sm:grid-cols-2">
                     <div className="grid gap-2">
-                      <Label htmlFor="sso-authorization-endpoint">
-                        {t('fields.authorizationEndpoint')}
-                      </Label>
+                      <Label htmlFor="sso-domain">{t('fields.domain')}</Label>
                       <Input
-                        id="sso-authorization-endpoint"
-                        name="authorizationEndpoint"
-                        type="url"
+                        id="sso-domain"
+                        name="domain"
+                        placeholder="acme.com"
                         required
-                        data-testid="sso-authorization-endpoint"
+                        data-testid="sso-domain"
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="sso-token-endpoint">{t('fields.tokenEndpoint')}</Label>
+                      <Label htmlFor="sso-provider-id">{t('fields.providerId')}</Label>
                       <Input
-                        id="sso-token-endpoint"
-                        name="tokenEndpoint"
-                        type="url"
+                        id="sso-provider-id"
+                        name="providerId"
+                        placeholder="acme-okta"
                         required
-                        data-testid="sso-token-endpoint"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="sso-jwks-endpoint">{t('fields.jwksEndpoint')}</Label>
-                      <Input
-                        id="sso-jwks-endpoint"
-                        name="jwksEndpoint"
-                        type="url"
-                        required
-                        data-testid="sso-jwks-endpoint"
+                        data-testid="sso-provider-id"
                       />
                     </div>
                   </div>
-                )}
+                  <div className="grid gap-2">
+                    <Label htmlFor="sso-issuer">{t('fields.issuer')}</Label>
+                    <Input
+                      id="sso-issuer"
+                      name="issuer"
+                      type="url"
+                      placeholder="https://acme.okta.com"
+                      required
+                      data-testid="sso-issuer"
+                    />
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="grid gap-2">
+                      <Label htmlFor="sso-client-id">{t('fields.clientId')}</Label>
+                      <Input
+                        id="sso-client-id"
+                        name="clientId"
+                        required
+                        data-testid="sso-client-id"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="sso-client-secret">{t('fields.clientSecret')}</Label>
+                      <Input
+                        id="sso-client-secret"
+                        name="clientSecret"
+                        type="password"
+                        required
+                        data-testid="sso-client-secret"
+                      />
+                    </div>
+                  </div>
 
-                <DialogFooter>
-                  <Button type="submit" disabled={register.isPending} data-testid="sso-submit">
-                    {register.isPending ? t('working') : t('addSubmit')}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      className="size-4"
+                      checked={manual}
+                      onChange={(event) => setManual(event.target.checked)}
+                      data-testid="sso-manual-toggle"
+                    />
+                    {t('fields.manual')}
+                  </label>
+
+                  {manual && (
+                    <div className="grid gap-4 border-l-2 pl-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="sso-authorization-endpoint">
+                          {t('fields.authorizationEndpoint')}
+                        </Label>
+                        <Input
+                          id="sso-authorization-endpoint"
+                          name="authorizationEndpoint"
+                          type="url"
+                          required
+                          data-testid="sso-authorization-endpoint"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="sso-token-endpoint">{t('fields.tokenEndpoint')}</Label>
+                        <Input
+                          id="sso-token-endpoint"
+                          name="tokenEndpoint"
+                          type="url"
+                          required
+                          data-testid="sso-token-endpoint"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="sso-jwks-endpoint">{t('fields.jwksEndpoint')}</Label>
+                        <Input
+                          id="sso-jwks-endpoint"
+                          name="jwksEndpoint"
+                          type="url"
+                          required
+                          data-testid="sso-jwks-endpoint"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <DialogFooter>
+                    <Button type="submit" disabled={register.isPending} data-testid="sso-submit">
+                      {register.isPending ? t('working') : t('addSubmit')}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </CardAction>
         )}
       </CardHeader>
       <CardContent>
