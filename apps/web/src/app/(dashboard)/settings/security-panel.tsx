@@ -21,6 +21,7 @@ import {
 import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
 import { ShieldCheck } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -42,14 +43,31 @@ type EnrollStep =
  */
 export function SecurityPanel({ autoEnroll = false }: { autoEnroll?: boolean }) {
   const t = useTranslations('twoFactor');
+  const router = useRouter();
   const { data: session, refetch } = useSession();
-  // The require-2FA banner deep-links here with ?enroll2fa=1 — open the
-  // enrollment dialog immediately so "required" comes with the way to
-  // actually do it.
-  const [state, setState] = useState<EnrollStep>(
-    autoEnroll ? { step: 'password', mode: 'enable' } : { step: 'closed' },
-  );
+  const [state, setState] = useState<EnrollStep>({ step: 'closed' });
   const [pending, setPending] = useState(false);
+
+  // The require-2FA banner deep-links here with ?enroll2fa=1. The banner
+  // usually sits on /settings already, so the click is a same-route
+  // navigation that re-renders this mounted panel with a new prop — a
+  // mount-only state seed would miss it. Reacting to the false→true
+  // transition at render time opens the dialog on every click.
+  const [autoEnrollSeen, setAutoEnrollSeen] = useState(false);
+  if (autoEnroll && !autoEnrollSeen) {
+    setAutoEnrollSeen(true);
+    if (state.step === 'closed') setState({ step: 'password', mode: 'enable' });
+  }
+  if (!autoEnroll && autoEnrollSeen) {
+    setAutoEnrollSeen(false);
+  }
+
+  /** Ends the dialog flow; dropping ?enroll2fa=1 lets the banner button
+   *  produce a fresh transition next time (same-URL clicks are no-ops). */
+  function closeFlow() {
+    setState({ step: 'closed' });
+    if (autoEnroll) router.replace('/settings', { scroll: false });
+  }
 
   const enabled = Boolean(
     (session?.user as { twoFactorEnabled?: boolean | null } | undefined)?.twoFactorEnabled,
@@ -76,7 +94,7 @@ export function SecurityPanel({ autoEnroll = false }: { autoEnroll?: boolean }) 
         return;
       }
       toast.success(t('disabled'));
-      setState({ step: 'closed' });
+      closeFlow();
       await refetch();
     }
   }
@@ -92,7 +110,7 @@ export function SecurityPanel({ autoEnroll = false }: { autoEnroll?: boolean }) 
       return;
     }
     toast.success(t('enabled'));
-    setState({ step: 'closed' });
+    closeFlow();
     await refetch();
   }
 
@@ -133,10 +151,7 @@ export function SecurityPanel({ autoEnroll = false }: { autoEnroll?: boolean }) 
         <SessionsList />
       </CardContent>
 
-      <Dialog
-        open={state.step === 'password'}
-        onOpenChange={(open) => !open && setState({ step: 'closed' })}
-      >
+      <Dialog open={state.step === 'password'} onOpenChange={(open) => !open && closeFlow()}>
         <DialogContent>
           <form onSubmit={onPasswordSubmit} className="grid gap-4">
             <DialogHeader>
@@ -167,10 +182,7 @@ export function SecurityPanel({ autoEnroll = false }: { autoEnroll?: boolean }) 
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={state.step === 'verify'}
-        onOpenChange={(open) => !open && setState({ step: 'closed' })}
-      >
+      <Dialog open={state.step === 'verify'} onOpenChange={(open) => !open && closeFlow()}>
         <DialogContent>
           <form onSubmit={onVerify} className="grid gap-4">
             <DialogHeader>

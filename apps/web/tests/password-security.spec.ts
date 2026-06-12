@@ -95,6 +95,17 @@ test('org-required 2FA steers unenrolled members to Security', async ({ page }) 
   await expect(page.getByTestId('require-2fa-banner')).toBeVisible();
   await expect(page.getByTestId('require-2fa-banner')).toContainText('authenticator app');
 
+  // The banner's CTA must open the enrollment dialog even though it is a
+  // same-route navigation (the panel is already mounted on /settings) —
+  // and again after the dialog is dismissed, repeatedly.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await page.getByTestId('require-2fa-cta').click();
+    await expect(page.getByTestId('twofa-password')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('twofa-password')).toHaveCount(0);
+    await expect(page).toHaveURL(/\/settings$/);
+  }
+
   // Leave the suite tidy.
   await page.getByTestId('require-2fa-toggle').uncheck();
   await page.goto('/contacts');
