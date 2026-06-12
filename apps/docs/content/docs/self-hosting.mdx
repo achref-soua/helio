@@ -56,6 +56,28 @@ Everything lives in `~/.helio`: the pinned compose file, your `.env`
 backups. Pin a version with `HELIO_VERSION=vX.Y.Z` before the install
 one-liner, or `helio install --version vX.Y.Z`.
 
+### Serving a whole team from one machine
+
+Helio is a multi-user web app: install it **once** on a shared machine or
+server and everyone uses it at the same time from their own browser, with
+their own account, role, and sessions — organizations are isolated down to
+the database row. Don't run one install per OS user on the same box: they
+would fight over the same ports and Docker resources, and there's no need.
+
+For teammates to reach it from other machines, point Helio at the address
+they will actually use, then restart:
+
+```bash
+# in ~/.helio/.env — the address your team types in their browser
+APP_URL=http://your-server-name:3000
+
+helio down && helio up
+```
+
+Sign-in, email links, and the API all derive from `APP_URL`, so it must
+match what the browser shows. For a public domain with HTTPS, see the
+[production guide](/docs/production).
+
 ### Uninstalling
 
 Leaving is as boring as arriving. Both commands ask you to type
