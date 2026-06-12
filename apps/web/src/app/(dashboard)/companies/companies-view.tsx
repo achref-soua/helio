@@ -109,7 +109,7 @@ export function CompaniesView() {
     <div className="grid max-w-4xl grid-cols-1 gap-4" data-testid="companies-view">
       <div className="flex flex-wrap items-center gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
         </div>
         <div className="ml-auto flex gap-2">

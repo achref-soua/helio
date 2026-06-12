@@ -167,7 +167,7 @@ export function SegmentsView() {
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight">{t('title')}</h1>
         <Badge variant="outline">{t('total', { count: segments.length })}</Badge>
         <div className="ml-auto">
           <Button size="sm" onClick={openCreate}>

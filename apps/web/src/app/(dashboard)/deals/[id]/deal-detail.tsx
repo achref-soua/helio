@@ -103,7 +103,9 @@ export function DealDetail({ dealId }: { dealId: string }) {
           </Link>
         </Button>
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-semibold tracking-tight">{data.title}</h1>
+          <h1 className="truncate font-display text-3xl font-semibold tracking-tight">
+            {data.title}
+          </h1>
           <p className="text-muted-foreground text-sm">
             {data.pipeline.name} · {money}
           </p>

@@ -88,7 +88,7 @@ export function ContactDetail({ contactId }: { contactId: string }) {
           </Link>
         </Button>
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-semibold tracking-tight">{name}</h1>
+          <h1 className="truncate font-display text-3xl font-semibold tracking-tight">{name}</h1>
           <p className="text-muted-foreground text-sm">{data.email}</p>
         </div>
         <Badge variant={data.status === 'ACTIVE' ? 'secondary' : 'outline'}>{data.status}</Badge>

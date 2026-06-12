@@ -27,7 +27,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="grid max-w-5xl grid-cols-1 gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
       </div>
       <AdminNav />

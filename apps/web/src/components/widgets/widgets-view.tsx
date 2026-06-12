@@ -194,7 +194,7 @@ export function WidgetsView() {
     <div className="grid max-w-3xl gap-4">
       <div className="flex items-center gap-2">
         <MousePointerClick className="text-primary size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight">{t('title')}</h1>
         <Button size="sm" className="ml-auto" onClick={openCreate} data-testid="widget-new">
           <Plus aria-hidden /> {t('new')}
         </Button>
