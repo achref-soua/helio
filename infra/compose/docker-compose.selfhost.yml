@@ -125,6 +125,10 @@ services:
       interval: 15s
       timeout: 5s
       retries: 12
+      # First boots on modest machines (cold WSL2, first ClickHouse init)
+      # can take minutes before the server binds; failures inside the
+      # grace window must not mark the service unhealthy.
+      start_period: 120s
 
   api:
     image: ghcr.io/achref-soua/helio-api:__HELIO_VERSION__
@@ -148,6 +152,10 @@ services:
       interval: 15s
       timeout: 5s
       retries: 12
+      # First boots on modest machines (cold WSL2, first ClickHouse init)
+      # can take minutes before the server binds; failures inside the
+      # grace window must not mark the service unhealthy.
+      start_period: 120s
 
   intelligence:
     image: ghcr.io/achref-soua/helio-intelligence:__HELIO_VERSION__
@@ -180,6 +188,8 @@ services:
       interval: 15s
       timeout: 6s
       retries: 12
+      # Same first-boot grace as the node services.
+      start_period: 120s
 
   # ── full profile ────────────────────────────────────────────────────────
 
@@ -266,6 +276,10 @@ services:
       interval: 15s
       timeout: 5s
       retries: 12
+      # First boots on modest machines (cold WSL2, first ClickHouse init)
+      # can take minutes before the server binds; failures inside the
+      # grace window must not mark the service unhealthy.
+      start_period: 120s
 
   tracking:
     image: ghcr.io/achref-soua/helio-tracking:__HELIO_VERSION__
@@ -288,6 +302,10 @@ services:
       interval: 15s
       timeout: 5s
       retries: 12
+      # First boots on modest machines (cold WSL2, first ClickHouse init)
+      # can take minutes before the server binds; failures inside the
+      # grace window must not mark the service unhealthy.
+      start_period: 120s
 
   workers:
     image: ghcr.io/achref-soua/helio-workers:__HELIO_VERSION__
