@@ -63,6 +63,46 @@ export interface ComposeOptions {
   interactive?: boolean;
 }
 
+/**
+ * Compose interpolation lets the process environment override the
+ * installation's env-file — and the Bun runtime auto-loads any `.env`
+ * sitting in the directory `helio` happens to be run from, so a stray
+ * project file could silently rewire ports and passwords. Compose
+ * children therefore get an explicit allowlist: enough for docker to
+ * work, nothing that can shadow ~/.helio/.env.
+ */
+const CHILD_ENV_ALLOWLIST = [
+  'PATH',
+  'HOME',
+  'USER',
+  'USERPROFILE',
+  'SystemRoot',
+  'SystemDrive',
+  'ComSpec',
+  'ProgramFiles',
+  'ProgramData',
+  'LOCALAPPDATA',
+  'APPDATA',
+  'TEMP',
+  'TMP',
+  'DOCKER_HOST',
+  'DOCKER_CONFIG',
+  'DOCKER_CONTEXT',
+  'DOCKER_CERT_PATH',
+  'DOCKER_TLS_VERIFY',
+  'HTTP_PROXY',
+  'HTTPS_PROXY',
+  'NO_PROXY',
+];
+
+export function composeChildEnv(): NodeJS.ProcessEnv {
+  const child: NodeJS.ProcessEnv = {};
+  for (const key of CHILD_ENV_ALLOWLIST) {
+    if (process.env[key] !== undefined) child[key] = process.env[key];
+  }
+  return child;
+}
+
 /** Run docker compose against the installation; resolves with the exit code. */
 export function compose(
   paths: InstallPaths,
@@ -82,6 +122,7 @@ export function compose(
     const child = spawn('docker', fullArgs, {
       stdio: options.interactive === false ? 'pipe' : 'inherit',
       cwd: paths.home,
+      env: composeChildEnv(),
     });
     child.on('close', (code) => resolve(code ?? 1));
     child.on('error', (error) => {
@@ -108,7 +149,7 @@ export function composeCapture(
       ...(profiles?.flatMap((profile) => ['--profile', profile]) ?? []),
       ...args,
     ],
-    { stdio: 'pipe', cwd: paths.home },
+    { stdio: 'pipe', cwd: paths.home, env: composeChildEnv() },
   );
   return {
     status: result.status ?? 1,

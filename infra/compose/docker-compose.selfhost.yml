@@ -250,11 +250,16 @@ services:
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-helio}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
       CLICKHOUSE_DB: ${CLICKHOUSE_DB:-helio}
-      DATABASE_URL: postgresql://helio_app:${HELIO_APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-helio}
+      DATABASE_ADMIN_URL: postgresql://${POSTGRES_USER:-helio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-helio}
+      REDIS_URL: redis://redis:6379
     depends_on:
       redpanda:
         condition: service_healthy
       clickhouse:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ['CMD-SHELL', 'curl -fsS http://localhost:4100/healthz || exit 1']
@@ -272,9 +277,11 @@ services:
       TRACKING_SECRET: ${TRACKING_SECRET}
       PUBLIC_TRACKING_URL: ${PUBLIC_TRACKING_URL:-http://localhost:4200}
       KAFKA_BROKERS: redpanda:9092
-      DATABASE_URL: postgresql://helio_app:${HELIO_APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-helio}
+      DATABASE_ADMIN_URL: postgresql://${POSTGRES_USER:-helio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-helio}
     depends_on:
       redpanda:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     healthcheck:
       test: ['CMD-SHELL', 'curl -fsS http://localhost:4200/healthz || exit 1']
