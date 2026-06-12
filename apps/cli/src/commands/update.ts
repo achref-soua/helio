@@ -14,8 +14,8 @@ import { compose } from '../lib/docker';
 import { envValue, mergeTemplate } from '../lib/envfile';
 import { waitForHttpOk } from '../lib/health';
 import { helioHome, installPaths, isInstalled, readManifest, writeManifest } from '../lib/state';
-import { confirm, fail, say, warn } from '../lib/ui';
-import { registerCommand } from '../registry';
+import { banner, confirm, fail, say, warn } from '../lib/ui';
+import { CLI_VERSION, registerCommand } from '../registry';
 import { runBackupNow } from './backup';
 
 function newerThan(candidate: string, current: string): boolean {
@@ -37,6 +37,8 @@ async function run(argv: string[]): Promise<number> {
       yes: { type: 'boolean', short: 'y', default: false },
     },
   });
+
+  banner(CLI_VERSION, 'updating, with a safety backup first');
 
   const paths = installPaths(helioHome());
   if (!isInstalled(paths)) fail(`no installation at ${paths.home} — run "helio install" first`);
