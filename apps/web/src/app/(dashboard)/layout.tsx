@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
 import { BrandStyle } from '@/components/brand-style';
 import { TourGuide } from '@/components/tour-guide';
-import { auth } from '@/lib/auth';
+import { auth, authDb } from '@/lib/auth';
 import { appDb } from '@/lib/db';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -29,9 +29,33 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const org = activeOrgId
     ? await forTenant(appDb, activeOrgId).organization.findUnique({
         where: { id: activeOrgId },
-        select: { name: true, brandName: true, brandColor: true, logo: true },
+        select: {
+          name: true,
+          brandName: true,
+          brandColor: true,
+          logo: true,
+          passwordExpiryEnabled: true,
+          passwordExpiryDays: true,
+        },
       })
     : null;
+
+  // The org's password-rotation policy (M1): an expired password gets one
+  // page — change it or sign out. SSO users have no credential password.
+  if (org?.passwordExpiryEnabled) {
+    const user = await authDb.user.findUnique({
+      where: { id: session.user.id },
+      select: { passwordChangedAt: true, createdAt: true },
+    });
+    const hasCredential = await authDb.account.count({
+      where: { userId: session.user.id, providerId: 'credential' },
+    });
+    const since = user?.passwordChangedAt ?? user?.createdAt;
+    const deadline = since ? new Date(since.getTime() + org.passwordExpiryDays * 86_400_000) : null;
+    if (hasCredential > 0 && deadline && deadline < new Date()) {
+      redirect('/change-password');
+    }
+  }
 
   const version = helioVersion();
   return (

@@ -15,17 +15,20 @@ datasource db {
 /// Tenant root. Better-Auth's organization plugin owns the auth-facing
 /// fields; domain tables hang off it and are isolated by RLS.
 model Organization {
-  id         String   @id
-  name       String
-  slug       String   @unique
-  logo       String?
-  metadata   String?
+  id                    String   @id
+  name                  String
+  slug                  String   @unique
+  logo                  String?
+  /// Admin-configurable password rotation (M1, owner requirement).
+  passwordExpiryEnabled Boolean  @default(false) @map("password_expiry_enabled")
+  passwordExpiryDays    Int      @default(90) @map("password_expiry_days")
+  metadata              String?
   /// White-label display name shown in the dashboard and on hosted pages
   /// (falls back to the product name when unset).
-  brandName  String?  @map("brand_name")
+  brandName             String?  @map("brand_name")
   /// White-label accent color as a #rrggbb hex; applied as the primary token.
-  brandColor String?  @map("brand_color")
-  createdAt  DateTime @default(now()) @map("created_at")
+  brandColor            String?  @map("brand_color")
+  createdAt             DateTime @default(now()) @map("created_at")
 
   workspaces          Workspace[]
   auditLogs           AuditLog[]
@@ -657,14 +660,16 @@ model PushSubscription {
 // follow Better-Auth 1.6 (core + organization, twoFactor, apiKey plugins).
 
 model User {
-  id               String   @id
-  name             String
-  email            String   @unique
-  emailVerified    Boolean  @default(false) @map("email_verified")
-  image            String?
-  twoFactorEnabled Boolean? @map("two_factor_enabled")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id                String    @id
+  name              String
+  email             String    @unique
+  emailVerified     Boolean   @default(false) @map("email_verified")
+  image             String?
+  twoFactorEnabled  Boolean?  @map("two_factor_enabled")
+  /// When the password was last set; drives the org expiry policy (M1).
+  passwordChangedAt DateTime? @map("password_changed_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   sessions     Session[]
   accounts     Account[]

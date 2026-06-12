@@ -17,6 +17,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { passwordScore, PasswordStrength } from '@/components/password-strength';
 import { authClient } from '@/lib/auth-client';
 import { useTRPC } from '@/trpc/client';
 
@@ -96,6 +97,7 @@ export function SetupWizard() {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
               />
+              <PasswordStrength password={password} />
               <p className="text-muted-foreground text-xs">{t('passwordHint')}</p>
             </div>
             <div className="grid gap-1.5">
@@ -108,7 +110,7 @@ export function SetupWizard() {
                 onChange={(event) => setOrganizationName(event.target.value)}
               />
             </div>
-            <Button type="submit" disabled={working}>
+            <Button type="submit" disabled={working || passwordScore(password) < 2}>
               {working ? t('working') : t('start')}
             </Button>
             <p className="text-muted-foreground text-xs">{t('afterNote')}</p>

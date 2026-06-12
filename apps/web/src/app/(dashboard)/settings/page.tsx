@@ -14,6 +14,7 @@ import { CredentialsPanel } from './credentials-panel';
 import { DeliverabilityPanel } from './deliverability-panel';
 import { IntegrationsPanel } from './integrations-panel';
 import { MembersPanel } from './members-panel';
+import { PasswordPolicyPanel } from './password-policy-panel';
 import { ScimPanel } from './scim-panel';
 import { SecurityPanel } from './security-panel';
 import { SsoPanel } from './sso-panel';
@@ -59,6 +60,7 @@ export default async function SettingsPage() {
         canManage={me?.role === 'owner' || me?.role === 'admin'}
       />
       <SecurityPanel />
+      {(me?.role === 'owner' || me?.role === 'admin') && <PasswordPolicyPanel canManage />}
       {(me?.role === 'owner' || me?.role === 'admin') && (
         <>
           <CredentialsPanel canManage />

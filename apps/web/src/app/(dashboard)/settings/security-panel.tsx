@@ -25,6 +25,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { renderSVG } from 'uqr';
 
+import { SessionsList } from '@/components/sessions-list';
 import { authClient, useSession } from '@/lib/auth-client';
 
 type EnrollStep =
@@ -121,7 +122,10 @@ export function SecurityPanel() {
           </Button>
         )}
       </CardHeader>
-      <CardContent className="text-muted-foreground text-sm">{t('body')}</CardContent>
+      <CardContent className="grid gap-4">
+        <p className="text-muted-foreground text-sm">{t('body')}</p>
+        <SessionsList />
+      </CardContent>
 
       <Dialog
         open={state.step === 'password'}

@@ -15,12 +15,14 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { passwordScore, PasswordStrength } from '@/components/password-strength';
 import { signUp } from '@/lib/auth-client';
 
 export function SignupForm() {
   const t = useTranslations('auth');
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState('');
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -75,9 +77,12 @@ export function SignupForm() {
               autoComplete="new-password"
               minLength={8}
               required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
             />
+            <PasswordStrength password={password} />
           </div>
-          <Button type="submit" disabled={pending}>
+          <Button type="submit" disabled={pending || passwordScore(password) < 2}>
             {pending ? t('working') : t('signupAction')}
           </Button>
           <p className="text-muted-foreground text-center text-sm">

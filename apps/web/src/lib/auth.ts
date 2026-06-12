@@ -56,7 +56,7 @@ export const auth = betterAuth({
     customRules: {
       '/sign-in/email': { window: 60, max: 10 },
       '/sign-up/email': { window: 60, max: 10 },
-      '/forget-password': { window: 300, max: 5 },
+      '/request-password-reset': { window: 300, max: 5 },
       '/two-factor/verify-totp': { window: 60, max: 10 },
       '/two-factor/verify-backup-code': { window: 60, max: 10 },
     },
@@ -131,6 +131,21 @@ export const auth = betterAuth({
     }),
   },
   databaseHooks: {
+    // Any credential-account password write (change, reset, admin reset)
+    // stamps the user — the org expiry policy reads this timestamp.
+    account: {
+      update: {
+        after: async (account) => {
+          if (account.providerId !== 'credential') return;
+          await prisma.user
+            .update({
+              where: { id: account.userId },
+              data: { passwordChangedAt: new Date() },
+            })
+            .catch(() => undefined);
+        },
+      },
+    },
     session: {
       create: {
         // New sessions start scoped to the user's first organization so

@@ -204,7 +204,44 @@
     "genericError": "Something went wrong. Please try again.",
     "inviteOnlyTitle": "Invite-only",
     "inviteOnlyBody": "This Helio does not accept public signups. Ask an admin to invite you — invitations arrive by email.",
-    "backToLogin": "Back to login"
+    "backToLogin": "Back to login",
+    "forgotAction": "Forgot password?",
+    "forgot": {
+      "title": "Reset your password",
+      "subtitle": "We will email you a reset link.",
+      "email": "Email",
+      "send": "Send reset link",
+      "working": "Sending…",
+      "sent": "If that address has an account, a reset link is on its way. Check your inbox."
+    },
+    "reset": {
+      "title": "Choose a new password",
+      "subtitle": "You followed a reset link — set the new password here.",
+      "newPassword": "New password",
+      "save": "Set new password",
+      "working": "Saving…",
+      "done": "Password updated — log in with the new one.",
+      "failed": "That link is invalid or expired — request a new one.",
+      "missingToken": "This page needs a reset link from your email."
+    },
+    "change": {
+      "title": "Update your password",
+      "subtitle": "Your organization requires a fresh password. Other sessions sign out when you change it.",
+      "current": "Current password",
+      "new": "New password",
+      "save": "Update password",
+      "working": "Saving…",
+      "done": "Password updated.",
+      "failed": "The current password did not match.",
+      "signOutInstead": "Sign out instead"
+    },
+    "strength": {
+      "score0": "Far too weak — keep typing.",
+      "score1": "Weak — easy to guess.",
+      "score2": "Okay — could be stronger.",
+      "score3": "Good password.",
+      "score4": "Excellent password."
+    }
   },
   "errors": {
     "title": "Something went wrong",
@@ -1567,5 +1604,29 @@
     "contacts": "Import or add contacts",
     "team": "Invite a teammate",
     "launch": "Create your first campaign or journey"
+  },
+  "sessions": {
+    "title": "Active sessions",
+    "revoke": "Sign out",
+    "revokeOthers": "Sign out everywhere else",
+    "revoked": "Session signed out",
+    "revokedOthers": "All other sessions signed out",
+    "failed": "Could not revoke — try again.",
+    "unknownDevice": "Unknown device",
+    "thisDevice": "this device"
+  },
+  "passwordPolicy": {
+    "title": "Password policy",
+    "subtitle": "Require members to rotate their passwords on a schedule.",
+    "enable": "Require a password change every…",
+    "days": "Days",
+    "save": "Save",
+    "saved": "Policy saved",
+    "badDays": "Days must be between 7 and 365.",
+    "note": "Members past the deadline are routed to a password change at sign-in. SSO-only members are unaffected — they have no Helio password.",
+    "genericError": "Something went wrong — try again."
+  },
+  "security": {
+    "body": "Two-factor codes work with any authenticator app — Google Authenticator, Authy, 1Password, Microsoft Authenticator, or any other RFC-6238 TOTP app. Scan the QR code once; backup codes cover a lost phone."
   }
 }
