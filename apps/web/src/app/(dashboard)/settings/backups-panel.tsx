@@ -18,8 +18,9 @@ import {
   TableRow,
 } from '@helio/ui/components/table';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { DatabaseBackup, Download } from 'lucide-react';
+import { DatabaseBackup, Download, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { useTRPC } from '@/trpc/client';
@@ -42,20 +43,40 @@ export function BackupsPanel({ isOwner }: { isOwner: boolean }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
+  // While a requested run is in flight the list polls fast, so the new
+  // row appears within seconds of the sidecar picking the request up —
+  // a queued backup that shows nothing for half a minute reads as a
+  // dead button.
+  const [pendingSince, setPendingSince] = useState<number | null>(null);
   const list = useQuery({
     ...trpc.backups.list.queryOptions(),
     enabled: isOwner,
-    refetchInterval: 20_000,
+    refetchInterval: pendingSince ? 3_000 : 20_000,
   });
   const runNow = useMutation(trpc.backups.runNow.mutationOptions());
+
+  // Render-time guard: the moment a run newer than the request lands,
+  // the pending banner retires itself.
+  if (pendingSince) {
+    const landed = list.data?.runs.some(
+      // 15s of clock-skew allowance between this browser and the server.
+      (run) => new Date(run.startedAt).getTime() >= pendingSince - 15_000,
+    );
+    // Give up after 90s so a stopped sidecar can't pin the button; the
+    // stale banner below explains the real condition. dataUpdatedAt is
+    // the query's own clock — render-pure, and it advances with every
+    // 3-second poll while a run is pending.
+    if (landed || list.dataUpdatedAt - pendingSince > 90_000) setPendingSince(null);
+  }
 
   if (!isOwner || !list.data?.enabled) return null;
 
   async function onRunNow() {
     try {
       await runNow.mutateAsync();
+      setPendingSince(Date.now());
       toast.success(t('queued'));
-      setTimeout(() => queryClient.invalidateQueries(trpc.backups.list.pathFilter()), 20_000);
+      await queryClient.invalidateQueries(trpc.backups.list.pathFilter());
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('genericError'));
     }
@@ -71,10 +92,16 @@ export function BackupsPanel({ isOwner }: { isOwner: boolean }) {
       </CardHeader>
       <CardContent className="grid gap-3">
         {list.data.stale ? <p className="text-destructive text-sm">{t('stale')}</p> : null}
-        <div>
-          <Button onClick={onRunNow} disabled={runNow.isPending}>
-            {t('runNow')}
+        <div className="flex items-center gap-3">
+          <Button onClick={onRunNow} disabled={runNow.isPending || pendingSince !== null}>
+            {pendingSince !== null && <Loader2 className="animate-spin" aria-hidden />}
+            {pendingSince !== null ? t('inProgress') : t('runNow')}
           </Button>
+          {pendingSince !== null && (
+            <span className="text-muted-foreground text-xs" data-testid="backup-pending">
+              {t('pendingHint')}
+            </span>
+          )}
         </div>
         {list.data.runs.length === 0 ? (
           <p className="text-muted-foreground text-sm">{t('empty')}</p>

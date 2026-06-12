@@ -1378,7 +1378,9 @@
     "download": "Download",
     "downloadAria": "Download {file}",
     "restoreHint": "Keep a copy of your .env with these files — restoring on a new machine needs the same encryption key.",
-    "genericError": "Something went wrong"
+    "genericError": "Something went wrong",
+    "inProgress": "Backing up…",
+    "pendingHint": "The backup service picks this up within ~15 seconds; the run appears below as soon as it starts."
   },
   "churnModel": {
     "title": "Churn prediction model",
