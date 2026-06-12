@@ -54,7 +54,7 @@ export function ReportsView() {
   const members = useQuery(trpc.admin.reportMembers.queryOptions());
 
   return (
-    <div className="grid gap-4" data-testid="reports-view">
+    <div className="grid grid-cols-1 gap-4" data-testid="reports-view">
       <div className="flex items-center gap-2">
         <label htmlFor="report-days" className="text-sm font-medium">
           {t('period')}

@@ -127,7 +127,7 @@ export function CompaniesView() {
       </div>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-muted-foreground border-b text-left">

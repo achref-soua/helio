@@ -65,7 +65,7 @@ export function AuditView() {
   }
 
   return (
-    <div className="grid gap-4" data-testid="audit-view">
+    <div className="grid grid-cols-1 gap-4" data-testid="audit-view">
       <form
         className="flex flex-wrap items-end gap-3"
         onSubmit={(event) => {

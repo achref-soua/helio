@@ -715,7 +715,8 @@
     "createEmail": "Save as template",
     "emailCreated": "Email template created",
     "providerOrganization": "Your AI: {provider} · {model}",
-    "providerDeployment": "Deployment AI: {provider} · {model}"
+    "providerDeployment": "Deployment AI: {provider} · {model}",
+    "draftNameLabel": "Draft name"
   },
   "tasks": {
     "title": "Tasks",

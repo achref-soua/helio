@@ -260,7 +260,17 @@ export function CopilotView() {
                 className="bg-muted/40 grid gap-2 rounded-md border p-3"
                 data-testid="segment-draft"
               >
-                <span className="text-sm font-medium">{segmentDraft.name}</span>
+                <Input
+                  aria-label={t('draftNameLabel')}
+                  className="h-8 max-w-60 text-sm font-medium"
+                  value={segmentDraft.name}
+                  maxLength={120}
+                  onChange={(event) =>
+                    setSegmentDraft((current) =>
+                      current ? { ...current, name: event.target.value } : current,
+                    )
+                  }
+                />
                 <pre className="text-muted-foreground max-h-40 overflow-auto text-xs">
                   {JSON.stringify(segmentDraft.rule, null, 2)}
                 </pre>
@@ -298,7 +308,18 @@ export function CopilotView() {
                 data-testid="journey-draft"
               >
                 <span className="flex items-center gap-1 text-sm font-medium">
-                  <Workflow className="size-3.5" aria-hidden /> {journeyDraft.name}
+                  <Workflow className="size-3.5" aria-hidden />
+                  <Input
+                    aria-label={t('draftNameLabel')}
+                    className="h-8 max-w-60 text-sm font-medium"
+                    value={journeyDraft.name}
+                    maxLength={120}
+                    onChange={(event) =>
+                      setJourneyDraft((current) =>
+                        current ? { ...current, name: event.target.value } : current,
+                      )
+                    }
+                  />
                 </span>
                 <span className="text-muted-foreground text-xs">
                   {t('journeySteps', { count: journeyDraft.definition.nodes.length })}
@@ -334,7 +355,18 @@ export function CopilotView() {
                 data-testid="email-draft"
               >
                 <span className="flex items-center gap-1 text-sm font-medium">
-                  <Mail className="size-3.5" aria-hidden /> {emailDraft.name}
+                  <Mail className="size-3.5" aria-hidden />
+                  <Input
+                    aria-label={t('draftNameLabel')}
+                    className="h-8 max-w-60 text-sm font-medium"
+                    value={emailDraft.name}
+                    maxLength={120}
+                    onChange={(event) =>
+                      setEmailDraft((current) =>
+                        current ? { ...current, name: event.target.value } : current,
+                      )
+                    }
+                  />
                 </span>
                 <span className="text-muted-foreground text-xs">{emailDraft.subject}</span>
                 <span className="text-muted-foreground text-xs">
