@@ -19,26 +19,60 @@ export const dim = paint('2');
 export const good = paint('92');
 
 /**
- * The sunrise that greets installs and updates: a glowing two-tone sun —
- * golden rays, bright solid core — with the wordmark at its side. Pure
- * ASCII so every console renders it; the trailing space on the last ray
- * exists because a raw template cannot end in a backslash.
+ * The radial palette of the sun: a near-white core cooling through
+ * yellows into an amber rim (xterm-256 indexes). Distances are in
+ * half-block pixels — every cell is one pixel wide and two tall, so the
+ * disc is drawn at double vertical resolution and comes out round.
+ */
+function sunShade(dx: number, dy: number): number | null {
+  const d = Math.hypot(dx, dy);
+  if (d <= 1.6) return 230;
+  if (d <= 3.2) return 226;
+  if (d <= 4.8) return 220;
+  if (d <= 6.0) return 214;
+  if (d <= 7.0) return 208;
+  return null;
+}
+
+const fg256 = (n: number) => `38;5;${n}`;
+const bg256 = (n: number) => `48;5;${n}`;
+
+/** One terminal row = two pixel rows, via the upper-half block. */
+function discRow(y: number, size: number): string {
+  const center = (size - 1) / 2;
+  let row = '';
+  for (let x = 0; x < size; x += 1) {
+    const top = sunShade(x - center, y - center);
+    const bottom = sunShade(x - center, y + 1 - center);
+    if (top === null && bottom === null) row += ' ';
+    else if (top !== null && bottom !== null)
+      row += `\u001b[${fg256(top)};${bg256(bottom)}m▀\u001b[0m`;
+    else if (top !== null) row += `\u001b[${fg256(top)}m▀\u001b[0m`;
+    else row += `\u001b[${fg256(bottom!)}m▄\u001b[0m`;
+  }
+  return row;
+}
+
+/**
+ * The sunrise that greets installs and updates: a real sun — a round,
+ * radially glowing disc in half-block pixels — with the wordmark at its
+ * side. Without a color terminal it stays quiet and just states itself.
  */
 export function banner(version: string, tagline: string): void {
-  const ray = paint('33');
-  const core = paint('93;1');
-  const art: Array<{ line: string; width: number }> = [
-    { line: ray(String.raw`       \    |    /`), width: 18 },
-    { line: ray(String.raw`    \    `) + core('.#####.') + ray(String.raw`    /`), width: 21 },
-    { line: ray('  --   ') + core('(#######)') + ray('   --'), width: 21 },
-    { line: ray(String.raw`    /    `) + core(`'#####'`) + ray(String.raw`    \ `), width: 21 },
-    { line: ray(String.raw`       /    |    \ `), width: 18 },
-  ];
-  const text = ['', bold(`Helio ${version}`), dim(tagline), '', ''];
   say('');
-  for (let i = 0; i < art.length; i += 1) {
-    const { line, width } = art[i]!;
-    say(`  ${line}${' '.repeat(Math.max(28 - width, 1))}${text[i] ?? ''}`.trimEnd());
+  if (!COLOR) {
+    say(`  Helio ${version} — ${tagline}`);
+    say('');
+    return;
+  }
+  const SIZE = 14; // pixels per side → 7 terminal rows
+  const rows = Math.ceil(SIZE / 2);
+  const wordmarkRow = Math.floor(rows / 2) - 1;
+  for (let r = 0; r < rows; r += 1) {
+    const art = discRow(r * 2, SIZE);
+    const text =
+      r === wordmarkRow ? bold(`Helio ${version}`) : r === wordmarkRow + 1 ? dim(tagline) : '';
+    say(`   ${art}${' '.repeat(6)}${text}`.trimEnd());
   }
   say('');
 }
