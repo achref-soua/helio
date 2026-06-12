@@ -3,7 +3,7 @@ import { sso } from '@better-auth/sso';
 import { createPrismaClient, forTenant } from '@helio/db';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
-import { createAuthMiddleware, getSessionFromCtx } from 'better-auth/api';
+import { APIError, createAuthMiddleware, getSessionFromCtx } from 'better-auth/api';
 import { nextCookies } from 'better-auth/next-js';
 import { organization, twoFactor } from 'better-auth/plugins';
 
@@ -84,6 +84,18 @@ export const auth = betterAuth({
     },
   },
   hooks: {
+    // Invite-only enforcement (K1): when public signup is off, the only
+    // account creation paths are invitations and the first-run setup
+    // (which runs while the instance has zero users).
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== '/sign-up/email' || env.ALLOW_PUBLIC_SIGNUP) return;
+      const users = await prisma.user.count().catch(() => 1);
+      if (users > 0) {
+        throw new APIError('FORBIDDEN', {
+          message: 'Signups are invite-only on this Helio — ask an admin for an invitation.',
+        });
+      }
+    }),
     // Security-relevant auth events land in the org audit log (G2). The
     // hook only runs after a SUCCESSFUL handler, and auditing is
     // best-effort here — failing a sign-in over audit storage would be

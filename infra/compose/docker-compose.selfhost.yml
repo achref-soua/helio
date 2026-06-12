@@ -107,6 +107,8 @@ services:
       INGEST_URL: http://ingest:4100
       TRACKING_URL: http://tracking:4200
       REDIS_URL: redis://redis:6379
+      # Invite-only by default: the first-run wizard creates the team.
+      ALLOW_PUBLIC_SIGNUP: ${ALLOW_PUBLIC_SIGNUP:-false}
       BACKUPS_PANEL_ENABLED: ${BACKUPS_PANEL_ENABLED:-true}
       HELIO_BACKUPS_PATH: /var/lib/helio/backups
     volumes:

@@ -23,6 +23,7 @@ import { landingRouter } from './landing';
 import { schedulingRouter } from './scheduling';
 import { scoringRouter } from './scoring';
 import { segmentRouter } from './segment';
+import { setupRouter } from './setup';
 import { ssoRouter } from './sso';
 import { supportRouter } from './support';
 import { webhookRouter } from './webhook';
@@ -50,6 +51,7 @@ export const appRouter = router({
     };
   }),
   workspace: workspaceRouter,
+  setup: setupRouter,
   contact: contactRouter,
   contactList: contactListRouter,
   segment: segmentRouter,
