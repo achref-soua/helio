@@ -21,6 +21,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { PreviewShell } from '@/components/preview-shell';
 import { ThemedSelect } from '@/components/themed-select';
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
 import { useTRPC } from '@/trpc/client';
@@ -38,6 +39,55 @@ interface EditingWidget {
   ctaUrl: string | null;
 }
 
+/** What the embed script will actually paint, miniaturized. */
+function WidgetPreview({
+  type,
+  title,
+  body,
+  ctaLabel,
+}: {
+  type: WidgetType;
+  title: string;
+  body: string;
+  ctaLabel: string;
+}) {
+  const t = useTranslations('widgets');
+  const message = (
+    <>
+      <p className="text-[13px] leading-snug font-semibold">{title || t('previewTitleFallback')}</p>
+      <p className="text-muted-foreground text-xs leading-snug">
+        {body || t('previewBodyFallback')}
+      </p>
+      {ctaLabel && (
+        <span className="bg-primary text-primary-foreground mt-1 w-fit rounded-md px-2.5 py-1 text-xs font-medium">
+          {ctaLabel}
+        </span>
+      )}
+    </>
+  );
+  return (
+    <PreviewShell label={t('preview')} data-testid="widget-preview" className="p-0">
+      {/* A miniature page so placement reads instantly. */}
+      <div className="bg-background relative h-56 overflow-hidden rounded-lg">
+        <div className="bg-muted/60 flex h-6 items-center gap-1.5 border-b px-2" aria-hidden>
+          <span className="bg-border size-2 rounded-full" />
+          <span className="bg-border size-2 rounded-full" />
+          <span className="bg-border h-2.5 w-32 rounded-full" />
+        </div>
+        {type === 'BANNER' ? (
+          <div className="bg-card grid gap-1 border-b p-3 shadow-sm">{message}</div>
+        ) : (
+          <div className="absolute inset-x-0 top-6 bottom-0 grid place-items-center bg-black/30 p-4">
+            <div className="bg-card grid w-full max-w-60 gap-1 rounded-lg border p-3 shadow-lg">
+              {message}
+            </div>
+          </div>
+        )}
+      </div>
+    </PreviewShell>
+  );
+}
+
 export function WidgetsView() {
   const t = useTranslations('widgets');
   const trpc = useTRPC();
@@ -45,6 +95,13 @@ export function WidgetsView() {
   const workspaceId = useActiveWorkspaceId();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<EditingWidget | null>(null);
+  // Controlled mirror of the dialog fields so the preview tracks typing.
+  const [draft, setDraft] = useState({
+    type: 'BANNER' as WidgetType,
+    title: '',
+    body: '',
+    ctaLabel: '',
+  });
 
   const list = useQuery({
     ...trpc.widget.list.queryOptions({ workspaceId: workspaceId ?? '' }),
@@ -58,10 +115,17 @@ export function WidgetsView() {
 
   function openCreate() {
     setEditing(null);
+    setDraft({ type: 'BANNER', title: '', body: '', ctaLabel: '' });
     setOpen(true);
   }
   function openEdit(widget: EditingWidget) {
     setEditing(widget);
+    setDraft({
+      type: widget.type,
+      title: widget.title,
+      body: widget.body,
+      ctaLabel: widget.ctaLabel ?? '',
+    });
     setOpen(true);
   }
 
@@ -209,92 +273,112 @@ export function WidgetsView() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{editing ? t('editTitle') : t('newTitle')}</DialogTitle>
             <DialogDescription>{t('dialogSubtitle')}</DialogDescription>
           </DialogHeader>
-          <form onSubmit={onSubmit} className="grid gap-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="grid items-start gap-5 sm:grid-cols-[1fr_280px]">
+            <form onSubmit={onSubmit} className="grid gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="widget-name">{t('name')}</Label>
+                  <Input
+                    id="widget-name"
+                    name="name"
+                    defaultValue={editing?.name}
+                    required
+                    maxLength={80}
+                    data-testid="widget-name"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="widget-type">{t('type')}</Label>
+                  <ThemedSelect
+                    id="widget-type"
+                    name="type"
+                    value={draft.type}
+                    onValueChange={(value) =>
+                      setDraft((current) => ({ ...current, type: value as WidgetType }))
+                    }
+                    className="w-full"
+                    options={WIDGET_TYPES.map((type) => ({
+                      value: type,
+                      label: t(`types.${type}`),
+                    }))}
+                  />
+                </div>
+              </div>
               <div className="grid gap-2">
-                <Label htmlFor="widget-name">{t('name')}</Label>
+                <Label htmlFor="widget-title">{t('messageTitle')}</Label>
                 <Input
-                  id="widget-name"
-                  name="name"
-                  defaultValue={editing?.name}
+                  id="widget-title"
+                  name="title"
+                  value={draft.title}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, title: event.target.value }))
+                  }
                   required
-                  maxLength={80}
-                  data-testid="widget-name"
+                  maxLength={160}
+                  data-testid="widget-title"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="widget-type">{t('type')}</Label>
-                <ThemedSelect
-                  id="widget-type"
-                  name="type"
-                  defaultValue={editing?.type ?? 'BANNER'}
-                  className="w-full"
-                  options={WIDGET_TYPES.map((type) => ({
-                    value: type,
-                    label: t(`types.${type}`),
-                  }))}
+                <Label htmlFor="widget-body">{t('body')}</Label>
+                <textarea
+                  id="widget-body"
+                  name="body"
+                  value={draft.body}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, body: event.target.value }))
+                  }
+                  required
+                  rows={2}
+                  maxLength={1000}
+                  className={FIELD_CLASS}
                 />
               </div>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="widget-title">{t('messageTitle')}</Label>
-              <Input
-                id="widget-title"
-                name="title"
-                defaultValue={editing?.title}
-                required
-                maxLength={160}
-                data-testid="widget-title"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="widget-body">{t('body')}</Label>
-              <textarea
-                id="widget-body"
-                name="body"
-                defaultValue={editing?.body}
-                required
-                rows={2}
-                maxLength={1000}
-                className={FIELD_CLASS}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="widget-cta-label">{t('ctaLabel')}</Label>
-                <Input
-                  id="widget-cta-label"
-                  name="ctaLabel"
-                  defaultValue={editing?.ctaLabel ?? ''}
-                  maxLength={60}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="widget-cta-label">{t('ctaLabel')}</Label>
+                  <Input
+                    id="widget-cta-label"
+                    name="ctaLabel"
+                    value={draft.ctaLabel}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, ctaLabel: event.target.value }))
+                    }
+                    maxLength={60}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="widget-cta-url">{t('ctaUrl')}</Label>
+                  <Input
+                    id="widget-cta-url"
+                    name="ctaUrl"
+                    type="url"
+                    defaultValue={editing?.ctaUrl ?? ''}
+                    placeholder="https://"
+                  />
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="widget-cta-url">{t('ctaUrl')}</Label>
-                <Input
-                  id="widget-cta-url"
-                  name="ctaUrl"
-                  type="url"
-                  defaultValue={editing?.ctaUrl ?? ''}
-                  placeholder="https://"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                type="submit"
-                disabled={create.isPending || update.isPending}
-                data-testid="widget-submit"
-              >
-                {t('save')}
-              </Button>
-            </DialogFooter>
-          </form>
+              <DialogFooter>
+                <Button
+                  type="submit"
+                  disabled={create.isPending || update.isPending}
+                  data-testid="widget-submit"
+                >
+                  {t('save')}
+                </Button>
+              </DialogFooter>
+            </form>
+            <WidgetPreview
+              type={draft.type}
+              title={draft.title}
+              body={draft.body}
+              ctaLabel={draft.ctaLabel}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </div>

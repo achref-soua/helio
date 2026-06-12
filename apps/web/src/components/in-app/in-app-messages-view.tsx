@@ -20,6 +20,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { PreviewShell } from '@/components/preview-shell';
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
 import { useTRPC } from '@/trpc/client';
 
@@ -42,6 +43,8 @@ export function InAppMessagesView() {
   const workspaceId = useActiveWorkspaceId();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<EditingMessage | null>(null);
+  // Controlled mirror of the dialog fields so the preview tracks typing.
+  const [draft, setDraft] = useState({ title: '', body: '', ctaLabel: '' });
 
   const list = useQuery({
     ...trpc.inAppMessage.list.queryOptions({ workspaceId: workspaceId ?? '' }),
@@ -55,10 +58,16 @@ export function InAppMessagesView() {
 
   function openCreate() {
     setEditing(null);
+    setDraft({ title: '', body: '', ctaLabel: '' });
     setOpen(true);
   }
   function openEdit(message: EditingMessage) {
     setEditing(message);
+    setDraft({
+      title: message.title,
+      body: message.body,
+      ctaLabel: message.ctaLabel ?? '',
+    });
     setOpen(true);
   }
 
@@ -194,69 +203,96 @@ export function InAppMessagesView() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{editing ? t('editTitle') : t('createTitle')}</DialogTitle>
             <DialogDescription>{t('dialogHint')}</DialogDescription>
           </DialogHeader>
-          <form onSubmit={onSubmit} className="grid gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="in-app-name">{t('fields.name')}</Label>
-              <Input
-                id="in-app-name"
-                name="name"
-                required
-                defaultValue={editing?.name ?? ''}
-                data-testid="in-app-name"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="in-app-title">{t('fields.heading')}</Label>
-              <Input
-                id="in-app-title"
-                name="title"
-                required
-                defaultValue={editing?.title ?? ''}
-                data-testid="in-app-title"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="in-app-body">{t('fields.body')}</Label>
-              <textarea
-                id="in-app-body"
-                name="body"
-                required
-                rows={3}
-                defaultValue={editing?.body ?? ''}
-                className={FIELD_CLASS}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="grid items-start gap-5 sm:grid-cols-[1fr_280px]">
+            <form onSubmit={onSubmit} className="grid gap-3">
               <div className="grid gap-1.5">
-                <Label htmlFor="in-app-cta-label">{t('fields.ctaLabel')}</Label>
+                <Label htmlFor="in-app-name">{t('fields.name')}</Label>
                 <Input
-                  id="in-app-cta-label"
-                  name="ctaLabel"
-                  defaultValue={editing?.ctaLabel ?? ''}
+                  id="in-app-name"
+                  name="name"
+                  required
+                  defaultValue={editing?.name ?? ''}
+                  data-testid="in-app-name"
                 />
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="in-app-cta-url">{t('fields.ctaUrl')}</Label>
+                <Label htmlFor="in-app-title">{t('fields.heading')}</Label>
                 <Input
-                  id="in-app-cta-url"
-                  name="ctaUrl"
-                  type="url"
-                  placeholder="https://"
-                  defaultValue={editing?.ctaUrl ?? ''}
+                  id="in-app-title"
+                  name="title"
+                  required
+                  value={draft.title}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, title: event.target.value }))
+                  }
+                  data-testid="in-app-title"
                 />
               </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit" data-testid="in-app-submit">
-                {t('save')}
-              </Button>
-            </DialogFooter>
-          </form>
+              <div className="grid gap-1.5">
+                <Label htmlFor="in-app-body">{t('fields.body')}</Label>
+                <textarea
+                  id="in-app-body"
+                  name="body"
+                  required
+                  rows={3}
+                  value={draft.body}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, body: event.target.value }))
+                  }
+                  className={FIELD_CLASS}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="in-app-cta-label">{t('fields.ctaLabel')}</Label>
+                  <Input
+                    id="in-app-cta-label"
+                    name="ctaLabel"
+                    value={draft.ctaLabel}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, ctaLabel: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="in-app-cta-url">{t('fields.ctaUrl')}</Label>
+                  <Input
+                    id="in-app-cta-url"
+                    name="ctaUrl"
+                    type="url"
+                    placeholder="https://"
+                    defaultValue={editing?.ctaUrl ?? ''}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit" data-testid="in-app-submit">
+                  {t('save')}
+                </Button>
+              </DialogFooter>
+            </form>
+            <PreviewShell label={t('preview')} data-testid="in-app-preview">
+              {/* The SDK paints this as a corner toast inside the host app. */}
+              <div className="bg-card grid gap-1 rounded-lg border p-3 shadow-lg">
+                <p className="text-[13px] leading-snug font-semibold">
+                  {draft.title || t('previewTitleFallback')}
+                </p>
+                <p className="text-muted-foreground text-xs leading-snug">
+                  {draft.body || t('previewBodyFallback')}
+                </p>
+                {draft.ctaLabel && (
+                  <span className="bg-primary text-primary-foreground mt-1 w-fit rounded-md px-2.5 py-1 text-xs font-medium">
+                    {draft.ctaLabel}
+                  </span>
+                )}
+              </div>
+            </PreviewShell>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

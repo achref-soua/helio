@@ -579,7 +579,8 @@
     "abBadge": "A/B",
     "autoWinnerBadge": "Auto-winner",
     "winnerBadge": "Winner: {variant}",
-    "variantSplit": "A {a} vs B {b} opens"
+    "variantSplit": "A {a} vs B {b} opens",
+    "preview": "Email preview"
   },
   "unsubscribe": {
     "title": "Unsubscribe from marketing email",
@@ -740,7 +741,9 @@
     "copyLink": "Copy link for {name}",
     "deleteAction": "Delete {name}",
     "emptyTitle": "No forms yet",
-    "emptyBody": "Host a signup page and grow your audience."
+    "emptyBody": "Host a signup page and grow your audience.",
+    "preview": "Preview",
+    "hidePreview": "Hide preview"
   },
   "hostedForm": {
     "subtitle": "Sign up to hear from us.",
@@ -1070,7 +1073,9 @@
       "image": "Image",
       "button": "Button",
       "form": "Form"
-    }
+    },
+    "preview": "Live preview",
+    "previewFormCta": "Subscribe"
   },
   "hostedLanding": {
     "notFound": "This page does not exist or is not published.",
@@ -1105,7 +1110,10 @@
     "types": {
       "BANNER": "Banner",
       "POPUP": "Popup"
-    }
+    },
+    "preview": "Live preview",
+    "previewTitleFallback": "Your headline",
+    "previewBodyFallback": "Your message appears here as visitors will see it."
   },
   "inApp": {
     "title": "In-app messages",
@@ -1129,7 +1137,10 @@
       "body": "Body",
       "ctaLabel": "Button label",
       "ctaUrl": "Button URL"
-    }
+    },
+    "preview": "Live preview",
+    "previewTitleFallback": "Your headline",
+    "previewBodyFallback": "Your message appears here as users will see it."
   },
   "insights": {
     "title": "Insights",
