@@ -1,6 +1,7 @@
 'use client';
 
 import type { EmailDocument, JourneyDefinition, SegmentRule } from '@helio/core';
+import { describeSegmentRule, summarizeJourney } from '@helio/core';
 import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
 import {
@@ -14,7 +15,19 @@ import { Input } from '@helio/ui/components/input';
 import { Skeleton } from '@helio/ui/components/skeleton';
 import { cn } from '@helio/ui/lib/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bot, Mail, Route, Send, Sparkles, Workflow } from 'lucide-react';
+import {
+  Bot,
+  Clock,
+  CornerDownRight,
+  Flag,
+  Mail,
+  Route,
+  Send,
+  Sparkles,
+  Split,
+  Workflow,
+  Zap,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -230,7 +243,7 @@ export function CopilotView() {
             <CardDescription>{t('chatSubtitle')}</CardDescription>
           </CardHeader>
           <CardContent className="grid flex-1 content-between gap-4">
-            <div className="grid max-h-[460px] min-h-64 content-start gap-3 overflow-y-auto">
+            <div className="grid max-h-[58svh] min-h-[38svh] content-start gap-3 overflow-y-auto">
               {turns.length === 0 ? (
                 <div className="grid justify-items-center gap-3 py-10 text-center">
                   <p className="text-muted-foreground text-sm">{t('chatEmpty')}</p>
@@ -348,9 +361,12 @@ export function CopilotView() {
                       )
                     }
                   />
-                  <pre className="text-muted-foreground max-h-40 overflow-auto text-xs">
-                    {JSON.stringify(segmentDraft.rule, null, 2)}
-                  </pre>
+                  <p
+                    className="bg-background/60 rounded-md border p-2.5 text-sm leading-relaxed"
+                    data-testid="segment-draft-summary"
+                  >
+                    {describeSegmentRule(segmentDraft.rule)}
+                  </p>
                   <Button size="sm" onClick={onCreateSegment} disabled={createSegment.isPending}>
                     {t('createSegment')}
                   </Button>
@@ -406,6 +422,7 @@ export function CopilotView() {
                   <span className="text-muted-foreground text-xs">
                     {t('journeySteps', { count: journeyDraft.definition.nodes.length })}
                   </span>
+                  <JourneyFlowPreview definition={journeyDraft.definition} />
                   <Button size="sm" onClick={onCreateJourney} disabled={createJourney.isPending}>
                     {t('createJourney')}
                   </Button>
@@ -462,6 +479,7 @@ export function CopilotView() {
                   <span className="text-muted-foreground text-xs">
                     {t('emailBlocks', { count: emailDraft.document.blocks.length })}
                   </span>
+                  <EmailDraftPreview subject={emailDraft.subject} document={emailDraft.document} />
                   <Button size="sm" onClick={onCreateEmail} disabled={createEmail.isPending}>
                     {t('createEmail')}
                   </Button>
@@ -472,5 +490,64 @@ export function CopilotView() {
         </div>
       </div>
     </div>
+  );
+}
+
+const STEP_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  send_email: Mail,
+  send_sms: Send,
+  send_whatsapp: Send,
+  send_push: Send,
+  send_in_app: Send,
+  wait: Clock,
+  branch: Split,
+  ab_split: Split,
+  update_trait: Zap,
+  webhook: Zap,
+  end: Flag,
+};
+
+/** The drafted journey as a readable flow — what each step does, in
+ *  order, with the branch labels that lead there. */
+function JourneyFlowPreview({ definition }: { definition: JourneyDefinition }) {
+  const steps = summarizeJourney(definition);
+  return (
+    <ol className="grid gap-1" data-testid="journey-draft-steps">
+      {steps.map((step, index) => {
+        const Icon = STEP_ICONS[step.type] ?? Zap;
+        return (
+          <li key={step.id} className="flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground w-4 text-right tabular-nums">{index + 1}</span>
+            <span className="bg-primary/12 text-primary inline-flex size-5 shrink-0 items-center justify-center rounded">
+              <Icon className="size-3" aria-hidden />
+            </span>
+            <span className="truncate">{step.summary}</span>
+            {step.via && (
+              <span className="text-muted-foreground inline-flex items-center gap-0.5 text-[10px] tracking-wide uppercase">
+                <CornerDownRight className="size-3" aria-hidden />
+                {step.via}
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** The drafted email through the real send-path renderer. */
+function EmailDraftPreview({ subject, document }: { subject: string; document: EmailDocument }) {
+  const t = useTranslations('copilot');
+  const trpc = useTRPC();
+  const preview = useQuery(trpc.emailTemplate.preview.queryOptions({ subject, document }));
+  if (!preview.data) return null;
+  return (
+    <iframe
+      title={t('emailPreviewTitle')}
+      sandbox=""
+      srcDoc={preview.data.html}
+      className="h-64 w-full rounded-md border bg-white"
+      data-testid="email-draft-preview"
+    />
   );
 }

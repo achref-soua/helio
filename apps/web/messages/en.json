@@ -806,7 +806,8 @@
       "contacts": "How many contacts joined this month?",
       "journeys": "Which journeys are active right now?",
       "engagement": "Which campaign got the most opens this week?"
-    }
+    },
+    "emailPreviewTitle": "Email preview"
   },
   "tasks": {
     "title": "Tasks",
