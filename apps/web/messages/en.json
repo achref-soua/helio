@@ -1534,10 +1534,16 @@
       "saved": "Row saved",
       "deleteTitle": "Delete this row?",
       "deleteSubtitle": "Row {id} will be permanently deleted (owners only). Related data may cascade.",
-      "deletePrompt": "Type delete to confirm",
+      "deletePrompt": "Type “I understand” to enable deletion",
       "deleteConfirm": "Delete row",
       "deleted": "Row deleted",
-      "genericError": "Something went wrong — try again."
+      "genericError": "Something went wrong — try again.",
+      "chartTitle": "{table} at a glance",
+      "chartField": "Group by",
+      "chartCount": "Rows",
+      "chartEmpty": "No rows to chart yet.",
+      "deletePassword": "Your password",
+      "deleteTotp": "Authenticator code"
     }
   },
   "contactDetail": {

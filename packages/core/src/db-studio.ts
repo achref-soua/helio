@@ -238,6 +238,19 @@ export const STUDIO_MODELS: StudioModel[] = [
   },
 ];
 
+/** Fields a model can be grouped by for the studio's quick charts:
+ *  category-shaped names only — never ids, free text, or dates. */
+const GROUPABLE_NAME = /^(status|type|kind|priority|format|published|active|source|plan|role)$/;
+
+export function studioGroupableFields(spec: StudioModel): string[] {
+  return spec.fields
+    .filter(
+      (field) =>
+        (field.type === 'string' || field.type === 'boolean') && GROUPABLE_NAME.test(field.name),
+    )
+    .map((field) => field.name);
+}
+
 export function studioModel(name: string): StudioModel | null {
   return STUDIO_MODELS.find((model) => model.name === name) ?? null;
 }
