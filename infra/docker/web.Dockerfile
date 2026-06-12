@@ -13,6 +13,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN BETTER_AUTH_SECRET=build-time-placeholder-secret-0000 \
     DATABASE_URL=postgresql://build:build@localhost:5432/build \
     DATABASE_ADMIN_URL=postgresql://build:build@localhost:5432/build \
+    UNSUBSCRIBE_SECRET=build-time-placeholder-secret-0000 \
     pnpm --filter @helio/web build
 
 FROM node:24-slim AS runner
