@@ -175,8 +175,12 @@
       "name": "Name",
       "key": "Key",
       "lastUsed": "Last used",
-      "actions": "Actions"
-    }
+      "actions": "Actions",
+      "scopes": "Scopes"
+    },
+    "scopesLabel": "Scopes",
+    "scopesHint": "Tick nothing for full access. Write includes read.",
+    "fullAccess": "full access"
   },
   "userMenu": {
     "open": "Open user menu",
@@ -1624,9 +1628,14 @@
     "saved": "Policy saved",
     "badDays": "Days must be between 7 and 365.",
     "note": "Members past the deadline are routed to a password change at sign-in. SSO-only members are unaffected — they have no Helio password.",
-    "genericError": "Something went wrong — try again."
+    "genericError": "Something went wrong — try again.",
+    "require2fa": "Require two-factor authentication for every member",
+    "require2faNote": "Members without 2FA are taken to Security settings until they enroll. Any RFC-6238 authenticator app works."
   },
   "security": {
     "body": "Two-factor codes work with any authenticator app — Google Authenticator, Authy, 1Password, Microsoft Authenticator, or any other RFC-6238 TOTP app. Scan the QR code once; backup codes cover a lost phone."
+  },
+  "require2fa": {
+    "banner": "Your organization requires two-factor authentication. Enable it below (any authenticator app works) to continue."
   }
 }

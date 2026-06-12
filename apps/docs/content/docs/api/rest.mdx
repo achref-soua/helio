@@ -108,3 +108,12 @@ The current gateway surface is `/v1/workspaces`, `/v1/contacts`, and
 OpenAPI document. Most users should reach for an [SDK](/docs/api/sdks) rather
 than raw HTTP. The design rationale is in
 [ADR-0015](https://github.com/achref-soua/helio/blob/main/docs/adr/0015-gateway-api-keys.md).
+
+## API key scopes
+
+Keys default to **full access** (`*`). Minting a key with specific scopes
+restricts it to those resources; a `…:write` grant includes its `…:read`.
+Available scopes: `contacts:read`, `contacts:write`, `lists:read`,
+`lists:write`, `workspaces:read`, `workspaces:write`. A request outside a
+key's grants answers `403` naming the missing scope — rotate nothing,
+mint a second key when a consumer needs more.

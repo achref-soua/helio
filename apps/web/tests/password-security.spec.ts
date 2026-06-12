@@ -84,6 +84,23 @@ test('the sessions list shows this device', async ({ page }) => {
   await expect(sessions.getByTestId('session-row').first()).toContainText('this device');
 });
 
+test('org-required 2FA steers unenrolled members to Security', async ({ page }) => {
+  await page.goto('/settings');
+  await page.getByTestId('require-2fa-toggle').check();
+  await expect(page.locator('[data-sonner-toast]').first()).toBeVisible();
+
+  // Any navigation lands back on settings, with the banner explaining why.
+  await page.goto('/contacts');
+  await expect(page).toHaveURL(/\/settings$/);
+  await expect(page.getByTestId('require-2fa-banner')).toBeVisible();
+  await expect(page.getByTestId('require-2fa-banner')).toContainText('authenticator app');
+
+  // Leave the suite tidy.
+  await page.getByTestId('require-2fa-toggle').uncheck();
+  await page.goto('/contacts');
+  await expect(page).toHaveURL(/\/contacts$/);
+});
+
 test.describe('forced rotation', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -125,7 +142,7 @@ test.describe('forced rotation', () => {
     await page.goto('/settings');
     const panel = page.getByTestId('password-policy-panel');
     await panel.getByLabel('Days').fill('7');
-    await panel.getByRole('checkbox').check();
+    await panel.getByRole('checkbox', { name: /Require a password change/ }).check();
     await expect(page.locator('[data-sonner-toast]').first()).toBeVisible();
 
     // …and make this user's password a month old.

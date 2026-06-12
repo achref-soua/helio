@@ -1,4 +1,4 @@
-import { generateGatewayApiKey, newId } from '@helio/core';
+import { API_SCOPES, generateGatewayApiKey, newId } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
@@ -16,13 +16,25 @@ export const apiKeyRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
     requirePermission(ctx.memberRole, 'settings:api-keys');
     return ctx.tenantDb.gatewayApiKey.findMany({
-      select: { id: true, name: true, prefix: true, createdAt: true, lastUsedAt: true },
+      select: {
+        id: true,
+        name: true,
+        prefix: true,
+        scopes: true,
+        createdAt: true,
+        lastUsedAt: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
   }),
 
   create: orgProcedure
-    .input(z.object({ name: z.string().min(1).max(60) }))
+    .input(
+      z.object({
+        name: z.string().min(1).max(60),
+        scopes: z.array(z.enum(API_SCOPES)).min(1).optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       requirePermission(ctx.memberRole, 'settings:api-keys');
       const { key, keyHash, prefix } = await generateGatewayApiKey(ctx.organizationId);
@@ -33,6 +45,8 @@ export const apiKeyRouter = router({
           name: input.name,
           keyHash,
           prefix,
+          // No selection = the full grant, matching pre-scope keys.
+          scopes: input.scopes ?? ['*'],
         },
       });
       await writeAudit(ctx.tenantDb, {
