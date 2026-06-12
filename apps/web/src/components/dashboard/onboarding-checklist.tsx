@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@helio/ui/components/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@helio/ui/components/card';
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@helio/ui/components/card';
 import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, Circle, X } from 'lucide-react';
 import Link from 'next/link';
@@ -86,11 +86,13 @@ export function OnboardingChecklist() {
 
   return (
     <Card data-testid="onboarding-checklist">
-      <CardHeader className="flex flex-row items-start justify-between space-y-0">
+      <CardHeader>
         <CardTitle className="text-base">{t('title')}</CardTitle>
-        <Button variant="ghost" size="icon" aria-label={t('dismiss')} onClick={dismiss}>
-          <X className="size-4" aria-hidden />
-        </Button>
+        <CardAction>
+          <Button variant="ghost" size="icon" aria-label={t('dismiss')} onClick={dismiss}>
+            <X className="size-4" aria-hidden />
+          </Button>
+        </CardAction>
       </CardHeader>
       <CardContent className="grid gap-2 sm:grid-cols-2">
         {items.map((item) => (

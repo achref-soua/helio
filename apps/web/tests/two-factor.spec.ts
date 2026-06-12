@@ -81,10 +81,15 @@ test('enroll in TOTP 2FA, sign in through the challenge, burn a backup code, dis
 
   await page.goto(link!);
   await expect(page.getByText('Create your organization')).toBeVisible();
-  await page.getByLabel('Organization name').fill('TwoFA Org');
+  // Unique per attempt: a slow first attempt can create the org server-side
+  // even when the dashboard handoff misses its window, and a fixed name
+  // would then dead-end every retry on the taken slug.
+  await page.getByLabel('Organization name').fill(`TwoFA Org ${Date.now()}`);
   await page.evaluate(() => localStorage.setItem('helio.tour.v1.done', '1'));
   await page.getByRole('button', { name: 'Create organization' }).click();
-  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
+  // A cold org's first dashboard render takes a while under suite load —
+  // same allowance as the rotation spec's identical transition.
+  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible({ timeout: 15_000 });
 
   // 2. Enable 2FA from Settings: password → QR/secret + backup codes →
   //    verify a real code (activation happens only after this verifies).

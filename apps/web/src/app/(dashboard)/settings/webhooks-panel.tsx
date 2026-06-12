@@ -5,6 +5,7 @@ import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -118,65 +119,65 @@ export function WebhooksPanel({ canManage }: { canManage: boolean }) {
 
   return (
     <Card data-testid="webhooks-panel">
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div className="grid gap-1.5">
-          <CardTitle className="flex items-center gap-2">
-            <Webhook className="size-4" aria-hidden />
-            {t('title')}
-          </CardTitle>
-          <CardDescription>{t('subtitle')}</CardDescription>
-        </div>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Webhook className="size-4" aria-hidden />
+          {t('title')}
+        </CardTitle>
+        <CardDescription>{t('subtitle')}</CardDescription>
         {canManage && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" data-testid="webhook-create">
-                {t('createAction')}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>{t('createTitle')}</DialogTitle>
-                <DialogDescription>{t('createSubtitle')}</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={onCreate} className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="webhook-url">{t('url')}</Label>
-                  <Input
-                    id="webhook-url"
-                    name="url"
-                    type="url"
-                    placeholder="https://example.com/webhooks/helio"
-                    required
-                    data-testid="webhook-url"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="webhook-description">{t('description')}</Label>
-                  <Input id="webhook-description" name="description" maxLength={200} />
-                </div>
-                <fieldset className="grid gap-2">
-                  <legend className="text-sm font-medium">{t('events')}</legend>
-                  {WEBHOOK_EVENTS.map((event) => (
-                    <label key={event} className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        className="size-4"
-                        checked={selected.has(event)}
-                        onChange={() => toggleEvent(event)}
-                        data-testid={`webhook-event-${event}`}
-                      />
-                      <code className="text-xs">{event}</code>
-                    </label>
-                  ))}
-                </fieldset>
-                <DialogFooter>
-                  <Button type="submit" disabled={create.isPending} data-testid="webhook-submit">
-                    {create.isPending ? t('working') : t('createSubmit')}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <CardAction>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" data-testid="webhook-create">
+                  {t('createAction')}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{t('createTitle')}</DialogTitle>
+                  <DialogDescription>{t('createSubtitle')}</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={onCreate} className="grid gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="webhook-url">{t('url')}</Label>
+                    <Input
+                      id="webhook-url"
+                      name="url"
+                      type="url"
+                      placeholder="https://example.com/webhooks/helio"
+                      required
+                      data-testid="webhook-url"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="webhook-description">{t('description')}</Label>
+                    <Input id="webhook-description" name="description" maxLength={200} />
+                  </div>
+                  <fieldset className="grid gap-2">
+                    <legend className="text-sm font-medium">{t('events')}</legend>
+                    {WEBHOOK_EVENTS.map((event) => (
+                      <label key={event} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          className="size-4"
+                          checked={selected.has(event)}
+                          onChange={() => toggleEvent(event)}
+                          data-testid={`webhook-event-${event}`}
+                        />
+                        <code className="text-xs">{event}</code>
+                      </label>
+                    ))}
+                  </fieldset>
+                  <DialogFooter>
+                    <Button type="submit" disabled={create.isPending} data-testid="webhook-submit">
+                      {create.isPending ? t('working') : t('createSubmit')}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </CardAction>
         )}
       </CardHeader>
       <CardContent>

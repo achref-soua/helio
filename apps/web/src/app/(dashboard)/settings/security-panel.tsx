@@ -4,6 +4,7 @@ import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -92,35 +93,35 @@ export function SecurityPanel() {
 
   return (
     <Card data-testid="security-panel">
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div className="grid gap-1.5">
-          <CardTitle className="flex items-center gap-2">
-            <ShieldCheck className="size-4" aria-hidden />
-            {t('title')}
-            {enabled && (
-              <Badge variant="secondary" data-testid="twofa-enabled-badge">
-                {t('enabledBadge')}
-              </Badge>
-            )}
-          </CardTitle>
-          <CardDescription>{t('subtitle')}</CardDescription>
-        </div>
-        {enabled ? (
-          <Button
-            variant="outline"
-            data-testid="twofa-disable"
-            onClick={() => setState({ step: 'password', mode: 'disable' })}
-          >
-            {t('disableAction')}
-          </Button>
-        ) : (
-          <Button
-            data-testid="twofa-enable"
-            onClick={() => setState({ step: 'password', mode: 'enable' })}
-          >
-            {t('enableAction')}
-          </Button>
-        )}
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ShieldCheck className="size-4" aria-hidden />
+          {t('title')}
+          {enabled && (
+            <Badge variant="secondary" data-testid="twofa-enabled-badge">
+              {t('enabledBadge')}
+            </Badge>
+          )}
+        </CardTitle>
+        <CardDescription>{t('subtitle')}</CardDescription>
+        <CardAction>
+          {enabled ? (
+            <Button
+              variant="outline"
+              data-testid="twofa-disable"
+              onClick={() => setState({ step: 'password', mode: 'disable' })}
+            >
+              {t('disableAction')}
+            </Button>
+          ) : (
+            <Button
+              data-testid="twofa-enable"
+              onClick={() => setState({ step: 'password', mode: 'enable' })}
+            >
+              {t('enableAction')}
+            </Button>
+          )}
+        </CardAction>
       </CardHeader>
       <CardContent className="grid gap-4">
         <p className="text-muted-foreground text-sm">{t('body')}</p>
