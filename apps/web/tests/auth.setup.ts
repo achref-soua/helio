@@ -21,6 +21,8 @@ setup('sign up and verify via Mailpit', async ({ page, request }) => {
     await page.getByLabel('Email').fill(email);
     await page.getByLabel('Password').fill('correct-horse-battery');
     await page.getByLabel('Organization name').fill('E2E Org');
+    // The suite owns its data — no sample workspace.
+    await page.getByTestId('setup-seed').uncheck();
     await page.evaluate(() => localStorage.setItem('helio.tour.v1.done', '1'));
     await page.getByRole('button', { name: 'Create & enter Helio' }).click();
     await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible({

@@ -112,7 +112,18 @@ test('enroll in TOTP 2FA, sign in through the challenge, burn a backup code, dis
 
   await page.getByTestId('twofa-code').fill(totp(secret!));
   await page.getByTestId('twofa-verify').click();
-  await expect(page.getByTestId('twofa-enabled-badge')).toBeVisible();
+  // The 30s TOTP window can roll between scraping the secret and verifying
+  // under suite load — if the first code aged out, verify once more fresh.
+  const badge = page.getByTestId('twofa-enabled-badge');
+  const enabled = await badge
+    .waitFor({ state: 'visible', timeout: 10_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!enabled) {
+    await page.getByTestId('twofa-code').fill(totp(secret!));
+    await page.getByTestId('twofa-verify').click();
+  }
+  await expect(badge).toBeVisible({ timeout: 15_000 });
 
   // 3. Sign out; signing back in must route through the challenge.
   await page.getByRole('button', { name: 'Open user menu' }).click();

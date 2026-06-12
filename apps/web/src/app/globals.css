@@ -4,12 +4,13 @@
 @source '../../../../packages/ui/src';
 
 /* --- Sun splash (components/sun-splash.tsx) ------------------------------
-   The sunrise/sunset brand moment. One dawn-sky palette serves both themes
-   (a sunrise looks the same whichever theme you use), and the glow takes
-   the org's accent so white-labeled installs rise in their own color. */
+   The sunrise/sunset brand moment. The sky is the dark theme's own
+   backdrop (per the owner's eye) so the moment feels native to the app;
+   the glow takes the org's accent so white-labeled installs rise in
+   their own color. */
 
 .splash-sky {
-  background: linear-gradient(to top, #7c2d12 -12%, #4c1d95 38%, #1e1b4b 100%);
+  background: linear-gradient(to top, oklch(0.13 0.022 265) 0%, oklch(0.17 0.02 265) 100%);
 }
 
 .splash-glow {

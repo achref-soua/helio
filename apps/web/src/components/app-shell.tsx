@@ -18,6 +18,7 @@ import {
   Megaphone,
   Menu,
   MousePointerClick,
+  PanelLeft,
   Route,
   Settings,
   ShieldCheck,
@@ -29,7 +30,7 @@ import {
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { AlertBell } from '@/components/alert-bell';
 import { HelpMenu } from '@/components/help-menu';
@@ -79,6 +80,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
             key={key}
             href={href}
             onClick={onNavigate}
+            data-tour={key}
             aria-current={active ? 'page' : undefined}
             className={cn(
               'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
@@ -140,11 +142,33 @@ export function AppShell({
 }) {
   const t = useTranslations('nav');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarHidden, setSidebarHidden] = useState(false);
+
+  // Next frame: hydration paints first, then the saved preference applies.
+  useEffect(() => {
+    const raf = requestAnimationFrame(() =>
+      setSidebarHidden(localStorage.getItem('helio.sidebar.hidden') === '1'),
+    );
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  function toggleSidebar() {
+    setSidebarHidden((current) => {
+      const next = !current;
+      localStorage.setItem('helio.sidebar.hidden', next ? '1' : '0');
+      return next;
+    });
+  }
 
   return (
     <div className="flex min-h-svh">
       <SunSplash brand={brand} />
-      <aside className="bg-sidebar border-sidebar-border hidden w-60 shrink-0 flex-col gap-6 border-r py-4 md:flex">
+      <aside
+        className={cn(
+          'bg-sidebar border-sidebar-border hidden w-60 shrink-0 flex-col gap-6 border-r py-4',
+          !sidebarHidden && 'md:flex',
+        )}
+      >
         <Wordmark brand={brand} />
         <NavLinks />
         <VersionBadge version={version} />
@@ -164,11 +188,24 @@ export function AppShell({
               <NavLinks onNavigate={() => setMobileOpen(false)} />
             </SheetContent>
           </Sheet>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            aria-pressed={sidebarHidden}
+            aria-label={t(sidebarHidden ? 'showSidebar' : 'hideSidebar')}
+            data-testid="sidebar-toggle"
+            className="hidden md:inline-flex"
+          >
+            <PanelLeft aria-hidden />
+          </Button>
           <div className="ml-auto flex items-center gap-1">
             <WorkspaceSwitcher />
             <AlertBell />
             <HelpMenu />
-            <ReportDialog />
+            <span data-tour="support" className="inline-flex">
+              <ReportDialog />
+            </span>
             <ThemeToggle />
             <UserMenu />
           </div>
