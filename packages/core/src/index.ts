@@ -107,6 +107,12 @@ export {
   suggestedSpfInclude,
 } from './deliverability';
 export {
+  describeSegmentCondition,
+  describeSegmentRule,
+  type JourneyStepSummary,
+  summarizeJourney,
+} from './describe';
+export {
   type EmailBlock,
   emailBlockSchema,
   type EmailDocument,
