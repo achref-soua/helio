@@ -213,6 +213,8 @@ Compose profiles cover local/self-host topologies. For Kubernetes, a Helm chart 
 
 ## Performance
 
+Measured on the development reference (WSL2, core profile, production build, v2.0 tree): warm server-rendered responses for the dashboard's key routes land at **24–44 ms** (`/contacts` 24 ms, `/deals` 28 ms, `/admin/audit` 30 ms, `/settings` 36 ms; first-hit ≤ 530 ms including route compilation warm-up). The journey canvas (React Flow) is code-split and loads only when an editor opens. Journey sends run on Temporal with explicit retry policies (5 attempts on sends, 3 on short activities) and raise in-app system alerts on exhaustion.
+
 Hot-path budgets (ingestion ≥ 5k events/s, API reads p95 < 150 ms) have a committed k6 harness in [`infra/k6/`](infra/k6) — `task loadtest` drives a 6 000 events/s firehose at the ingestion endpoint with thresholds asserted. Run it against the full stack and record the summary in [`infra/k6/README.md`](infra/k6/README.md).
 
 ## Roadmap

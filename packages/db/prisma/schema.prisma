@@ -282,6 +282,8 @@ model AuditLog {
   workspace    Workspace?   @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, createdAt])
+  /// Timelines and history views look up rows by their target.
+  @@index([targetId])
   @@map("audit_log")
 }
 
