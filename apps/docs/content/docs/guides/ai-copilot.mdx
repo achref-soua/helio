@@ -50,7 +50,10 @@ the key (local servers need none). The key is sealed with AES-256-GCM in
 the [credential vault](/docs/security/credential-vault), shown only as a
 mask, decrypted at call time, and never logged. **Verify** runs a read-only
 models-list probe so you know the key works before the copilot uses it.
-The copilot page shows which provider is serving your organization.
+The copilot page shows which provider is serving your organization — and
+when no provider is configured anywhere (no org credential, no deployment
+key), it says so plainly and links to Settings instead of advertising a
+model it cannot reach.
 
 For full data sovereignty, point at a local model — nothing leaves your
 infrastructure; prompts are refused over plaintext HTTP to remote hosts
