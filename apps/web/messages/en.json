@@ -30,7 +30,14 @@
     "admin": "Admin",
     "companies": "Companies",
     "hideSidebar": "Hide the sidebar",
-    "showSidebar": "Show the sidebar"
+    "showSidebar": "Show the sidebar",
+    "sections": {
+      "audience": "Audience",
+      "engage": "Engage",
+      "intelligence": "Intelligence",
+      "sales": "Sales",
+      "system": "System"
+    }
   },
   "theme": {
     "toggle": "Toggle theme",
