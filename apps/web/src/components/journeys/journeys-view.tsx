@@ -13,6 +13,7 @@ import {
 import { Skeleton } from '@helio/ui/components/skeleton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pause, Play, Plus, Trash2, Workflow } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -20,7 +21,12 @@ import { toast } from 'sonner';
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
 import { useTRPC } from '@/trpc/client';
 
-import { JourneyEditor } from './journey-editor';
+// React Flow and its node editors are the heaviest chunk in the app;
+// loading them only when a journey opens keeps the list page light.
+const JourneyEditor = dynamic(() => import('./journey-editor').then((mod) => mod.JourneyEditor), {
+  ssr: false,
+  loading: () => <Skeleton className="h-96" />,
+});
 
 const STATUS_VARIANT = { DRAFT: 'outline', ACTIVE: 'secondary', PAUSED: 'outline' } as const;
 
