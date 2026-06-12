@@ -737,7 +737,6 @@
   },
   "copilot": {
     "title": "AI Copilot",
-    "beta": "Beta",
     "subtitle": "Ask about your audience, or describe a segment, journey, or email and let AI draft it.",
     "chatTitle": "Ask the copilot",
     "chatSubtitle": "Grounded in this workspace's data — it only sees your organization.",
@@ -766,7 +765,15 @@
     "emailCreated": "Email template created",
     "providerOrganization": "Your AI: {provider} · {model}",
     "providerDeployment": "Deployment AI: {provider} · {model}",
-    "draftNameLabel": "Draft name"
+    "draftNameLabel": "Draft name",
+    "providerNotConfigured": "No AI connected yet",
+    "providerConnectCta": "Connect a provider in Settings",
+    "suggestionsLabel": "Try asking",
+    "suggestions": {
+      "contacts": "How many contacts joined this month?",
+      "journeys": "Which journeys are active right now?",
+      "engagement": "Which campaign got the most opens this week?"
+    }
   },
   "tasks": {
     "title": "Tasks",
