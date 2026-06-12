@@ -70,6 +70,7 @@ model Organization {
   notes               Note[]
   companies           Company[]
   importJobs          ImportJob[]
+  emailAssets         EmailAsset[]
 
   @@map("organization")
 }
@@ -259,6 +260,7 @@ model Workspace {
   widgets           Widget[]
   inAppMessages     InAppMessage[]
   inAppDeliveries   InAppDelivery[]
+  emailAssets       EmailAsset[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -1321,6 +1323,28 @@ model SendingDomain {
 /// A hosted, block-based landing page. Public at /p/<id> when published;
 /// a form block captures contacts into the page's workspace. Workspace-
 /// scoped and isolated by the standard RLS policy.
+/// An uploaded image for the email builder, stored in Postgres so the
+/// core profile needs no object store. Served publicly by /a/[id] —
+/// email clients fetch images anonymously, so the row id (helio cuid)
+/// is the capability, exactly like hosted forms and landing pages.
+model EmailAsset {
+  id             String   @id
+  organizationId String   @map("organization_id")
+  workspaceId    String   @map("workspace_id")
+  filename       String
+  contentType    String   @map("content_type")
+  sizeBytes      Int      @map("size_bytes")
+  bytes          Bytes
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([workspaceId])
+  @@map("email_asset")
+}
+
 model LandingPage {
   id             String   @id
   organizationId String   @map("organization_id")

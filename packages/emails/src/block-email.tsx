@@ -89,7 +89,23 @@ export function BlockEmail({
                   </Section>
                 );
               case 'image':
-                return <Img key={block.id} src={block.url} alt={block.alt} style={styles.image} />;
+                // Alignment needs a block-level wrapper with text-align and
+                // an inline-block img — the only construction that aligns
+                // reliably across email clients.
+                return (
+                  <Section key={block.id} style={{ textAlign: block.align ?? 'left' }}>
+                    <Img
+                      src={block.url}
+                      alt={block.alt}
+                      style={{
+                        ...styles.image,
+                        display: 'inline-block',
+                        width: block.width !== undefined ? `${block.width}%` : undefined,
+                        borderRadius: `${block.radius ?? 6}px`,
+                      }}
+                    />
+                  </Section>
+                );
               case 'divider':
                 return <Hr key={block.id} style={styles.divider} />;
               case 'spacer':

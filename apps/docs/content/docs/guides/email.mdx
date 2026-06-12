@@ -13,6 +13,15 @@ server-rendered **live preview** — what you see is exactly what renders, becau
 the preview uses the same renderer as the send path. Templates are reusable and
 versioned per workspace.
 
+### Images
+
+Image blocks take a URL **or an upload from your device** (PNG, JPEG, GIF,
+WebP — up to 2 MiB). Uploads are stored in Helio's own database and served from
+`/a/<id>` on your instance, so the core profile needs no object store and inbox
+clients can always fetch them. Each image block also has **width**,
+**alignment**, and **corner-rounding** controls, applied by the same renderer
+in the preview and the real send.
+
 ## Personalization
 
 Insert contact data with tokens that fall back gracefully when a value is
