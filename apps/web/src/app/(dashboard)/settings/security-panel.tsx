@@ -40,10 +40,15 @@ type EnrollStep =
  * and 2FA only becomes active once the first code verifies, so a lost
  * QR can never lock the account.
  */
-export function SecurityPanel() {
+export function SecurityPanel({ autoEnroll = false }: { autoEnroll?: boolean }) {
   const t = useTranslations('twoFactor');
   const { data: session, refetch } = useSession();
-  const [state, setState] = useState<EnrollStep>({ step: 'closed' });
+  // The require-2FA banner deep-links here with ?enroll2fa=1 — open the
+  // enrollment dialog immediately so "required" comes with the way to
+  // actually do it.
+  const [state, setState] = useState<EnrollStep>(
+    autoEnroll ? { step: 'password', mode: 'enable' } : { step: 'closed' },
+  );
   const [pending, setPending] = useState(false);
 
   const enabled = Boolean(

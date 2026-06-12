@@ -21,7 +21,12 @@ import { SsoPanel } from './sso-panel';
 import { SupportPanel } from './support-panel';
 import { WebhooksPanel } from './webhooks-panel';
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ enroll2fa?: string }>;
+}) {
+  const { enroll2fa } = await searchParams;
   const requestHeaders = await headers();
   const [t, organization, session] = await Promise.all([
     getTranslations('members'),
@@ -59,7 +64,7 @@ export default async function SettingsPage() {
           }))}
         canManage={me?.role === 'owner' || me?.role === 'admin'}
       />
-      <SecurityPanel />
+      <SecurityPanel autoEnroll={enroll2fa === '1'} />
       {(me?.role === 'owner' || me?.role === 'admin') && <PasswordPolicyPanel canManage />}
       {(me?.role === 'owner' || me?.role === 'admin') && (
         <>
