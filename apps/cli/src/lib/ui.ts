@@ -1,7 +1,53 @@
 /* eslint-disable no-console -- the CLI talks to a human */
 import { createInterface } from 'node:readline/promises';
 
-/** Plain, non-TTY-safe output helpers — no spinners, no emoji noise. */
+/**
+ * Output helpers. Color is plain ANSI (zero deps), applied only on a
+ * real terminal and silenced by NO_COLOR — piped output stays clean.
+ */
+
+const COLOR = process.stdout.isTTY === true && !process.env.NO_COLOR;
+
+function paint(code: string): (text: string) => string {
+  return (text) => (COLOR ? `\u001b[${code}m${text}\u001b[0m` : text);
+}
+
+/** Helio's yellow — the sun, headings, and the final hand-off. */
+export const sun = paint('93');
+export const bold = paint('1');
+export const dim = paint('2');
+export const good = paint('92');
+
+// (the last ray carries a trailing space: a raw template cannot end in \)
+const SUN_ART = [
+  String.raw`      \   |   /`,
+  String.raw`       .-"""-.`,
+  String.raw`  --- (       ) ---`,
+  String.raw`       '-...-'`,
+  String.raw`      /   |   \ `,
+];
+
+/** The sunrise that greets installs and updates. */
+export function banner(version: string, tagline: string): void {
+  say('');
+  for (let i = 0; i < SUN_ART.length; i += 1) {
+    const left = sun(SUN_ART[i]!.padEnd(24));
+    const right = i === 1 ? bold(`Helio ${version}`) : i === 2 ? dim(tagline) : '';
+    say(`  ${left}${right}`.trimEnd());
+  }
+  say('');
+}
+
+/** A stage heading: everything the installer does reads as one story. */
+export function step(title: string): void {
+  say('');
+  say(`${sun('──')} ${bold(title)}`);
+}
+
+/** A quiet green confirmation under the current step. */
+export function ok(message: string): void {
+  say(`${good('   ok')} ${message}`);
+}
 
 export function say(message: string): void {
   console.log(message);

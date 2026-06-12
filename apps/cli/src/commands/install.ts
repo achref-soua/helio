@@ -14,9 +14,10 @@ import {
 import { compose, detectDocker } from '../lib/docker';
 import { envValue, fillTemplate } from '../lib/envfile';
 import { waitForHttpOk } from '../lib/health';
+import { writeWindowsDesktopShortcut } from '../lib/shortcut';
 import { helioHome, installPaths, isInstalled, writeManifest } from '../lib/state';
-import { confirm, fail, prompt, say, warn } from '../lib/ui';
-import { registerCommand } from '../registry';
+import { banner, bold, confirm, dim, fail, ok, prompt, say, step, sun, warn } from '../lib/ui';
+import { CLI_VERSION, registerCommand } from '../registry';
 
 function openBrowser(url: string): void {
   const command =
@@ -39,12 +40,16 @@ async function run(argv: string[]): Promise<number> {
     },
   });
 
+  banner(CLI_VERSION, 'your own growth platform, one command');
+
   // 1. Docker first — nothing works without it.
+  step('Checking Docker');
   const docker = detectDocker();
   if (!docker.dockerInstalled || !docker.daemonRunning || !docker.composeV2) {
     for (const hint of docker.hints) warn(hint);
     fail('Docker is not ready — fix the above, then re-run helio install');
   }
+  ok('Docker is installed and running');
 
   const paths = installPaths(values.dir ?? helioHome());
   if (isInstalled(paths)) {
@@ -59,19 +64,20 @@ async function run(argv: string[]): Promise<number> {
   let tag: string;
   if (values['bundle-file']) {
     tag = 'local-bundle';
+    step('Unpacking the local bundle');
     bundleDir = path.join(paths.releasesDir, tag);
     extractTarGz(path.resolve(values['bundle-file']), bundleDir);
   } else {
     tag = values.version ?? (await resolveLatestTag());
     if (!tag.startsWith('v')) tag = `v${tag}`;
-    say(`installing Helio ${tag}`);
+    step(`Downloading Helio ${tag}`);
     bundleDir = path.join(paths.releasesDir, tag);
     const archive = path.join(bundleDir, bundleAssetName(tag));
     await downloadAsset(assetUrl(tag, bundleAssetName(tag)), archive);
     extractTarGz(archive, bundleDir);
   }
   const manifest = verifyBundle(bundleDir);
-  say(`bundle ${manifest.version} verified`);
+  ok(`bundle ${manifest.version} verified, checksum and all`);
 
   // 3. Lay down the installation: pinned compose + a freshly-secreted .env.
   copyFileSync(path.join(bundleDir, 'docker-compose.yml'), paths.composeFile);
@@ -83,11 +89,10 @@ async function run(argv: string[]): Promise<number> {
     if (values.yes) {
       profile = 'core';
     } else {
-      say('');
-      say('Choose your stack - type one of these and press Enter:');
-      say('  core   dashboard, REST API, AI copilot (~2.5 GB RAM) - right for most');
-      say('  full   adds campaign sending, event tracking, analytics (~8 GB RAM)');
-      profile = await prompt('Your choice, core or full', 'core');
+      step('Choose your stack');
+      say(`  ${bold('core')}   dashboard, REST API, AI copilot (~2.5 GB RAM) - right for most`);
+      say(`  ${bold('full')}   adds campaign sending, event tracking, analytics (~8 GB RAM)`);
+      profile = await prompt('Type core or full, then press Enter', 'core');
     }
   }
   if (profile !== 'core' && profile !== 'full') fail(`unknown profile "${profile}"`);
@@ -95,30 +100,33 @@ async function run(argv: string[]): Promise<number> {
   writeFileSync(paths.envFile, envContent);
   chmodSync(paths.envFile, 0o600);
   writeManifest(paths, { name: 'helio', version: manifest.version, files: manifest.files });
-  say(`secrets generated into ${paths.envFile} (keep this file with your backups)`);
+  step('Generating your secrets');
+  ok(`written to ${paths.envFile} (keep this file with your backups)`);
 
   // 4. Bring the stack up: infra → migrations → apps.
   const profiles = [profile];
-  say('pulling images (first install downloads ~1–2 GB)…');
+  step('Pulling images (a first install downloads 1-2 GB)');
   if ((await compose(paths, ['pull'], { profiles })) !== 0) {
     fail('image pull failed — is this release published? (helio install --version vX.Y.Z)');
   }
-  say('starting datastores…');
+  step('Starting databases');
   if ((await compose(paths, ['up', '-d', '--wait', 'postgres', 'redis', 'mailpit'])) !== 0) {
     fail('datastores failed to start — run "helio logs postgres" to inspect');
   }
-  say('applying database migrations…');
+  step('Preparing the database');
   if ((await compose(paths, ['run', '--rm', 'migrate', 'deploy'], { profiles: ['ops'] })) !== 0) {
     fail('migrations failed — run "helio logs" to inspect');
   }
-  say('starting Helio…');
+  step('Starting Helio');
   if ((await compose(paths, ['up', '-d', '--wait'], { profiles })) !== 0) {
     fail('services failed to become healthy — run "helio status" and "helio logs web"');
   }
 
   const appUrl = envValue(envContent, 'APP_URL') ?? 'http://localhost:3000';
   const healthy = await waitForHttpOk(`${appUrl}/api/healthz`, { timeoutMs: 120_000 });
-  if (!healthy) {
+  if (healthy) {
+    ok(`the dashboard answers at ${appUrl}`);
+  } else {
     warn(`the dashboard did not answer at ${appUrl} yet — "helio status" shows progress`);
   }
 
@@ -131,13 +139,20 @@ async function run(argv: string[]): Promise<number> {
     await compose(paths, ['run', '--rm', 'migrate', 'seed'], { profiles: ['ops'] });
   }
 
+  // A desktop icon so Helio is findable the moment this terminal closes.
+  const shortcut =
+    process.platform === 'win32' ? writeWindowsDesktopShortcut(paths.home, appUrl) : null;
+
   say('');
-  say('Helio is up.');
-  say(`  dashboard   ${appUrl}`);
+  say(sun('  Helio is up.'));
+  say('');
+  say(`  dashboard   ${bold(appUrl)}`);
   say(`  test inbox  http://localhost:${envValue(envContent, 'MAILPIT_UI_PORT') ?? '8025'}`);
+  if (shortcut) say('  desktop     a Helio icon is on your Desktop');
   say(`  manage      helio status | helio logs | helio update | helio down`);
   say('');
   say('Create the first account in your browser — it becomes the administrator.');
+  say(dim('Tip: in the dashboard, Help -> "Install the app" makes Helio a real windowed app too.'));
   if (!values['no-browser']) openBrowser(appUrl);
   return 0;
 }
