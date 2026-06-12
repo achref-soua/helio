@@ -1,6 +1,17 @@
-import { countByDay, csvDocument, dayKeys, mergeDailySeries } from '@helio/core';
+import {
+  countByDay,
+  csvDocument,
+  dayKeys,
+  mergeDailySeries,
+  newId,
+  STUDIO_MODELS,
+  studioModel,
+  validateStudioWrite,
+} from '@helio/core';
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { writeAudit } from '@/lib/audit';
 import { authDb } from '@/lib/auth';
 import { getClickHouse } from '@/lib/clickhouse';
 import { collectSystemHealth } from '@/lib/system-health';
@@ -52,6 +63,18 @@ function auditWhere(filters: AuditFilters, actorIds: string[] | null) {
         }
       : {}),
   };
+}
+
+interface StudioDelegate {
+  findMany: (args: Record<string, unknown>) => Promise<unknown[]>;
+  update: (args: Record<string, unknown>) => Promise<unknown>;
+  create: (args: Record<string, unknown>) => Promise<unknown>;
+  delete: (args: Record<string, unknown>) => Promise<unknown>;
+}
+
+/** Registry-checked dynamic access to the RLS-scoped client. */
+function studioDelegate(tenantDb: unknown, name: string): StudioDelegate {
+  return (tenantDb as Record<string, StudioDelegate>)[name]!;
 }
 
 async function actorNames(ids: Array<string | null>): Promise<Map<string, string>> {
@@ -290,6 +313,142 @@ export const adminRouter = router({
       await ctx.tenantDb.systemAlert.updateMany({
         where: { readAt: null, ...(input.id ? { id: input.id } : {}) },
         data: { readAt: new Date() },
+      });
+      return { ok: true };
+    }),
+
+  // ── Database Studio (J): allow-listed, RLS-scoped, audited CRUD ────────
+
+  dbTables: orgProcedure.query(({ ctx }) => {
+    requirePermission(ctx.memberRole, 'admin:database');
+    return STUDIO_MODELS.map((model) => ({
+      name: model.name,
+      label: model.label,
+      creatable: model.creatable,
+      fields: model.fields,
+    }));
+  }),
+
+  dbRows: orgProcedure
+    .input(
+      z.object({
+        model: z.string().min(1),
+        workspaceId: z.string().min(1),
+        search: z.string().trim().max(200).optional(),
+        cursor: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'admin:database');
+      const spec = studioModel(input.model);
+      if (!spec) throw new TRPCError({ code: 'NOT_FOUND', message: 'Unknown table' });
+      const delegate = studioDelegate(ctx.tenantDb, spec.name);
+      const rows = (await delegate.findMany({
+        where: {
+          workspaceId: input.workspaceId,
+          ...(input.search && spec.searchField
+            ? { [spec.searchField]: { contains: input.search, mode: 'insensitive' } }
+            : {}),
+        },
+        orderBy: { id: 'desc' },
+        take: 51,
+        ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
+      })) as Array<Record<string, unknown>>;
+      const page = rows.slice(0, 50);
+      return {
+        rows: page.map((row) =>
+          Object.fromEntries(spec.fields.map((field) => [field.name, row[field.name] ?? null])),
+        ),
+        nextCursor: rows.length > 50 ? String(rows[50]!.id) : null,
+      };
+    }),
+
+  dbUpdateRow: orgProcedure
+    .input(
+      z.object({
+        model: z.string().min(1),
+        id: z.string().min(1),
+        values: z.record(z.string(), z.unknown()),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'admin:database');
+      const spec = studioModel(input.model);
+      if (!spec) throw new TRPCError({ code: 'NOT_FOUND', message: 'Unknown table' });
+      const checked = validateStudioWrite(spec, input.values);
+      if (!checked.ok) throw new TRPCError({ code: 'BAD_REQUEST', message: checked.error });
+      const delegate = studioDelegate(ctx.tenantDb, spec.name);
+      const row = (await delegate.update({
+        where: { id: input.id },
+        data: checked.data,
+      })) as Record<string, unknown>;
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'dbstudio.row_updated',
+        targetType: spec.name,
+        targetId: input.id,
+        metadata: { fields: Object.keys(checked.data) },
+      });
+      return { id: String(row.id) };
+    }),
+
+  dbCreateRow: orgProcedure
+    .input(
+      z.object({
+        model: z.string().min(1),
+        workspaceId: z.string().min(1),
+        values: z.record(z.string(), z.unknown()),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'admin:database');
+      const spec = studioModel(input.model);
+      if (!spec?.creatable) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'This table is not creatable here' });
+      }
+      const checked = validateStudioWrite(spec, input.values);
+      if (!checked.ok) throw new TRPCError({ code: 'BAD_REQUEST', message: checked.error });
+      for (const field of spec.fields) {
+        if (field.required && checked.data[field.name] === undefined) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: `${field.name} is required` });
+        }
+      }
+      const delegate = studioDelegate(ctx.tenantDb, spec.name);
+      const row = (await delegate.create({
+        data: {
+          id: newId('row'),
+          organizationId: ctx.organizationId,
+          workspaceId: input.workspaceId,
+          ...checked.data,
+        },
+      })) as Record<string, unknown>;
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'dbstudio.row_created',
+        targetType: spec.name,
+        targetId: String(row.id),
+        metadata: { fields: Object.keys(checked.data) },
+      });
+      return { id: String(row.id) };
+    }),
+
+  /** Deletes are owner-only and confirmed by typed word client-side. */
+  dbDeleteRow: orgProcedure
+    .input(z.object({ model: z.string().min(1), id: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'admin:backups');
+      const spec = studioModel(input.model);
+      if (!spec) throw new TRPCError({ code: 'NOT_FOUND', message: 'Unknown table' });
+      const delegate = studioDelegate(ctx.tenantDb, spec.name);
+      await delegate.delete({ where: { id: input.id } });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'dbstudio.row_deleted',
+        targetType: spec.name,
+        targetId: input.id,
       });
       return { ok: true };
     }),

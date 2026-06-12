@@ -89,6 +89,14 @@ export {
 } from './crypto-envelope';
 export { CONTACT_CSV_HEADER, type ContactCsvRow, contactsToCsv, csvCell, csvDocument } from './csv';
 export {
+  STUDIO_MODELS,
+  type StudioField,
+  type StudioFieldType,
+  type StudioModel,
+  studioModel,
+  validateStudioWrite,
+} from './db-studio';
+export {
   deliverabilityRecords,
   dkimPasses,
   dmarcPasses,

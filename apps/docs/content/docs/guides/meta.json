@@ -19,6 +19,7 @@
     "integrations",
     "white-labeling",
     "admin-area",
+    "database-studio",
     "backup-restore"
   ]
 }
