@@ -3,9 +3,9 @@ name: helio
 description: The open-source, self-hostable, AI-native marketing-automation and customer-engagement platform.
 type: application
 # Chart version — bumped independently of the application it deploys.
-version: 0.1.0
+version: 0.2.0
 # Default application version (image tag) this chart deploys.
-appVersion: '1.0.0'
+appVersion: '2.0.0'
 home: https://github.com/achref-soua/helio
 sources:
   - https://github.com/achref-soua/helio
