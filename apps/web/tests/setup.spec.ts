@@ -21,3 +21,34 @@ test.describe('used instance', () => {
     await expect(page.getByLabel('Email')).toBeVisible();
   });
 });
+
+test('onboarding checklist tracks real state and the manifest serves', async ({
+  page,
+  request,
+}) => {
+  await page.goto('/');
+  const checklist = page.getByTestId('onboarding-checklist');
+  await expect(checklist).toBeVisible();
+  // A fresh org: nothing connected yet, so items render unchecked links.
+  await expect(checklist.getByTestId('checklist-email')).toBeVisible();
+  await expect(checklist.getByTestId('checklist-contacts')).toBeVisible();
+
+  // Dismiss persists across reloads.
+  await checklist.getByRole('button', { name: 'Dismiss checklist' }).click();
+  await expect(checklist).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
+  await expect(page.getByTestId('onboarding-checklist')).toHaveCount(0);
+
+  // The PWA manifest is live and sane.
+  const manifest = await request.get('/manifest.webmanifest');
+  expect(manifest.status()).toBe(200);
+  const body = (await manifest.json()) as { name: string; icons: unknown[] };
+  expect(body.name).toBe('Helio');
+  expect(body.icons.length).toBeGreaterThan(0);
+
+  // The Help menu offers the install dialog.
+  await page.getByTestId('help-open').click();
+  await page.getByTestId('help-install').click();
+  await expect(page.getByTestId('install-dialog')).toBeVisible();
+});
