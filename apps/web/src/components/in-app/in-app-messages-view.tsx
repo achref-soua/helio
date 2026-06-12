@@ -143,54 +143,66 @@ export function InAppMessagesView() {
           </CardContent>
         </Card>
       ) : (
-        <ul className="grid gap-2">
+        <ul className="grid gap-3 md:grid-cols-2">
           {rows.map((message) => (
             <li
               key={message.id}
-              className="bg-background flex items-center gap-3 rounded-md border p-3 text-sm"
+              className="bg-background grid content-start gap-3 rounded-lg border p-3 text-sm"
               data-testid="in-app-row"
             >
-              <span className="font-medium">{message.name}</span>
-              <span className="text-muted-foreground truncate">{message.title}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="ml-auto h-7 px-2"
-                onClick={() => onToggle(message.id, message.active)}
-                data-testid="in-app-toggle"
-              >
-                <Badge variant={message.active ? 'secondary' : 'outline'}>
-                  {message.active ? t('active') : t('inactive')}
-                </Badge>
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-8"
-                aria-label={t('editLabel', { name: message.name })}
-                onClick={() =>
-                  openEdit({
-                    id: message.id,
-                    name: message.name,
-                    title: message.title,
-                    body: message.body,
-                    ctaLabel: message.ctaLabel,
-                    ctaUrl: message.ctaUrl,
-                  })
-                }
-                data-testid="in-app-edit"
-              >
-                <Pencil className="size-4" aria-hidden />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-8"
-                aria-label={t('removeLabel', { name: message.name })}
-                onClick={() => onRemove(message.id)}
-              >
-                <Trash2 className="size-4" aria-hidden />
-              </Button>
+              <div className="flex items-center gap-3">
+                <span className="font-medium">{message.name}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto h-7 px-2"
+                  onClick={() => onToggle(message.id, message.active)}
+                  data-testid="in-app-toggle"
+                >
+                  <Badge variant={message.active ? 'secondary' : 'outline'}>
+                    {message.active ? t('active') : t('inactive')}
+                  </Badge>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  aria-label={t('editLabel', { name: message.name })}
+                  onClick={() =>
+                    openEdit({
+                      id: message.id,
+                      name: message.name,
+                      title: message.title,
+                      body: message.body,
+                      ctaLabel: message.ctaLabel,
+                      ctaUrl: message.ctaUrl,
+                    })
+                  }
+                  data-testid="in-app-edit"
+                >
+                  <Pencil className="size-4" aria-hidden />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  aria-label={t('removeLabel', { name: message.name })}
+                  onClick={() => onRemove(message.id)}
+                >
+                  <Trash2 className="size-4" aria-hidden />
+                </Button>
+              </div>
+              <div className="bg-muted/30 rounded-lg border border-dashed p-3">
+                <div className="bg-card grid gap-1 rounded-lg border p-3 shadow-lg">
+                  <p className="text-[13px] leading-snug font-semibold">{message.title}</p>
+                  <p className="text-muted-foreground text-xs leading-snug">{message.body}</p>
+                  {message.ctaLabel && (
+                    <span className="bg-primary text-primary-foreground mt-1 w-fit rounded-md px-2.5 py-1 text-xs font-medium">
+                      {message.ctaLabel}
+                    </span>
+                  )}
+                </div>
+              </div>
             </li>
           ))}
         </ul>

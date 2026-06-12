@@ -208,49 +208,57 @@ export function WidgetsView() {
           </CardContent>
         </Card>
       ) : (
-        <ul className="grid gap-2">
+        <ul className="grid gap-3 md:grid-cols-2">
           {rows.map((widget) => (
             <li
               key={widget.id}
-              className="bg-background flex items-center gap-3 rounded-md border p-3 text-sm"
+              className="bg-background grid content-start gap-3 rounded-lg border p-3 text-sm"
               data-testid="widget-row"
             >
-              <span className="font-medium">{widget.name}</span>
-              <Badge variant="outline" className="capitalize">
-                {t(`types.${widget.type}`)}
-              </Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2"
-                onClick={() => onToggle(widget.id, widget.active)}
-                data-testid="widget-toggle"
-              >
-                <Badge variant={widget.active ? 'secondary' : 'outline'}>
-                  {widget.active ? t('active') : t('inactive')}
+              <div className="flex items-center gap-3">
+                <span className="font-medium">{widget.name}</span>
+                <Badge variant="outline" className="capitalize">
+                  {t(`types.${widget.type}`)}
                 </Badge>
-              </Button>
-              <div className="ml-auto flex gap-0.5">
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className="size-8"
-                  aria-label={t('editLabel', { name: widget.name })}
-                  onClick={() => openEdit(widget)}
-                  data-testid="widget-edit"
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={() => onToggle(widget.id, widget.active)}
+                  data-testid="widget-toggle"
                 >
-                  <Pencil className="size-4" aria-hidden />
+                  <Badge variant={widget.active ? 'secondary' : 'outline'}>
+                    {widget.active ? t('active') : t('inactive')}
+                  </Badge>
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8"
-                  aria-label={t('removeLabel', { name: widget.name })}
-                  onClick={() => onRemove(widget.id)}
-                >
-                  <Trash2 className="size-4" aria-hidden />
-                </Button>
+                <div className="ml-auto flex gap-0.5">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8"
+                    aria-label={t('editLabel', { name: widget.name })}
+                    onClick={() => openEdit(widget)}
+                    data-testid="widget-edit"
+                  >
+                    <Pencil className="size-4" aria-hidden />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8"
+                    aria-label={t('removeLabel', { name: widget.name })}
+                    onClick={() => onRemove(widget.id)}
+                  >
+                    <Trash2 className="size-4" aria-hidden />
+                  </Button>
+                </div>
               </div>
+              <WidgetPreview
+                type={widget.type}
+                title={widget.title}
+                body={widget.body}
+                ctaLabel={widget.ctaLabel ?? ''}
+              />
             </li>
           ))}
         </ul>
