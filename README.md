@@ -136,7 +136,7 @@ TypeScript owns the product surface (dashboard, APIs, journey workers on Tempora
 
 ## Install in one command
 
-No git, no IDE — just Docker ([Desktop](https://docs.docker.com/desktop/) on Windows/macOS, [Engine](https://docs.docker.com/engine/install/) on servers).
+One-time prerequisite: Docker — a normal, free app install ([Desktop](https://docs.docker.com/desktop/) on Windows/macOS, [Engine](https://docs.docker.com/engine/install/) on servers). On Windows the installer below even offers to set it up for you. Helio handles absolutely everything else.
 
 **Linux / macOS / servers & VMs**
 
