@@ -503,7 +503,14 @@
     "deleteDeal": "Delete {title}",
     "cancel": "Cancel",
     "genericError": "Something went wrong. Please try again.",
-    "reports": "Reports"
+    "reports": "Reports",
+    "selectDeal": "Select {title}",
+    "bulkSelected": "{count} selected",
+    "bulkStageLabel": "Move selected to stage",
+    "bulkStagePlaceholder": "Choose stage…",
+    "bulkMove": "Move",
+    "bulkClear": "Clear",
+    "bulkMoved": "Moved {count} deals"
   },
   "journeys": {
     "title": "Journeys",
@@ -707,7 +714,11 @@
       "LOW": "Low",
       "MEDIUM": "Medium",
       "HIGH": "High"
-    }
+    },
+    "editTask": "Edit {title}",
+    "editTaskTitle": "Edit task",
+    "taskUpdated": "Task updated",
+    "saveTask": "Save changes"
   },
   "webhooks": {
     "title": "Webhooks",
