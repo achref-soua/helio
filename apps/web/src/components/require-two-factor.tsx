@@ -1,6 +1,8 @@
 'use client';
 
+import { Button } from '@helio/ui/components/button';
 import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
@@ -34,11 +36,14 @@ export function RequireTwoFactor() {
   if (!mustEnroll) return null;
   return (
     <div
-      className="bg-destructive text-destructive-foreground rounded-md p-3 text-sm"
+      className="bg-destructive text-destructive-foreground flex flex-wrap items-center gap-3 rounded-md p-3 text-sm"
       role="alert"
       data-testid="require-2fa-banner"
     >
-      {t('banner')}
+      <span>{t('banner')}</span>
+      <Button size="sm" variant="secondary" asChild data-testid="require-2fa-cta">
+        <Link href="/settings?enroll2fa=1">{t('enrollCta')}</Link>
+      </Button>
     </div>
   );
 }

@@ -1670,6 +1670,7 @@
     "body": "Two-factor codes work with any authenticator app — Google Authenticator, Authy, 1Password, Microsoft Authenticator, or any other RFC-6238 TOTP app. Scan the QR code once; backup codes cover a lost phone."
   },
   "require2fa": {
-    "banner": "Your organization requires two-factor authentication. Enable it below (any authenticator app works) to continue."
+    "banner": "Your organization requires two-factor authentication. Enable it below (any authenticator app works) to continue.",
+    "enrollCta": "Enable two-factor now"
   }
 }
