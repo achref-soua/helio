@@ -1,0 +1,60 @@
+---
+title: Privacy Policy
+description: What the Helio project collects (nothing), what the software does on your machine, and who is responsible for the data inside a deployment.
+---
+
+_Effective 12 June 2026 · the [repository history](https://github.com/achref-soua/helio/commits/main) is the record of changes to this page._
+
+## The short version
+
+**The Helio project collects no personal data.** There is no telemetry, no
+analytics, no crash reporting, no usage tracking, and no account to create
+with us. Helio is free, open-source, self-hosted software: every byte your
+deployment processes lives in infrastructure **you** run, and the project's
+maintainers have no access to it — by design, not just by promise.
+
+## What the software does on your machine
+
+Helio makes exactly one kind of outbound request on its own:
+
+- **Update check.** The dashboard's About panel and the `helio` CLI read the
+  public GitHub releases feed (`api.github.com/repos/achref-soua/helio/releases`)
+  to tell you when a newer version exists. The request is **anonymous and
+  one-directional** — nothing about your deployment, configuration, or data is
+  sent; it is an ordinary HTTPS read of a public page, cached for six hours.
+  Set `HELIO_UPDATE_CHECK=false` to disable it entirely.
+
+Installing or updating Helio downloads release assets from GitHub and pulls
+container images from GitHub Container Registry. Those requests go to GitHub,
+and [GitHub's privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement)
+applies to them — the same as for any download from GitHub.
+
+That is the complete list. The software phones home for nothing else.
+
+## Data inside your deployment
+
+A Helio deployment stores contacts, events, messages, and configuration in
+the databases **you** operate (PostgreSQL, ClickHouse, Redis, and your object
+storage). If you connect third-party providers — an email relay, SMS or
+WhatsApp, an AI model — data flows to those providers only because you
+configured credentials for them, and **their** privacy policies govern that
+processing. Helio defaults to nothing: a fresh install sends data to no one.
+
+## If you operate Helio for others
+
+When you use Helio to process other people's data — subscribers, customers,
+visitors — **you are the data controller** for that data, not the Helio
+project. Publish your own privacy policy for your audience, honor
+data-subject requests (Helio ships [export and erase tooling](/docs/guides/contacts)
+to help), and review [Data & Compliance](/docs/legal/data-and-compliance) for
+the product's compliance posture.
+
+## Questions
+
+Open an issue on [GitHub](https://github.com/achref-soua/helio/issues) —
+the project has no other inbox, which is itself a privacy feature.
+
+<Callout type="info">
+  This page describes the Helio project's practices. It is not legal advice, and it does not replace
+  the privacy policy your own deployment may owe its users.
+</Callout>
