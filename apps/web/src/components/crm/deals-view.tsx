@@ -1,5 +1,14 @@
 'use client';
 
+import {
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@helio/ui/components/card';
@@ -15,7 +24,7 @@ import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
 import { Skeleton } from '@helio/ui/components/skeleton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Handshake, Plus, Trash2 } from 'lucide-react';
+import { GripVertical, Handshake, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -39,6 +48,40 @@ function formatMoney(cents: number, currency: string): string {
   }
 }
 
+function DroppableColumn({
+  stageId,
+  children,
+  ...rest
+}: {
+  stageId: string;
+  children: React.ReactNode;
+} & React.HTMLAttributes<HTMLDivElement>) {
+  const { setNodeRef, isOver } = useDroppable({ id: stageId });
+  return (
+    <div ref={setNodeRef} {...rest} data-over={isOver ? 'true' : undefined}>
+      {children}
+    </div>
+  );
+}
+
+function DragHandle({ dealId, title }: { dealId: string; title: string }) {
+  // The handle alone is draggable so links, selects, and checkboxes inside
+  // the card keep working; keyboard users move deals via the stage select.
+  const { attributes, listeners, setNodeRef } = useDraggable({ id: dealId });
+  return (
+    <button
+      ref={setNodeRef}
+      type="button"
+      aria-label={`Drag ${title}`}
+      className="text-muted-foreground hover:text-foreground -ml-1 cursor-grab touch-none"
+      {...listeners}
+      {...attributes}
+    >
+      <GripVertical className="size-4" aria-hidden />
+    </button>
+  );
+}
+
 export function DealsView() {
   const t = useTranslations('deals');
   const trpc = useTRPC();
@@ -46,6 +89,8 @@ export function DealsView() {
   const workspaceId = useActiveWorkspaceId();
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkStage, setBulkStage] = useState('');
   const [title, setTitle] = useState('');
   const [value, setValue] = useState('');
   const [stageId, setStageId] = useState('');
@@ -59,6 +104,9 @@ export function DealsView() {
   const createDeal = useMutation(trpc.crm.createDeal.mutationOptions());
   const moveDeal = useMutation(trpc.crm.moveDeal.mutationOptions());
   const deleteDeal = useMutation(trpc.crm.deleteDeal.mutationOptions());
+  const moveDeals = useMutation(trpc.crm.moveDeals.mutationOptions());
+  // A small drag threshold keeps plain clicks (links, selects) working.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const invalidate = () => queryClient.invalidateQueries(trpc.crm.board.pathFilter());
 
@@ -105,6 +153,35 @@ export function DealsView() {
       // the server re-reads order; a precise index isn't needed here).
       await moveDeal.mutateAsync({ id: dealId, stageId: toStageId, position: 0 });
       await invalidate();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('genericError'));
+    }
+  }
+
+  function onDragEnd(event: DragEndEvent) {
+    const dealId = String(event.active.id);
+    const stageId = event.over ? String(event.over.id) : null;
+    if (!stageId) return;
+    void onMove(dealId, stageId);
+  }
+
+  function toggleSelected(dealId: string) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(dealId)) next.delete(dealId);
+      else next.add(dealId);
+      return next;
+    });
+  }
+
+  async function onBulkMove() {
+    if (!bulkStage || selected.size === 0) return;
+    try {
+      await moveDeals.mutateAsync({ ids: [...selected], stageId: bulkStage });
+      setSelected(new Set());
+      setBulkStage('');
+      await invalidate();
+      toast.success(t('bulkMoved', { count: selected.size }));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('genericError'));
     }
@@ -157,80 +234,115 @@ export function DealsView() {
           </CardContent>
         </Card>
       ) : (
-        <div className="flex gap-3 overflow-x-auto pb-2" data-testid="deal-board">
-          {board.stages.map((stage) => {
-            const openValue = stage.deals.reduce(
-              (sum, deal) => (deal.status === 'OPEN' ? sum + deal.valueCents : sum),
-              0,
-            );
-            const currency = stage.deals[0]?.currency ?? 'USD';
-            return (
-              <div
-                key={stage.id}
-                className="bg-muted/30 grid w-72 shrink-0 content-start gap-2 rounded-md border p-2"
-                data-testid={`stage-${stage.kind.toLowerCase()}`}
-                aria-label={stage.name}
-              >
-                <div className="flex items-center justify-between px-1">
-                  <span className="flex items-center gap-2 text-sm font-medium">
-                    {stage.name}
-                    <Badge variant={STAGE_TONE[stage.kind]}>{stage.deals.length}</Badge>
-                  </span>
-                  {openValue > 0 && (
-                    <span className="text-muted-foreground text-xs tabular-nums">
-                      {formatMoney(openValue, currency)}
+        <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+          {selected.size > 0 && (
+            <div
+              className="bg-muted/40 flex flex-wrap items-center gap-2 rounded-md border p-2"
+              data-testid="bulk-bar"
+            >
+              <span className="text-sm">{t('bulkSelected', { count: selected.size })}</span>
+              <ThemedSelect
+                aria-label={t('bulkStageLabel')}
+                value={bulkStage}
+                onValueChange={setBulkStage}
+                size="sm"
+                placeholder={t('bulkStagePlaceholder')}
+                options={board.stages.map((option) => ({ value: option.id, label: option.name }))}
+              />
+              <Button size="sm" onClick={onBulkMove} disabled={!bulkStage || moveDeals.isPending}>
+                {t('bulkMove')}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+                {t('bulkClear')}
+              </Button>
+            </div>
+          )}
+          <div className="flex gap-3 overflow-x-auto pb-2" data-testid="deal-board">
+            {board.stages.map((stage) => {
+              const openValue = stage.deals.reduce(
+                (sum, deal) => (deal.status === 'OPEN' ? sum + deal.valueCents : sum),
+                0,
+              );
+              const currency = stage.deals[0]?.currency ?? 'USD';
+              return (
+                <DroppableColumn
+                  key={stage.id}
+                  stageId={stage.id}
+                  className="bg-muted/30 data-[over=true]:ring-primary/40 grid w-72 shrink-0 content-start gap-2 rounded-md border p-2 data-[over=true]:ring-2"
+                  data-testid={`stage-${stage.kind.toLowerCase()}`}
+                  aria-label={stage.name}
+                >
+                  <div className="flex items-center justify-between px-1">
+                    <span className="flex items-center gap-2 text-sm font-medium">
+                      {stage.name}
+                      <Badge variant={STAGE_TONE[stage.kind]}>{stage.deals.length}</Badge>
                     </span>
-                  )}
-                </div>
-
-                {stage.deals.map((deal) => (
-                  <div
-                    key={deal.id}
-                    className="bg-background grid gap-2 rounded-md border p-2 text-sm shadow-xs"
-                    data-testid="deal-card"
-                  >
-                    <Link
-                      href={`/deals/${deal.id}`}
-                      className="font-medium underline-offset-4 hover:underline"
-                    >
-                      {deal.title}
-                    </Link>
-                    <span className="text-muted-foreground text-xs tabular-nums">
-                      {formatMoney(deal.valueCents, deal.currency)}
-                    </span>
-                    {deal.contact?.email && (
-                      <span className="text-muted-foreground truncate text-xs">
-                        {deal.contact.email}
+                    {openValue > 0 && (
+                      <span className="text-muted-foreground text-xs tabular-nums">
+                        {formatMoney(openValue, currency)}
                       </span>
                     )}
-                    <div className="flex items-center gap-1">
-                      <ThemedSelect
-                        aria-label={t('moveTo', { title: deal.title })}
-                        value={stage.id}
-                        onValueChange={(next) => onMove(deal.id, next)}
-                        className="grow"
-                        size="sm"
-                        options={board.stages.map((option) => ({
-                          value: option.id,
-                          label: option.name,
-                        }))}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8"
-                        aria-label={t('deleteDeal', { title: deal.title })}
-                        onClick={() => onDelete(deal.id)}
-                      >
-                        <Trash2 className="size-4" aria-hidden />
-                      </Button>
-                    </div>
                   </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
+
+                  {stage.deals.map((deal) => (
+                    <div
+                      key={deal.id}
+                      className="bg-background grid gap-2 rounded-md border p-2 text-sm shadow-xs"
+                      data-testid="deal-card"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <DragHandle dealId={deal.id} title={deal.title} />
+                        <input
+                          type="checkbox"
+                          className="accent-primary size-3.5"
+                          aria-label={t('selectDeal', { title: deal.title })}
+                          checked={selected.has(deal.id)}
+                          onChange={() => toggleSelected(deal.id)}
+                        />
+                        <Link
+                          href={`/deals/${deal.id}`}
+                          className="min-w-0 truncate font-medium underline-offset-4 hover:underline"
+                        >
+                          {deal.title}
+                        </Link>
+                      </div>
+                      <span className="text-muted-foreground text-xs tabular-nums">
+                        {formatMoney(deal.valueCents, deal.currency)}
+                      </span>
+                      {deal.contact?.email && (
+                        <span className="text-muted-foreground truncate text-xs">
+                          {deal.contact.email}
+                        </span>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <ThemedSelect
+                          aria-label={t('moveTo', { title: deal.title })}
+                          value={stage.id}
+                          onValueChange={(next) => onMove(deal.id, next)}
+                          className="grow"
+                          size="sm"
+                          options={board.stages.map((option) => ({
+                            value: option.id,
+                            label: option.name,
+                          }))}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8"
+                          aria-label={t('deleteDeal', { title: deal.title })}
+                          onClick={() => onDelete(deal.id)}
+                        >
+                          <Trash2 className="size-4" aria-hidden />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </DroppableColumn>
+              );
+            })}
+          </div>
+        </DndContext>
       )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>

@@ -17,6 +17,7 @@
     "@better-auth/api-key": "^1.6.15",
     "@better-auth/sso": "^1.6.15",
     "@clickhouse/client": "^1.20.0",
+    "@dnd-kit/core": "^6.3.1",
     "@helio/core": "workspace:*",
     "@helio/db": "workspace:*",
     "@helio/emails": "workspace:*",

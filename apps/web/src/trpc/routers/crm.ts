@@ -213,6 +213,41 @@ export const crmRouter = router({
       return { id: input.id };
     }),
 
+  /** Bulk stage move (H6): same semantics as moveDeal, one audit each. */
+  moveDeals: orgProcedure
+    .input(
+      z.object({
+        ids: z.array(z.string().min(1)).min(1).max(100),
+        stageId: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const stage = await ctx.tenantDb.pipelineStage.findUnique({
+        where: { id: input.stageId },
+        select: { id: true, kind: true, pipelineId: true },
+      });
+      if (!stage) throw new TRPCError({ code: 'NOT_FOUND', message: 'Stage not found' });
+      const deals = await ctx.tenantDb.deal.findMany({
+        where: { id: { in: input.ids }, pipelineId: stage.pipelineId },
+        select: { id: true, workspaceId: true },
+      });
+      for (const deal of deals) {
+        await ctx.tenantDb.deal.update({
+          where: { id: deal.id },
+          data: {
+            stageId: stage.id,
+            status: stage.kind,
+            closedAt: stage.kind === 'OPEN' ? null : new Date(),
+          },
+        });
+        await writeAudit(ctx, deal.workspaceId, 'deal.moved', 'deal', deal.id, {
+          bulk: true,
+        });
+      }
+      return { moved: deals.length };
+    }),
+
   updateDeal: orgProcedure
     .input(
       z.object({

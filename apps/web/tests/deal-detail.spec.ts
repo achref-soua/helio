@@ -10,10 +10,12 @@ test('deal detail: owner, notes, won-with-reason, history', async ({ page }) => 
   const title = `Detail deal ${Date.now()}`;
   await page.goto('/deals');
 
-  // This spec runs before deals.spec (alphabetical): the org is fresh,
-  // so the empty state offers pipeline creation.
-  await expect(page.getByTestId('deals-empty')).toBeVisible();
-  await page.getByRole('button', { name: 'Create pipeline' }).click();
+  // Another spec may have seeded the pipeline already; create it only
+  // when the empty state is what renders.
+  await expect(page.getByTestId('deals-empty').or(page.getByTestId('deal-board'))).toBeVisible();
+  if (await page.getByTestId('deals-empty').isVisible()) {
+    await page.getByRole('button', { name: 'Create pipeline' }).click();
+  }
   await expect(page.getByTestId('deal-board')).toBeVisible();
 
   await page.getByTestId('new-deal').click();
