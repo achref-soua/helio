@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { auth, authDb } from '@/lib/auth';
 import { appDb } from '@/lib/db';
 import { env } from '@/lib/env';
+import { checkPublicRateLimit } from '@/lib/public-rate-limit';
 
 import { publicProcedure, router } from '../init';
 
@@ -37,6 +38,10 @@ export const setupRouter = router({
       }),
     )
     .mutation(async ({ input }) => {
+      const decision = await checkPublicRateLimit('setup', 'instance');
+      if (!decision.allowed) {
+        throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: 'Slow down and retry shortly' });
+      }
       if (!(await instanceIsFresh())) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'This instance is already set up' });
       }
