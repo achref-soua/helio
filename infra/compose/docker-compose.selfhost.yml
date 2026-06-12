@@ -12,7 +12,9 @@
 # Postgres and Redis are deliberately NOT exposed to the host; the admin
 # surfaces for them live inside Helio (Database Studio, backups).
 
-name: helio
+# Distinct from the source-checkout dev stack's project ("helio") — sharing
+# a project name would silently adopt its containers and named volumes.
+name: helio-selfhost
 
 services:
   postgres:
