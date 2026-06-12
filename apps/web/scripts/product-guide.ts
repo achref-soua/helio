@@ -471,7 +471,8 @@ irm ${REPO}/releases/latest/download/install.ps1 | iex</pre>
 helio update      <span class="c"># new release — with an automatic pre-update backup</span>
 helio backup      <span class="c"># a checksummed local dump, on demand (nightly is automatic)</span>
 helio restore &lt;file&gt;   <span class="c"># typed confirmation; rolls schema forward after restore</span>
-helio doctor      <span class="c"># when something feels off</span></pre>
+helio doctor      <span class="c"># when something feels off</span>
+helio uninstall   <span class="c"># remove the stack, keep your data (--purge-data erases it all)</span></pre>
   <p>Development email is captured by Mailpit (no real mail leaves your machine), and the demo
   seed gives you contacts, segments, templates, journeys, deals, and analytics history to click
   through immediately.</p>
