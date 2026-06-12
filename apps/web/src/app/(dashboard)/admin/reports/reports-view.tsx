@@ -113,7 +113,7 @@ export function ReportsView() {
       </div>
 
       <Card data-testid="report-campaigns">
-        <CardHeader className="flex-row items-start justify-between space-y-0">
+        <CardHeader className="flex flex-row items-start justify-between space-y-0">
           <div>
             <CardTitle>{t('campaigns')}</CardTitle>
             <CardDescription>
@@ -172,7 +172,7 @@ export function ReportsView() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card data-testid="report-journeys">
-          <CardHeader className="flex-row items-start justify-between space-y-0">
+          <CardHeader className="flex flex-row items-start justify-between space-y-0">
             <div>
               <CardTitle>{t('journeys')}</CardTitle>
               <CardDescription>{t('journeysHint')}</CardDescription>

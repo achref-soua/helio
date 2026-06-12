@@ -112,7 +112,7 @@ export function HealthView() {
       </div>
 
       <Card data-testid="health-alerts">
-        <CardHeader className="flex-row items-start justify-between space-y-0">
+        <CardHeader className="flex flex-row items-start justify-between space-y-0">
           <div>
             <CardTitle>{t('alerts')}</CardTitle>
             <CardDescription>{t('alertsHint')}</CardDescription>

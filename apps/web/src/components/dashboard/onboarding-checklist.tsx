@@ -86,7 +86,7 @@ export function OnboardingChecklist() {
 
   return (
     <Card data-testid="onboarding-checklist">
-      <CardHeader className="flex-row items-start justify-between space-y-0">
+      <CardHeader className="flex flex-row items-start justify-between space-y-0">
         <CardTitle className="text-base">{t('title')}</CardTitle>
         <Button variant="ghost" size="icon" aria-label={t('dismiss')} onClick={dismiss}>
           <X className="size-4" aria-hidden />

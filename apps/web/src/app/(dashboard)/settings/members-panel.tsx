@@ -101,7 +101,7 @@ export function MembersPanel({
   return (
     <div className="grid gap-6">
       <Card>
-        <CardHeader className="flex-row items-center justify-between">
+        <CardHeader className="flex flex-row items-center justify-between">
           <div className="grid gap-1.5">
             <CardTitle>{t('membersTitle')}</CardTitle>
             <CardDescription>{t('membersSubtitle')}</CardDescription>
