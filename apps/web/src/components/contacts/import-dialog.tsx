@@ -59,6 +59,12 @@ export function ImportDialog({
   const [jobId, setJobId] = useState<string | null>(null);
 
   const start = useMutation(trpc.contact.importStart.mutationOptions());
+  const startConnector = useMutation(trpc.contact.importFromConnector.mutationOptions());
+  const credentials = useQuery({
+    ...trpc.credentials.list.queryOptions(),
+    enabled: open,
+  });
+  const [connectorId, setConnectorId] = useState('');
   const job = useQuery({
     ...trpc.contact.importJob.queryOptions({ id: jobId ?? '' }),
     enabled: Boolean(jobId),
@@ -99,6 +105,9 @@ export function ImportDialog({
 
   const preview = step === 'preview' || step === 'map' ? normalizeMappedRows(rows, mapping) : null;
   const emailMapped = Object.values(mapping).includes('email');
+  const importCredentials = (credentials.data?.credentials ?? []).filter((credential) =>
+    credential.kind.startsWith('IMPORT_'),
+  );
 
   async function onStart() {
     try {
@@ -156,9 +165,52 @@ export function ImportDialog({
         </DialogHeader>
 
         {step === 'upload' && (
-          <div className="grid gap-2">
-            <Label htmlFor="csv-file">{t('fileLabel')}</Label>
-            <Input id="csv-file" type="file" accept=".csv,text/csv" onChange={onFile} />
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="csv-file">{t('fileLabel')}</Label>
+              <Input id="csv-file" type="file" accept=".csv,text/csv" onChange={onFile} />
+            </div>
+            <div className="grid gap-2 border-t pt-3" data-testid="connector-section">
+              <p className="text-sm font-medium">{t('connectorTitle')}</p>
+              {importCredentials.length === 0 ? (
+                <p className="text-muted-foreground text-sm">{t('connectorEmpty')}</p>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    aria-label={t('connectorLabel')}
+                    className="border-input bg-background h-9 rounded-md border px-2 text-sm"
+                    value={connectorId}
+                    onChange={(event) => setConnectorId(event.target.value)}
+                  >
+                    <option value="">{t('connectorPlaceholder')}</option>
+                    {importCredentials.map((credential) => (
+                      <option key={credential.id} value={credential.id}>
+                        {credential.name}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    size="sm"
+                    disabled={!connectorId || startConnector.isPending}
+                    onClick={async () => {
+                      try {
+                        const result = await startConnector.mutateAsync({
+                          workspaceId,
+                          credentialId: connectorId,
+                          updateExisting,
+                        });
+                        setJobId(result.jobId);
+                        setStep('run');
+                      } catch (error) {
+                        toast.error(error instanceof Error ? error.message : t('genericError'));
+                      }
+                    }}
+                  >
+                    {startConnector.isPending ? t('connectorPulling') : t('connectorStart')}
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

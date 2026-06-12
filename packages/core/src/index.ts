@@ -143,6 +143,14 @@ export {
 } from './gateway-keys';
 export { type Id, idTimestamp, isId, newId } from './id';
 export {
+  CONNECTOR_MAPPING,
+  ConnectorError,
+  fetchHubSpotRows,
+  fetchKlaviyoRows,
+  fetchMailchimpRows,
+  type ImportConnector,
+} from './import-connectors';
+export {
   type FrequencyCap,
   frequencyCapSchema,
   type JourneyDefinition,

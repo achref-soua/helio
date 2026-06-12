@@ -47,6 +47,9 @@ test('create a contact manually', async ({ page }) => {
 test('the import wizard maps columns, previews, and imports with companies', async ({ page }) => {
   await page.goto('/contacts');
   await page.getByRole('button', { name: 'Import CSV' }).click();
+  // Platform connectors sit beside the file upload; with nothing
+  // connected yet the section points at Settings instead of erroring.
+  await expect(page.getByTestId('connector-section')).toContainText('Connect HubSpot');
   await page
     .getByLabel('CSV file')
     .setInputFiles({ name: 'contacts.csv', mimeType: 'text/csv', buffer: CSV });
