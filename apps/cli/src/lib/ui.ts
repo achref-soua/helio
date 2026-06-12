@@ -18,22 +18,27 @@ export const bold = paint('1');
 export const dim = paint('2');
 export const good = paint('92');
 
-// (the last ray carries a trailing space: a raw template cannot end in \)
-const SUN_ART = [
-  String.raw`      \   |   /`,
-  String.raw`       .-"""-.`,
-  String.raw`  --- (       ) ---`,
-  String.raw`       '-...-'`,
-  String.raw`      /   |   \ `,
-];
-
-/** The sunrise that greets installs and updates. */
+/**
+ * The sunrise that greets installs and updates: a glowing two-tone sun —
+ * golden rays, bright solid core — with the wordmark at its side. Pure
+ * ASCII so every console renders it; the trailing space on the last ray
+ * exists because a raw template cannot end in a backslash.
+ */
 export function banner(version: string, tagline: string): void {
+  const ray = paint('33');
+  const core = paint('93;1');
+  const art: Array<{ line: string; width: number }> = [
+    { line: ray(String.raw`       \    |    /`), width: 18 },
+    { line: ray(String.raw`    \    `) + core('.#####.') + ray(String.raw`    /`), width: 21 },
+    { line: ray('  --   ') + core('(#######)') + ray('   --'), width: 21 },
+    { line: ray(String.raw`    /    `) + core(`'#####'`) + ray(String.raw`    \ `), width: 21 },
+    { line: ray(String.raw`       /    |    \ `), width: 18 },
+  ];
+  const text = ['', bold(`Helio ${version}`), dim(tagline), '', ''];
   say('');
-  for (let i = 0; i < SUN_ART.length; i += 1) {
-    const left = sun(SUN_ART[i]!.padEnd(24));
-    const right = i === 1 ? bold(`Helio ${version}`) : i === 2 ? dim(tagline) : '';
-    say(`  ${left}${right}`.trimEnd());
+  for (let i = 0; i < art.length; i += 1) {
+    const { line, width } = art[i]!;
+    say(`  ${line}${' '.repeat(Math.max(28 - width, 1))}${text[i] ?? ''}`.trimEnd());
   }
   say('');
 }
