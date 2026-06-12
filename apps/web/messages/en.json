@@ -201,7 +201,10 @@
     "ssoAction": "Sign in with SSO",
     "ssoEmailRequired": "Enter your work email to continue with single sign-on.",
     "ssoNoProvider": "No single sign-on is configured for that email domain.",
-    "genericError": "Something went wrong. Please try again."
+    "genericError": "Something went wrong. Please try again.",
+    "inviteOnlyTitle": "Invite-only",
+    "inviteOnlyBody": "This Helio does not accept public signups. Ask an admin to invite you — invitations arrive by email.",
+    "backToLogin": "Back to login"
   },
   "errors": {
     "title": "Something went wrong",
@@ -1531,5 +1534,20 @@
     "unassigned": "Unassigned",
     "empty": "No open deals yet.",
     "noWins": "No wins yet — they will land here."
+  },
+  "setup": {
+    "title": "Welcome to Helio",
+    "subtitle": "One minute of setup: you, your organization, and you are in.",
+    "name": "Your name",
+    "email": "Email",
+    "emailHint": "Verified automatically on first-run — no mail provider exists yet.",
+    "password": "Password",
+    "passwordHint": "At least 10 characters.",
+    "organization": "Organization name",
+    "start": "Create & enter Helio",
+    "working": "Setting up…",
+    "afterNote": "Email sending, your AI key, branding, and demo data all live in Settings — the dashboard will point you there.",
+    "signInFailed": "Setup succeeded but sign-in failed — use the login page.",
+    "genericError": "Something went wrong — try again."
   }
 }

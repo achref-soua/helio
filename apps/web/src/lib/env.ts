@@ -44,6 +44,12 @@ export const env = createEnv({
   INGEST_URL: z.string().min(1).default('http://localhost:4100'),
   TRACKING_URL: z.string().min(1).default('http://localhost:4200'),
   REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
+  // Self-hosted instances are invite-only once set up; flip to 'true' to
+  // accept stranger signups (the dev default keeps local flows easy).
+  ALLOW_PUBLIC_SIGNUP: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
   // Per-replica abuse damping on the public, unauthenticated endpoints
   // (forms, booking, widget/in-app delivery, SCIM). Disable for load tests.
   PUBLIC_RATE_LIMITS_ENABLED: z
