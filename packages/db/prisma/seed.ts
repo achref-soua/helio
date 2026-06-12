@@ -59,9 +59,9 @@ async function main() {
 
   console.log(
     `Seeded demo data: ${org.slug}/${workspace.slug} (${org.id}, ${workspace.id})\n` +
-      `  ${s.contacts} contacts, ${s.segments} segments, ${s.templates} templates, ` +
+      `  ${s.contacts} contacts, ${s.companies} companies, ${s.segments} segments, ${s.templates} templates, ` +
       `${s.campaigns} campaigns (${s.sends} sends), ${s.journeys} journeys, ${s.scoringRules} scoring rules\n` +
-      `  ${s.forms} forms, 1 landing page, 1 widget, 1 in-app message, 1 booking page (${s.meetings} meetings)\n` +
+      `  ${s.forms} forms, 1 landing page, 2 widgets, 1 in-app message, 1 booking page (${s.meetings} meetings)\n` +
       `  CRM pipeline "${s.pipelineName}" with ${s.stages} stages, ${s.deals} deals, and ${s.tasks} tasks\n` +
       `  write key ${s.writeKey}`,
   );

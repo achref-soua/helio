@@ -11,6 +11,12 @@ import {
 import type { PrismaClient } from './client';
 import { type Prisma } from './generated/prisma/client';
 
+/** A small amber-dawn hero PNG (300×120, generated, ~9 KB) used by the
+ *  seeded product-update template to show off image blocks. Stored as an
+ *  EmailAsset so the demo exercises the real upload/serve pipeline. */
+const HERO_PNG_BASE64 =
+  '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';
+
 export interface SeedTarget {
   organizationId: string;
   workspaceId: string;
@@ -18,6 +24,7 @@ export interface SeedTarget {
 
 export interface SeedSummary {
   contacts: number;
+  companies: number;
   segments: number;
   templates: number;
   campaigns: number;
@@ -57,7 +64,13 @@ function json(
 export async function seedDemoWorkspace(
   prisma: PrismaClient,
   ws: SeedTarget,
-  { idPrefix = 'demo', writeKeyValue = 'wk_demo_0000000000000000000000000' } = {},
+  {
+    idPrefix = 'demo',
+    writeKeyValue = 'wk_demo_0000000000000000000000000',
+    // Email image URLs must be absolute (inbox clients fetch them); the
+    // hero asset below is served from this instance's /a route.
+    baseUrl = (process.env.APP_URL ?? 'http://localhost:3000').replace(/\/$/, ''),
+  } = {},
 ): Promise<SeedSummary> {
   // ── Contacts ─────────────────────────────────────────────────────────
   // A spread of plans, scores, and AI predictions so segments, lead
@@ -178,6 +191,61 @@ export async function seedDemoWorkspace(
     },
   ];
 
+  // A second wave of generated contacts so lists, segments, and the
+  // contacts table feel like a working install, not a toy. Deterministic
+  // (index-derived) traits keep re-seeds idempotent.
+  const WAVE_NAMES: Array<[string, string]> = [
+    ['Linus', 'Sequoia'],
+    ['Maya', 'Castellan'],
+    ['Theo', 'Brandt'],
+    ['Ines', 'Okafor'],
+    ['Ravi', 'Menon'],
+    ['Sofia', 'Marquez'],
+    ['James', 'Wu'],
+    ['Amara', 'Diallo'],
+    ['Felix', 'Norden'],
+    ['Yuki', 'Tanaka'],
+    ['Clara', 'Voss'],
+    ['Omar', 'Haddad'],
+    ['Nina', 'Petrova'],
+    ['Lucas', 'Ferreira'],
+    ['Aisha', 'Khan'],
+    ['Erik', 'Lindqvist'],
+    ['Priya', 'Sharma'],
+    ['Tomás', 'Silva'],
+    ['Hana', 'Kim'],
+    ['Leo', 'Moreau'],
+  ];
+  const WAVE_COMPANIES = ['DataPipe', 'CloudNine', 'Brightline', 'Nordwind', 'Solstice Labs'];
+  const WAVE_COUNTRIES = ['US', 'DE', 'FR', 'JP', 'BR', 'IN'];
+  const plans = ['pro', 'trial', 'free'] as const;
+  for (const [index, [firstName, lastName]] of WAVE_NAMES.entries()) {
+    const plan = plans[index % 3]!;
+    const score = (index * 13) % 97;
+    demoContacts.push({
+      email: `${firstName
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[^a-z]/g, '')}.${lastName
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[^a-z]/g, '')}@example.com`,
+      firstName,
+      lastName,
+      company: WAVE_COMPANIES[index % WAVE_COMPANIES.length]!,
+      plan,
+      score,
+      status: index === 7 ? 'UNSUBSCRIBED' : undefined,
+      conversionProbability: Number((((index * 17) % 90) / 100 + 0.05).toFixed(2)),
+      churnRisk: Number((((index * 23) % 80) / 100 + 0.05).toFixed(2)),
+      bestSendHour: index % 4 === 0 ? 8 + (index % 10) : undefined,
+    });
+  }
+  for (const [index, contact] of demoContacts.entries()) {
+    // Country rounds out the profile page and segment examples.
+    (contact as Seed & { country?: string }).country = WAVE_COUNTRIES[index % 6];
+  }
+
   const predictedAt = new Date();
   const contacts = await Promise.all(
     demoContacts.map((c) =>
@@ -190,7 +258,11 @@ export async function seedDemoWorkspace(
           email: c.email,
           firstName: c.firstName,
           lastName: c.lastName,
-          attributes: { plan: c.plan, company: c.company },
+          attributes: {
+            plan: c.plan,
+            company: c.company,
+            country: (c as Seed & { country?: string }).country ?? 'US',
+          },
           score: c.score,
           status: c.status ?? 'ACTIVE',
           conversionProbability: c.conversionProbability ?? null,
@@ -217,6 +289,39 @@ export async function seedDemoWorkspace(
       .map((c) => ({ listId: proList.id, contactId: c.id, organizationId: ws.organizationId })),
     skipDuplicates: true,
   });
+
+  // ── Companies (B2B accounts the contacts roll up to) ─────────────────
+  const companyDefs = [
+    { name: 'Analytical Engines', domain: 'analyticalengines.example', industry: 'Software' },
+    { name: 'DataPipe', domain: 'datapipe.example', industry: 'Data infrastructure' },
+    { name: 'CloudNine', domain: 'cloudnine.example', industry: 'Cloud hosting' },
+    { name: 'Brightline', domain: 'brightline.example', industry: 'E-commerce' },
+    { name: 'Nordwind', domain: 'nordwind.example', industry: 'Logistics' },
+    { name: 'Solstice Labs', domain: 'solsticelabs.example', industry: 'Biotech' },
+  ];
+  const companyByName = new Map<string, string>();
+  for (const def of companyDefs) {
+    const row = await prisma.company.upsert({
+      where: { workspaceId_name: { workspaceId: ws.workspaceId, name: def.name } },
+      update: {},
+      create: {
+        id: newId('co'),
+        ...ws,
+        name: def.name,
+        domain: def.domain,
+        industry: def.industry,
+        website: `https://${def.domain}`,
+      },
+    });
+    companyByName.set(def.name, row.id);
+  }
+  for (const contact of contacts) {
+    const companyName = (contact.attributes as Record<string, string>).company;
+    const companyId = companyName ? companyByName.get(companyName) : undefined;
+    if (companyId && contact.companyId !== companyId) {
+      await prisma.contact.update({ where: { id: contact.id }, data: { companyId } });
+    }
+  }
 
   // ── Segments (live predicates over the contacts above) ───────────────
   const segments: Array<{ name: string; description: string; rule: unknown }> = [
@@ -284,6 +389,21 @@ export async function seedDemoWorkspace(
     segmentByName.set(s.name, row);
   }
 
+  // ── Hero image asset (served by /a/<id>, like a real upload) ─────────
+  const heroAssetId = `ast_${idPrefix}_hero`;
+  await prisma.emailAsset.upsert({
+    where: { id: heroAssetId },
+    update: {},
+    create: {
+      id: heroAssetId,
+      ...ws,
+      filename: 'acme-dawn.png',
+      contentType: 'image/png',
+      sizeBytes: Buffer.from(HERO_PNG_BASE64, 'base64').length,
+      bytes: Buffer.from(HERO_PNG_BASE64, 'base64'),
+    },
+  });
+
   // ── Email templates ──────────────────────────────────────────────────
   const welcome = await prisma.emailTemplate.upsert({
     where: {
@@ -325,6 +445,15 @@ export async function seedDemoWorkspace(
       subject: 'New this month at Acme',
       document: json(emailDocumentSchema, {
         blocks: [
+          {
+            id: 'b0',
+            type: 'image',
+            url: `${baseUrl}/a/${heroAssetId}`,
+            alt: 'Acme at dawn',
+            width: 100,
+            align: 'center',
+            radius: 12,
+          },
           { id: 'b1', type: 'heading', text: 'Fresh from the workshop' },
           {
             id: 'b2',
@@ -435,6 +564,42 @@ export async function seedDemoWorkspace(
         subject: 'New this month at Acme',
         status: 'SENT',
         sentAt: new Date(predictedAt.getTime() - ((index % 12) + 1) * 86_400_000),
+      },
+    });
+  }
+
+  // A second sent campaign so engagement charts have more than one series
+  // of history: the trial nudge, sent to everyone currently on a trial.
+  const trialNudge = await prisma.campaign.upsert({
+    where: { workspaceId_name: { workspaceId: ws.workspaceId, name: 'Trial ending nudge' } },
+    update: {},
+    create: {
+      id: newId('cmp'),
+      ...ws,
+      name: 'Trial ending nudge',
+      templateId: trialEnding.id,
+      segmentId: segmentByName.get('Trial signups')?.id ?? null,
+      status: 'SENT',
+      sentAt: new Date(predictedAt.getTime() - 2 * 86_400_000),
+    },
+  });
+  const trialContacts = contacts.filter(
+    (c) => c.status === 'ACTIVE' && (c.attributes as Record<string, string>).plan === 'trial',
+  );
+  for (const [index, contact] of trialContacts.entries()) {
+    const id = `snd_${idPrefix}_t${index + 1}`;
+    await prisma.emailSend.upsert({
+      where: { id },
+      update: {},
+      create: {
+        id,
+        ...ws,
+        contactId: contact.id,
+        campaignId: trialNudge.id,
+        email: contact.email,
+        subject: 'Your Acme trial ends in 3 days',
+        status: 'SENT',
+        sentAt: new Date(predictedAt.getTime() - ((index % 3) + 1) * 86_400_000),
       },
     });
   }
@@ -688,6 +853,22 @@ export async function seedDemoWorkspace(
     },
   });
 
+  await prisma.widget.upsert({
+    where: { id: `wdg_${idPrefix}_exit` },
+    update: {},
+    create: {
+      id: `wdg_${idPrefix}_exit`,
+      ...ws,
+      name: 'Exit-intent offer',
+      type: 'POPUP',
+      title: 'Before you go…',
+      body: 'Start with the annual plan and get two months free.',
+      ctaLabel: 'Claim the offer',
+      ctaUrl: 'https://example.com/annual',
+      active: false,
+    },
+  });
+
   const bookingPage = await prisma.bookingPage.upsert({
     where: { id: `bpg_${idPrefix}_intro` },
     update: {},
@@ -836,6 +1017,36 @@ export async function seedDemoWorkspace(
     });
   }
 
+  // ── Notes (pinned context on the big deal and the key contact) ───────
+  const noteDefs = [
+    {
+      id: `note_${idPrefix}_1`,
+      dealN: 4,
+      pinned: true,
+      body: 'Legal review done — waiting on their CFO to countersign. Renewal agreed at 1.2x.',
+    },
+    {
+      id: `note_${idPrefix}_2`,
+      email: 'ada@example.com',
+      pinned: false,
+      body: 'Prefers async email over calls. Interested in the AI copilot for campaign drafts.',
+    },
+  ];
+  for (const note of noteDefs) {
+    await prisma.note.upsert({
+      where: { id: note.id },
+      update: {},
+      create: {
+        id: note.id,
+        ...ws,
+        body: note.body,
+        pinned: note.pinned,
+        contactId: 'email' in note && note.email ? (byEmail.get(note.email)?.id ?? null) : null,
+        dealId: 'dealN' in note && note.dealN ? `deal_${idPrefix}_${note.dealN}` : null,
+      },
+    });
+  }
+
   // ── Tasks: a spread of CRM to-dos across the due-date buckets ────────
   const DAY_MS = 86_400_000;
   const demoTasks: Array<{
@@ -904,10 +1115,11 @@ export async function seedDemoWorkspace(
 
   return {
     contacts: contacts.length,
+    companies: companyDefs.length,
     segments: segments.length,
     templates: 4,
-    campaigns: 2,
-    sends: sendable.length,
+    campaigns: 3,
+    sends: sendable.length + trialContacts.length,
     journeys: 3,
     scoringRules: scoringRules.length,
     forms: 2,
