@@ -129,6 +129,11 @@ tasks:
     cmds:
       - pnpm --filter @helio/web exec tsx scripts/product-guide.ts
 
+  setup:guide:
+    desc: Render the non-technical setup guide PDF (uses docs/assets screenshots; no running app needed)
+    cmds:
+      - pnpm --filter @helio/web exec tsx scripts/setup-guide.ts
+
   docs:
     desc: Run the documentation site (Fumadocs) at :3002
     cmds:
