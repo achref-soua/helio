@@ -61,7 +61,7 @@ export function ScimPanel({ canManage }: { canManage: boolean }) {
 
   return (
     <Card data-testid="scim-panel">
-      <CardHeader className="flex-row items-start justify-between gap-4">
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div className="grid gap-1.5">
           <CardTitle className="flex items-center gap-2">
             <Users className="size-4" aria-hidden />
