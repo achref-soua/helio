@@ -16,7 +16,7 @@ import { envValue, fillTemplate } from '../lib/envfile';
 import { waitForHttpOk } from '../lib/health';
 import { writeWindowsDesktopShortcut } from '../lib/shortcut';
 import { helioHome, installPaths, isInstalled, writeManifest } from '../lib/state';
-import { banner, bold, confirm, dim, fail, ok, prompt, say, step, sun, warn } from '../lib/ui';
+import { banner, bold, dim, fail, ok, prompt, say, step, sun, warn } from '../lib/ui';
 import { CLI_VERSION, registerCommand } from '../registry';
 
 function openBrowser(url: string): void {
@@ -35,7 +35,6 @@ async function run(argv: string[]): Promise<number> {
       profile: { type: 'string' },
       'bundle-file': { type: 'string' },
       'no-browser': { type: 'boolean', default: false },
-      'seed-demo': { type: 'boolean', default: false },
       yes: { type: 'boolean', short: 'y', default: false },
     },
   });
@@ -130,15 +129,6 @@ async function run(argv: string[]): Promise<number> {
     warn(`the dashboard did not answer at ${appUrl} yet — "helio status" shows progress`);
   }
 
-  // 5. Optional demo data, then hand over to the browser.
-  const wantSeed =
-    values['seed-demo'] ||
-    (!values.yes &&
-      (await confirm('Load a demo workspace (sample contacts, segments, journeys)?', false)));
-  if (wantSeed) {
-    await compose(paths, ['run', '--rm', 'migrate', 'seed'], { profiles: ['ops'] });
-  }
-
   // A desktop icon so Helio is findable the moment this terminal closes.
   const shortcut =
     process.platform === 'win32' ? writeWindowsDesktopShortcut(paths.home, appUrl) : null;
@@ -152,6 +142,7 @@ async function run(argv: string[]): Promise<number> {
   say(`  manage      helio status | helio logs | helio update | helio down`);
   say('');
   say('Create the first account in your browser — it becomes the administrator.');
+  say(dim('The setup screen offers sample data, so you can explore a full product right away.'));
   say(dim('Tip: in the dashboard, Help -> "Install the app" makes Helio a real windowed app too.'));
   if (!values['no-browser']) openBrowser(appUrl);
   return 0;

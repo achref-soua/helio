@@ -1,5 +1,6 @@
 import { newId } from '@helio/core';
-import { forTenant } from '@helio/db';
+import { forTenant, seedDemoWorkspace } from '@helio/db';
+import type { PrismaClient } from '@helio/db';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
@@ -35,6 +36,7 @@ export const setupRouter = router({
         email: z.string().trim().toLowerCase().pipe(z.string().email()),
         password: z.string().min(10).max(200),
         organizationName: z.string().trim().min(1).max(120),
+        seedDemo: z.boolean().optional().default(false),
       }),
     )
     .mutation(async ({ input }) => {
@@ -90,6 +92,15 @@ export const setupRouter = router({
           slug: 'default',
         },
       });
+
+      // Sample data lands in THIS organization's workspace, so the very
+      // first sign-in opens on a full product instead of empty lists.
+      if (input.seedDemo) {
+        await seedDemoWorkspace(tenantDb as unknown as PrismaClient, {
+          organizationId,
+          workspaceId,
+        });
+      }
 
       await tenantDb.auditLog.create({
         data: {

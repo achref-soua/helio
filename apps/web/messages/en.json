@@ -28,7 +28,9 @@
     "insights": "Insights",
     "help": "Help",
     "admin": "Admin",
-    "companies": "Companies"
+    "companies": "Companies",
+    "hideSidebar": "Hide the sidebar",
+    "showSidebar": "Show the sidebar"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -1599,7 +1601,8 @@
     "working": "Setting up…",
     "afterNote": "Email sending, your AI key, branding, and demo data all live in Settings — the dashboard will point you there.",
     "signInFailed": "Setup succeeded but sign-in failed — use the login page.",
-    "genericError": "Something went wrong — try again."
+    "genericError": "Something went wrong — try again.",
+    "seedDemo": "Start with sample data to explore (you can delete it any time)"
   },
   "checklist": {
     "title": "Get Helio ready",

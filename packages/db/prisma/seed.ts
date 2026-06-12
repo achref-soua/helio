@@ -15,9 +15,13 @@ if (fs.existsSync(repoRootEnv)) {
 }
 
 /**
- * Seed the quickstart demo workspace (acme/growth). Idempotent: safe to
- * re-run. Runs with the admin connection so it can write across tenants.
- * The showroom content itself lives in src/seed-demo.ts, shared with the
+ * Seed the demo workspace. Idempotent: safe to re-run. Runs with the
+ * admin connection so it can write across tenants. On an instance that
+ * already has an organization (a real install after its setup wizard),
+ * the sample data lands in that first organization's first workspace —
+ * data nobody can see helps nobody. Only a completely fresh database
+ * gets the standalone acme/growth pair (the dev quickstart). The
+ * showroom content itself lives in src/seed-demo.ts, shared with the
  * demo-video and screenshot tooling.
  */
 async function main() {
@@ -27,17 +31,26 @@ async function main() {
   }
   const prisma = createPrismaClient(url);
 
-  const org = await prisma.organization.upsert({
-    where: { slug: 'acme' },
-    update: {},
-    create: { id: newId('org'), name: 'Acme Inc.', slug: 'acme' },
-  });
+  let org = await prisma.organization.findFirst({ orderBy: { createdAt: 'asc' } });
+  let workspace = org
+    ? await prisma.workspace.findFirst({
+        where: { organizationId: org.id },
+        orderBy: { createdAt: 'asc' },
+      })
+    : null;
 
-  const workspace = await prisma.workspace.upsert({
-    where: { organizationId_slug: { organizationId: org.id, slug: 'growth' } },
-    update: {},
-    create: { id: newId('ws'), organizationId: org.id, name: 'Growth', slug: 'growth' },
-  });
+  if (!org || !workspace) {
+    org = await prisma.organization.upsert({
+      where: { slug: 'acme' },
+      update: {},
+      create: { id: newId('org'), name: 'Acme Inc.', slug: 'acme' },
+    });
+    workspace = await prisma.workspace.upsert({
+      where: { organizationId_slug: { organizationId: org.id, slug: 'growth' } },
+      update: {},
+      create: { id: newId('ws'), organizationId: org.id, name: 'Growth', slug: 'growth' },
+    });
+  }
 
   const s = await seedDemoWorkspace(prisma, {
     organizationId: org.id,

@@ -37,6 +37,7 @@ export function SetupWizard() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [organizationName, setOrganizationName] = useState('');
+  const [seedDemo, setSeedDemo] = useState(true);
   const [working, setWorking] = useState(false);
   const bootstrap = useMutation(trpc.setup.bootstrap.mutationOptions());
 
@@ -44,7 +45,7 @@ export function SetupWizard() {
     event.preventDefault();
     setWorking(true);
     try {
-      await bootstrap.mutateAsync({ name, email, password, organizationName });
+      await bootstrap.mutateAsync({ name, email, password, organizationName, seedDemo });
       const signIn = await authClient.signIn.email({ email, password });
       if (signIn.error) throw new Error(signIn.error.message ?? t('signInFailed'));
       router.push('/');
@@ -110,6 +111,16 @@ export function SetupWizard() {
                 onChange={(event) => setOrganizationName(event.target.value)}
               />
             </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="accent-primary size-4"
+                checked={seedDemo}
+                onChange={() => setSeedDemo((current) => !current)}
+                data-testid="setup-seed"
+              />
+              {t('seedDemo')}
+            </label>
             <Button type="submit" disabled={working || passwordScore(password) < 2}>
               {working ? t('working') : t('start')}
             </Button>
