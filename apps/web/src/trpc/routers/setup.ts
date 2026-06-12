@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { auth, authDb } from '@/lib/auth';
 import { appDb } from '@/lib/db';
+import { seedDemoEvents } from '@/lib/demo-events';
 import { env } from '@/lib/env';
 import { checkPublicRateLimit } from '@/lib/public-rate-limit';
 
@@ -97,6 +98,12 @@ export const setupRouter = router({
       // first sign-in opens on a full product instead of empty lists.
       if (input.seedDemo) {
         await seedDemoWorkspace(tenantDb as unknown as PrismaClient, {
+          organizationId,
+          workspaceId,
+        });
+        // Behavioral history for the analytics surfaces — silently zero
+        // rows on the core profile, where ClickHouse doesn't run.
+        await seedDemoEvents(tenantDb as unknown as PrismaClient, {
           organizationId,
           workspaceId,
         });
