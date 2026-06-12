@@ -131,7 +131,10 @@ export function DealsView() {
       <div className="flex items-center gap-2">
         <Handshake className="text-primary size-5" aria-hidden />
         <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
-        <div className="ml-auto">
+        <div className="ml-auto flex gap-2">
+          <Button asChild size="sm" variant="outline">
+            <Link href="/deals/reports">{t('reports')}</Link>
+          </Button>
           {board && (
             <Button size="sm" onClick={() => setCreateOpen(true)} data-testid="new-deal">
               <Plus aria-hidden /> {t('newDeal')}
