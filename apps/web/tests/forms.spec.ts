@@ -60,12 +60,9 @@ test('the submission landed exactly once in contacts', async ({ page }) => {
   await expect(page.getByRole('cell', { name: 'Subby' })).toBeVisible();
 });
 
-test('unknown forms render a friendly 404 state', async ({ browser }) => {
-  const anonymous = await browser.newContext({ storageState: { cookies: [], origins: [] } });
-  const page = await anonymous.newPage();
-  await page.goto('/f/form_does_not_exist');
-  await expect(page.getByText('Form not found')).toBeVisible();
-  await anonymous.close();
+test('unknown forms return a real 404', async ({ page }) => {
+  const response = await page.goto('/f/frm_does_not_exist');
+  expect(response?.status()).toBe(404);
 });
 
 test('delete the form', async ({ page }) => {

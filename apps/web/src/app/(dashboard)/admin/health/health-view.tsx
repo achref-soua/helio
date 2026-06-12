@@ -49,7 +49,7 @@ export function HealthView() {
 
   const data = health.data;
   return (
-    <div className="grid gap-4" data-testid="health-view">
+    <div className="grid grid-cols-1 gap-4" data-testid="health-view">
       <div className="grid gap-4 lg:grid-cols-2">
         <Card data-testid="health-services">
           <CardHeader>

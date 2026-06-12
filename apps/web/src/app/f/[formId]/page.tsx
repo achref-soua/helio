@@ -8,6 +8,7 @@ import {
 } from '@helio/ui/components/card';
 import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
+import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
 import { BrandStyle } from '@/components/brand-style';
@@ -46,7 +47,9 @@ export default async function HostedFormPage({
       },
     },
   });
-  const brand = form?.workspace.organization;
+  // A real 404, not a 200 with sad text — crawlers and uptime checks care.
+  if (!form) notFound();
+  const brand = form.workspace.organization;
 
   return (
     <main className="bg-muted/30 flex min-h-svh flex-col p-6">
@@ -62,12 +65,7 @@ export default async function HostedFormPage({
           </div>
         )}
         <Card className="w-full">
-          {!form ? (
-            <CardHeader>
-              <CardTitle>{t('notFoundTitle')}</CardTitle>
-              <CardDescription>{t('notFoundBody')}</CardDescription>
-            </CardHeader>
-          ) : ok ? (
+          {ok ? (
             <CardHeader>
               <CardTitle>{t('thanksTitle')}</CardTitle>
               <CardDescription>{t('thanksBody')}</CardDescription>

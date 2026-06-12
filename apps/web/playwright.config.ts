@@ -24,7 +24,16 @@ export default defineConfig({
     {
       name: 'chromium',
       dependencies: ['setup'],
+      testIgnore: /mobile\//,
       use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE },
+    },
+    // Touch-first regression net: only the mobile suite runs here, on a
+    // phone profile (412px, touch, mobile UA) — Pixel keeps it Chromium.
+    {
+      name: 'mobile',
+      dependencies: ['setup'],
+      testMatch: /mobile\/.*\.spec\.ts/,
+      use: { ...devices['Pixel 7'], storageState: STORAGE_STATE },
     },
   ],
   webServer: {

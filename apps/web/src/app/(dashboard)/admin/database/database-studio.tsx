@@ -117,7 +117,7 @@ export function DatabaseStudio() {
   }
 
   return (
-    <div className="grid gap-4" data-testid="database-studio">
+    <div className="grid grid-cols-1 gap-4" data-testid="database-studio">
       <div className="flex flex-wrap items-end gap-3">
         <label className="grid gap-1.5 text-sm">
           <span className="font-medium">{t('table')}</span>

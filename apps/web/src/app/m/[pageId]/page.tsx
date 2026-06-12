@@ -9,6 +9,7 @@ import {
 } from '@helio/ui/components/card';
 import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
+import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
 import { BrandStyle } from '@/components/brand-style';
@@ -57,7 +58,9 @@ export default async function BookingPage({
       },
     },
   });
-  const brand = page?.workspace.organization;
+  // A real 404, not a 200 with sad text — crawlers and uptime checks care.
+  if (!page || !page.enabled) notFound();
+  const brand = page.workspace.organization;
 
   let slots: Date[] = [];
   if (page?.enabled) {
@@ -116,12 +119,7 @@ export default async function BookingPage({
           </div>
         )}
         <Card className="w-full">
-          {!page || !page.enabled ? (
-            <CardHeader>
-              <CardTitle>{t('notFoundTitle')}</CardTitle>
-              <CardDescription>{t('notFoundBody')}</CardDescription>
-            </CardHeader>
-          ) : ok ? (
+          {ok ? (
             <CardHeader>
               <CardTitle>{t('bookedTitle')}</CardTitle>
               <CardDescription>{t('bookedBody')}</CardDescription>
