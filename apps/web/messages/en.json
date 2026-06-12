@@ -64,7 +64,18 @@
       "events": "All events",
       "opens": "Opens",
       "clicks": "Clicks"
-    }
+    },
+    "rangeLabel": "Time range",
+    "rangeDays": "{days, plural, one {Last # day} other {Last # days}}",
+    "pipelineTitle": "Sales pipeline",
+    "pipelineLink": "Open the deal board",
+    "pipelineOpenDeals": "Open deals",
+    "pipelineOpenValue": "Open value",
+    "pipelineWonValue": "Won",
+    "recentCampaignsTitle": "Recent campaigns",
+    "recentCampaignsLink": "All campaigns",
+    "recentCampaignsEmpty": "Nothing sent yet — your first campaign’s engagement lands here.",
+    "campaignNumbers": "{sends} sent · {opens} opens · {clicks} clicks"
   },
   "onboarding": {
     "title": "Create your organization",

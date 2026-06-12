@@ -43,8 +43,10 @@ export default async function SettingsPage({
     // grid-cols-1 pins the track to minmax(0,1fr): without it the track
     // sizes to the widest card's min-content and narrow phones scroll
     // sideways.
-    <div className="grid max-w-3xl grid-cols-1 gap-6">
-      <div>
+    // Two columns on wide screens: settings panels are self-contained
+    // cards, and a single half-width column wasted the rest of the page.
+    <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
+      <div className="xl:col-span-2">
         <h1 className="font-display text-3xl font-semibold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground text-sm">{t('subtitle', { org: organization.name })}</p>
       </div>
