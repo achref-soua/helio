@@ -26,6 +26,6 @@ export const config = {
     // authenticated provisioning), and the write-key-scoped embed
     // endpoints api/widgets and api/inapp — these callers are not
     // session-cookie holders by definition.
-    '/((?!login|signup|setup|two-factor|accept-invitation|api/auth|api/trpc|api/healthz|api/widgets|api/inapp|u/|f/|m/|p/|scim/|_next|favicon.ico|icon.svg|apple-icon.png|manifest.webmanifest).*)',
+    '/((?!login|signup|setup|forgot-password|reset-password|change-password|two-factor|accept-invitation|api/auth|api/trpc|api/healthz|api/widgets|api/inapp|u/|f/|m/|p/|scim/|_next|favicon.ico|icon.svg|apple-icon.png|manifest.webmanifest).*)',
   ],
 };

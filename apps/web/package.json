@@ -31,6 +31,8 @@
     "@trpc/tanstack-react-query": "^11.17.0",
     "@vercel/otel": "^2.1.2",
     "@xyflow/react": "^12.11.0",
+    "@zxcvbn-ts/core": "^3.0.4",
+    "@zxcvbn-ts/language-common": "^3.0.4",
     "better-auth": "^1.6.15",
     "lucide-react": "^1.17.0",
     "next": "^16.2.7",

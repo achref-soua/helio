@@ -22,6 +22,7 @@ import { journeyRouter } from './journey';
 import { landingRouter } from './landing';
 import { schedulingRouter } from './scheduling';
 import { scoringRouter } from './scoring';
+import { securityRouter } from './security';
 import { segmentRouter } from './segment';
 import { setupRouter } from './setup';
 import { ssoRouter } from './sso';
@@ -52,6 +53,7 @@ export const appRouter = router({
   }),
   workspace: workspaceRouter,
   setup: setupRouter,
+  security: securityRouter,
   contact: contactRouter,
   contactList: contactListRouter,
   segment: segmentRouter,

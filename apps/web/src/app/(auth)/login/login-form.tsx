@@ -111,6 +111,14 @@ export function LoginForm({ showSignup }: { showSignup: boolean }) {
           >
             {ssoPending ? t('working') : t('ssoAction')}
           </Button>
+          <p className="text-center">
+            <Link
+              className="text-muted-foreground text-sm underline underline-offset-4"
+              href="/forgot-password"
+            >
+              {t('forgotAction')}
+            </Link>
+          </p>
           {showSignup && (
             <p className="text-muted-foreground text-center text-sm">
               {t('noAccount')}{' '}
