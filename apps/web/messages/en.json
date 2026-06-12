@@ -309,7 +309,13 @@
       "counts": "{created} created · {updated} updated · {skipped} skipped",
       "doneTitle": "Import finished.",
       "downloadErrors": "Download {count} rejected rows (CSV)",
-      "close": "Done"
+      "close": "Done",
+      "connectorTitle": "Or pull straight from a platform",
+      "connectorEmpty": "Connect HubSpot, Mailchimp, or Klaviyo under Settings → Provider credentials first — then your contacts import with one click here.",
+      "connectorLabel": "Import connection",
+      "connectorPlaceholder": "Choose a connection…",
+      "connectorStart": "Pull contacts",
+      "connectorPulling": "Pulling…"
     },
     "scoring": {
       "title": "Scoring rules",

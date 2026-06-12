@@ -1,7 +1,13 @@
 import {
   type ColumnMapping,
+  CONNECTOR_MAPPING,
+  ConnectorError,
   contactEmailSchema,
   contactsToCsv,
+  type CredentialKind,
+  fetchHubSpotRows,
+  fetchKlaviyoRows,
+  fetchMailchimpRows,
   MAPPING_TARGETS,
   newId,
   normalizeContactRows,
@@ -12,6 +18,7 @@ import { z } from 'zod';
 
 import { authDb } from '@/lib/auth';
 import { getClickHouse } from '@/lib/clickhouse';
+import { decryptCredentialField } from '@/lib/credential-secrets';
 import { runImportJob } from '@/lib/import-runner';
 import { pushContactToSalesforce } from '@/lib/salesforce';
 import { emitWebhookEvent } from '@/lib/webhooks';
@@ -350,6 +357,100 @@ export const contactRouter = router({
         },
       });
       // Detached on purpose: the poll endpoint reports progress.
+      void runImportJob({
+        organizationId: ctx.organizationId,
+        workspaceId: input.workspaceId,
+        jobId: job.id,
+        normalized,
+        updateExisting: input.updateExisting,
+      });
+      return { jobId: job.id };
+    }),
+
+  /**
+   * Pull contacts straight from a connected platform (I2/I3): the vendor
+   * token comes from the vault, the rows ride the exact same pipeline as
+   * the CSV wizard, and progress is the same job poll.
+   */
+  importFromConnector: orgProcedure
+    .input(
+      z.object({
+        workspaceId: z.string().min(1),
+        credentialId: z.string().min(1),
+        updateExisting: z.boolean().default(true),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'contacts:write');
+      await assertWorkspace(ctx.tenantDb, input.workspaceId);
+      const credential = await ctx.tenantDb.providerCredential.findUnique({
+        where: { id: input.credentialId },
+        select: { id: true, kind: true, name: true },
+      });
+      if (!credential) throw new TRPCError({ code: 'NOT_FOUND', message: 'Credential not found' });
+      const kind = credential.kind as CredentialKind;
+      const secretField = kind === 'IMPORT_HUBSPOT' ? 'accessToken' : 'apiKey';
+      const token = await decryptCredentialField(ctx, credential.id, secretField);
+      if (!token) {
+        throw new TRPCError({
+          code: 'PRECONDITION_FAILED',
+          message: 'The credential has no stored token — re-enter it in Settings',
+        });
+      }
+
+      let rows: Array<Record<string, string>>;
+      let source: 'hubspot' | 'mailchimp' | 'klaviyo';
+      try {
+        if (kind === 'IMPORT_HUBSPOT') {
+          rows = await fetchHubSpotRows(token);
+          source = 'hubspot';
+        } else if (kind === 'IMPORT_MAILCHIMP') {
+          rows = await fetchMailchimpRows(token);
+          source = 'mailchimp';
+        } else if (kind === 'IMPORT_KLAVIYO') {
+          rows = await fetchKlaviyoRows(token);
+          source = 'klaviyo';
+        } else {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'That credential is not an import connector',
+          });
+        }
+      } catch (error) {
+        if (error instanceof ConnectorError) {
+          throw new TRPCError({ code: 'PRECONDITION_FAILED', message: error.message });
+        }
+        throw error;
+      }
+      if (rows.length === 0) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'The platform returned no contacts' });
+      }
+
+      const normalized = normalizeMappedRows(rows, CONNECTOR_MAPPING);
+      normalized.source = source;
+      const job = await ctx.tenantDb.importJob.create({
+        data: {
+          id: newId('imp'),
+          organizationId: ctx.organizationId,
+          workspaceId: input.workspaceId,
+          source,
+          totalRows: rows.length,
+          suppressed: normalized.suppressed,
+          errorRows: normalized.errors,
+        },
+      });
+      await ctx.tenantDb.auditLog.create({
+        data: {
+          id: newId('audit'),
+          organizationId: ctx.organizationId,
+          workspaceId: input.workspaceId,
+          actorId: ctx.session.user.id,
+          action: 'contacts.import_started',
+          targetType: 'import_job',
+          targetId: job.id,
+          metadata: { received: rows.length, source, credential: credential.name },
+        },
+      });
       void runImportJob({
         organizationId: ctx.organizationId,
         workspaceId: input.workspaceId,
