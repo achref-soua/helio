@@ -1201,6 +1201,15 @@
           "cta": "Open settings"
         }
       }
+    },
+    "installApp": "Install the app",
+    "install": {
+      "title": "Install Helio as an app",
+      "subtitle": "Its own window, its own icon — no browser chrome.",
+      "chrome": "Chrome / Edge: the install icon at the right of the address bar, or menu → Cast, save and share → Install page as app.",
+      "safari": "Safari (Mac): File → Add to Dock. iPhone/iPad: Share → Add to Home Screen.",
+      "android": "Android Chrome: menu → Add to home screen.",
+      "installNow": "Install now"
     }
   },
   "about": {
@@ -1549,5 +1558,13 @@
     "afterNote": "Email sending, your AI key, branding, and demo data all live in Settings — the dashboard will point you there.",
     "signInFailed": "Setup succeeded but sign-in failed — use the login page.",
     "genericError": "Something went wrong — try again."
+  },
+  "checklist": {
+    "title": "Get Helio ready",
+    "dismiss": "Dismiss checklist",
+    "email": "Connect your email sending",
+    "contacts": "Import or add contacts",
+    "team": "Invite a teammate",
+    "launch": "Create your first campaign or journey"
   }
 }

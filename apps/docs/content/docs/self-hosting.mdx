@@ -167,3 +167,21 @@ documents every value; a managed-cloud walkthrough ships with the v1 milestone.
 
 See the [configuration reference](/docs/configuration) for every environment
 variable each service reads.
+
+## Install Helio as an app
+
+Helio is a PWA: open your instance in Chrome/Edge and use the install icon
+in the address bar (or **Help → Install the app** inside the dashboard) to
+get Helio in its own window with its own icon — desktop and mobile. There
+is deliberately no offline mode: Helio is a live data dashboard, and stale
+numbers presented as current would mislead.
+
+## First run & signups
+
+A fresh install greets you with a one-minute setup screen: your admin
+account (verified automatically — no mail provider exists yet), your
+organization, and your first workspace. After that the instance is
+**invite-only by default** (`ALLOW_PUBLIC_SIGNUP=false` in the bundle):
+new teammates join through emailed invitations from **Settings →
+Members**. Flip the variable to `true` only if you really want strangers
+signing up.
