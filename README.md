@@ -248,6 +248,7 @@ Hot-path budgets (ingestion ≥ 5k events/s, API reads p95 < 150 ms) have a comm
 - [Privacy Policy](apps/docs/content/docs/legal/privacy.mdx) — the project collects nothing; here is exactly what that means
 - [Terms of Use](apps/docs/content/docs/legal/terms.mdx) — AGPL-3.0 is the contract; plain-words expectations around it
 - [Data & Compliance](apps/docs/content/docs/legal/data-and-compliance.mdx) — where deployment data lives, the GDPR/email tooling, and the operator checklist
+- [Marketing kit](docs/marketing/) — launch article, social post, and a discoverability checklist
 
 ## License
 
