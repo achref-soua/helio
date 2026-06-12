@@ -56,6 +56,30 @@ Everything lives in `~/.helio`: the pinned compose file, your `.env`
 backups. Pin a version with `HELIO_VERSION=vX.Y.Z` before the install
 one-liner, or `helio install --version vX.Y.Z`.
 
+### Uninstalling
+
+Leaving is as boring as arriving. Both commands ask you to type
+`uninstall` before touching anything:
+
+```bash
+# Stop Helio and remove its containers — data and config are KEPT,
+# so `helio up` later brings everything back exactly as it was.
+helio uninstall
+
+# Remove Helio completely: containers, database, volumes, and ~/.helio
+# (config, secrets, local backups). Take a `helio backup` first if you
+# might ever want the data again.
+helio uninstall --purge-data
+```
+
+To also remove the `helio` command itself: on Linux/macOS it lives inside
+`~/.helio/bin`, so `--purge-data` already removed it; on Windows delete
+`%LOCALAPPDATA%\Helio` and remove that folder from your user PATH
+(Settings → search "environment variables"). The downloaded images can be
+reclaimed with `docker image prune -a`, and Docker Desktop itself is a
+normal app — keep it for other things or uninstall it from your OS like
+any other program.
+
 ## Developing from source
 
 Everything below is for working on Helio itself.

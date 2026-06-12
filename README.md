@@ -150,7 +150,7 @@ curl -fsSL https://github.com/achref-soua/helio/releases/latest/download/install
 irm https://github.com/achref-soua/helio/releases/latest/download/install.ps1 | iex
 ```
 
-The installer downloads the `helio` CLI for your machine, checks Docker, generates this installation's secrets, pulls release-pinned images, runs migrations, starts the stack, and opens the dashboard — create the first account there and it becomes the administrator. Day 2 is just as boring: `helio status`, `helio logs`, `helio backup`, `helio update` (which takes a safety backup first), `helio doctor` when something looks off.
+The installer downloads the `helio` CLI for your machine, checks Docker, generates this installation's secrets, pulls release-pinned images, runs migrations, starts the stack, and opens the dashboard — create the first account there and it becomes the administrator. Day 2 is just as boring: `helio status`, `helio logs`, `helio backup`, `helio update` (which takes a safety backup first), `helio doctor` when something looks off. Leaving is one command too: `helio uninstall` stops and removes the stack but keeps your data; `helio uninstall --purge-data` erases everything (both ask you to type `uninstall` first).
 
 Everything lives under `~/.helio` (compose file, `.env` with your secrets, backups). The default **core** profile (~2.5 GB RAM) runs the dashboard, REST API, and AI service; `helio up --full` adds campaign sending, event ingestion, tracking, and analytics for bigger hosts. Mail goes to the bundled [Mailpit](https://mailpit.axllent.org/) test inbox until an organization connects its real provider under **Settings → Provider credentials** — so you can explore without sending anyone anything.
 
