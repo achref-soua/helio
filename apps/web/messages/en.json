@@ -619,7 +619,19 @@
     "bulkStagePlaceholder": "Choose stage…",
     "bulkMove": "Move",
     "bulkClear": "Clear",
-    "bulkMoved": "Moved {count} deals"
+    "bulkMoved": "Moved {count} deals",
+    "viewLabel": "View",
+    "viewBoard": "Board view",
+    "viewTable": "Table view",
+    "tableEmpty": "No deals yet — create one to fill the table.",
+    "tableSummary": "{count, plural, one {# deal} other {# deals}} · {total} open",
+    "columns": {
+      "deal": "Deal",
+      "stage": "Stage",
+      "value": "Value",
+      "contact": "Contact",
+      "status": "Status"
+    }
   },
   "journeys": {
     "title": "Journeys",

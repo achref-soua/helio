@@ -23,11 +23,19 @@ import {
 import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
 import { Skeleton } from '@helio/ui/components/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@helio/ui/components/table';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { GripVertical, Handshake, Plus, Trash2 } from 'lucide-react';
+import { GripVertical, Handshake, Plus, SquareKanban, Table2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { ThemedSelect } from '@/components/themed-select';
@@ -89,6 +97,20 @@ export function DealsView() {
   const workspaceId = useActiveWorkspaceId();
 
   const [createOpen, setCreateOpen] = useState(false);
+  // Board and table are two views of the same pipeline; the choice
+  // persists per browser. Read after hydration paints (same pattern as
+  // the sidebar preference).
+  const [view, setView] = useState<'board' | 'table'>('board');
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      if (localStorage.getItem('helio.deals.view') === 'table') setView('table');
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  function switchView(next: 'board' | 'table') {
+    setView(next);
+    localStorage.setItem('helio.deals.view', next);
+  }
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkStage, setBulkStage] = useState('');
   const [title, setTitle] = useState('');
@@ -209,6 +231,32 @@ export function DealsView() {
         <Handshake className="text-primary size-5" aria-hidden />
         <h1 className="font-display text-3xl font-semibold tracking-tight">{t('title')}</h1>
         <div className="ml-auto flex gap-2">
+          <div
+            className="flex items-center gap-0.5 rounded-md border p-0.5"
+            role="group"
+            aria-label={t('viewLabel')}
+          >
+            <Button
+              size="icon-sm"
+              variant={view === 'board' ? 'secondary' : 'ghost'}
+              aria-pressed={view === 'board'}
+              aria-label={t('viewBoard')}
+              onClick={() => switchView('board')}
+              data-testid="deals-view-board"
+            >
+              <SquareKanban aria-hidden />
+            </Button>
+            <Button
+              size="icon-sm"
+              variant={view === 'table' ? 'secondary' : 'ghost'}
+              aria-pressed={view === 'table'}
+              aria-label={t('viewTable')}
+              onClick={() => switchView('table')}
+              data-testid="deals-view-table"
+            >
+              <Table2 aria-hidden />
+            </Button>
+          </div>
           <Button asChild size="sm" variant="outline">
             <Link href="/deals/reports">{t('reports')}</Link>
           </Button>
@@ -257,7 +305,22 @@ export function DealsView() {
               </Button>
             </div>
           )}
-          <div className="flex gap-3 overflow-x-auto pb-2" data-testid="deal-board">
+          {view === 'table' && board.stages.some((stage) => stage.deals.length > 0) && (
+            <DealsTable
+              board={board}
+              selected={selected}
+              onToggle={toggleSelected}
+              onMove={onMove}
+              onDelete={onDelete}
+            />
+          )}
+          {view === 'table' && !board.stages.some((stage) => stage.deals.length > 0) && (
+            <p className="text-muted-foreground py-8 text-center text-sm">{t('tableEmpty')}</p>
+          )}
+          <div
+            className={view === 'board' ? 'flex gap-3 overflow-x-auto pb-2' : 'hidden'}
+            data-testid="deal-board"
+          >
             {board.stages.map((stage) => {
               const openValue = stage.deals.reduce(
                 (sum, deal) => (deal.status === 'OPEN' ? sum + deal.valueCents : sum),
@@ -398,6 +461,117 @@ export function DealsView() {
           </form>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+interface TableBoard {
+  stages: Array<{
+    id: string;
+    name: string;
+    kind: string;
+    deals: Array<{
+      id: string;
+      title: string;
+      valueCents: number;
+      currency: string;
+      status: string;
+      contact?: { email: string | null } | null;
+    }>;
+  }>;
+}
+
+/** The same pipeline as a flat, scannable table — one row per deal in
+ *  stage order, with inline stage moves and the open total up top. */
+function DealsTable({
+  board,
+  selected,
+  onToggle,
+  onMove,
+  onDelete,
+}: {
+  board: TableBoard;
+  selected: Set<string>;
+  onToggle: (dealId: string) => void;
+  onMove: (dealId: string, stageId: string) => void;
+  onDelete: (dealId: string) => void;
+}) {
+  const t = useTranslations('deals');
+  const rows = board.stages.flatMap((stage) => stage.deals.map((deal) => ({ stage, deal })));
+  const openTotal = rows.reduce(
+    (sum, { deal }) => (deal.status === 'OPEN' ? sum + deal.valueCents : sum),
+    0,
+  );
+  const currency = rows[0]?.deal.currency ?? 'USD';
+  const stageOptions = board.stages.map((option) => ({ value: option.id, label: option.name }));
+
+  return (
+    <div className="grid gap-2" data-testid="deal-table">
+      <p className="text-muted-foreground text-xs">
+        {t('tableSummary', { count: rows.length, total: formatMoney(openTotal, currency) })}
+      </p>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-8" />
+            <TableHead>{t('columns.deal')}</TableHead>
+            <TableHead>{t('columns.stage')}</TableHead>
+            <TableHead className="text-right">{t('columns.value')}</TableHead>
+            <TableHead>{t('columns.contact')}</TableHead>
+            <TableHead>{t('columns.status')}</TableHead>
+            <TableHead className="w-10" />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map(({ stage, deal }) => (
+            <TableRow key={deal.id} data-testid="deal-row">
+              <TableCell>
+                <input
+                  type="checkbox"
+                  className="accent-primary size-3.5"
+                  aria-label={t('selectDeal', { title: deal.title })}
+                  checked={selected.has(deal.id)}
+                  onChange={() => onToggle(deal.id)}
+                />
+              </TableCell>
+              <TableCell>
+                <Link
+                  href={`/deals/${deal.id}`}
+                  className="font-medium underline-offset-4 hover:underline"
+                >
+                  {deal.title}
+                </Link>
+              </TableCell>
+              <TableCell>
+                <ThemedSelect
+                  aria-label={t('moveTo', { title: deal.title })}
+                  value={stage.id}
+                  onValueChange={(next) => onMove(deal.id, next)}
+                  size="sm"
+                  options={stageOptions}
+                />
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatMoney(deal.valueCents, deal.currency)}
+              </TableCell>
+              <TableCell className="text-muted-foreground">{deal.contact?.email ?? '—'}</TableCell>
+              <TableCell>
+                <Badge variant={STAGE_TONE[stage.kind] ?? 'outline'}>{stage.name}</Badge>
+              </TableCell>
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t('deleteDeal', { title: deal.title })}
+                  onClick={() => onDelete(deal.id)}
+                >
+                  <Trash2 className="size-4" aria-hidden />
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
