@@ -79,3 +79,24 @@ audit-logged):
   bundle: the full profile with list memberships, email sends, journey runs,
   tasks, meetings, push subscriptions, and (when the analytics store is
   reachable) the most recent 500 behavioral events.
+
+## The import wizard
+
+**Import CSV** walks four steps:
+
+1. **Upload** — any CSV; HubSpot, Mailchimp, and Klaviyo exports are
+   recognized automatically.
+2. **Map columns** — every column gets a destination (email, name,
+   subscription status, **company**, a kept trait, or skip), pre-filled
+   from the file's own headers and fully overridable.
+3. **Preview** — the first rows as they will import, with counts of valid,
+   invalid, and duplicate rows; choose whether existing contacts are
+   updated (unsubscribes always stick — nobody is ever resubscribed by an
+   import).
+4. **Import** — runs in the background with live progress; finished
+   imports report created/updated/skipped, and rejected rows download as a
+   CSV with row numbers and reasons.
+
+Company columns are matched by exact name per workspace, or created on
+the spot — the [Companies](/docs/guides/crm#companies) list shows them
+immediately.

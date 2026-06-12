@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { contactEmailSchema, detectImportSource, normalizeContactRows } from '../src/contacts';
+import {
+  contactEmailSchema,
+  detectImportSource,
+  normalizeContactRows,
+  normalizeMappedRows,
+  suggestColumnMapping,
+} from '../src/contacts';
 
 describe('contactEmailSchema', () => {
   it('trims, lowercases, and validates', () => {
@@ -91,5 +97,51 @@ describe('migration importers', () => {
     expect(result.valid[0]!.status).toBe('ACTIVE');
     expect(result.valid[1]!.status).toBe('UNSUBSCRIBED');
     expect(result.suppressed).toBe(1);
+  });
+});
+
+describe('mapped imports (the wizard)', () => {
+  it('suggests a mapping from tolerant headers', () => {
+    const mapping = suggestColumnMapping([
+      'Email Address',
+      'First Name',
+      'Company',
+      'Subscription Status',
+      'Nickname',
+    ]);
+    expect(mapping).toEqual({
+      'Email Address': 'email',
+      'First Name': 'firstName',
+      Company: 'company',
+      'Subscription Status': 'status',
+      Nickname: 'attribute',
+    });
+  });
+
+  it('normalizes under an explicit mapping with companies and errors', () => {
+    const result = normalizeMappedRows(
+      [
+        { Mail: 'a@x.com', Co: 'Acme', Nick: 'Ace', Hidden: 'drop me' },
+        { Mail: 'not-an-email', Co: 'Acme' },
+        { Mail: 'a@x.com', Co: 'Other' },
+        { Mail: 'b@x.com', Sub: 'unsubscribed' },
+      ],
+      { Mail: 'email', Co: 'company', Nick: 'attribute', Hidden: 'skip', Sub: 'status' },
+    );
+    expect(result.valid).toHaveLength(2);
+    expect(result.valid[0]).toMatchObject({
+      email: 'a@x.com',
+      company: 'Acme',
+      attributes: { Nick: 'Ace' },
+    });
+    expect(result.valid[0]!.attributes.Hidden).toBeUndefined();
+    expect(result.companies).toEqual(['Acme']);
+    expect(result.invalid).toBe(1);
+    expect(result.duplicates).toBe(1);
+    expect(result.suppressed).toBe(1);
+    expect(result.errors).toEqual([
+      { row: 2, reason: 'invalid email: not-an-email' },
+      { row: 3, reason: 'duplicate of a@x.com earlier in the file' },
+    ]);
   });
 });

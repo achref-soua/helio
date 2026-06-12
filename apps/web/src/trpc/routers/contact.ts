@@ -1,9 +1,18 @@
-import { contactEmailSchema, contactsToCsv, newId, normalizeContactRows } from '@helio/core';
+import {
+  type ColumnMapping,
+  contactEmailSchema,
+  contactsToCsv,
+  MAPPING_TARGETS,
+  newId,
+  normalizeContactRows,
+  normalizeMappedRows,
+} from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 import { authDb } from '@/lib/auth';
 import { getClickHouse } from '@/lib/clickhouse';
+import { runImportJob } from '@/lib/import-runner';
 import { pushContactToSalesforce } from '@/lib/salesforce';
 import { emitWebhookEvent } from '@/lib/webhooks';
 
@@ -291,6 +300,82 @@ export const contactRouter = router({
         },
       });
       return { id: contact.id };
+    }),
+
+  /**
+   * The wizard's import (I1): explicit column mapping, company
+   * create-or-match, update-vs-skip for existing emails, and a job row
+   * the client polls for live progress. Processing runs detached.
+   */
+  importStart: orgProcedure
+    .input(
+      z.object({
+        workspaceId: z.string().min(1),
+        rows: z.array(z.record(z.string(), z.unknown())).min(1).max(10_000),
+        mapping: z.record(z.string(), z.enum(MAPPING_TARGETS)),
+        updateExisting: z.boolean().default(true),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'contacts:write');
+      await assertWorkspace(ctx.tenantDb, input.workspaceId);
+      const normalized = normalizeMappedRows(input.rows, input.mapping as ColumnMapping);
+      if (normalized.valid.length === 0) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'No importable rows — check the email column mapping',
+        });
+      }
+      const job = await ctx.tenantDb.importJob.create({
+        data: {
+          id: newId('imp'),
+          organizationId: ctx.organizationId,
+          workspaceId: input.workspaceId,
+          source: normalized.source,
+          totalRows: input.rows.length,
+          suppressed: normalized.suppressed,
+          errorRows: normalized.errors,
+        },
+      });
+      await ctx.tenantDb.auditLog.create({
+        data: {
+          id: newId('audit'),
+          organizationId: ctx.organizationId,
+          workspaceId: input.workspaceId,
+          actorId: ctx.session.user.id,
+          action: 'contacts.import_started',
+          targetType: 'import_job',
+          targetId: job.id,
+          metadata: { received: input.rows.length, source: normalized.source },
+        },
+      });
+      // Detached on purpose: the poll endpoint reports progress.
+      void runImportJob({
+        organizationId: ctx.organizationId,
+        workspaceId: input.workspaceId,
+        jobId: job.id,
+        normalized,
+        updateExisting: input.updateExisting,
+      });
+      return { jobId: job.id };
+    }),
+
+  importJob: orgProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const job = await ctx.tenantDb.importJob.findUnique({ where: { id: input.id } });
+      if (!job) throw new TRPCError({ code: 'NOT_FOUND', message: 'Import not found' });
+      return {
+        id: job.id,
+        status: job.status,
+        totalRows: job.totalRows,
+        created: job.created,
+        updated: job.updated,
+        skipped: job.skipped,
+        suppressed: job.suppressed,
+        errorRows: job.errorRows as Array<{ row: number; reason: string }>,
+        error: job.error,
+      };
     }),
 
   import: orgProcedure
