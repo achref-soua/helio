@@ -3,7 +3,7 @@
 #
 # Downloads helio.exe into %LOCALAPPDATA%\Helio\bin, adds it to the user
 # PATH, offers to install Docker Desktop if it's missing (the one-time
-# prerequisite), and runs `helio install` — which generates secrets and
+# prerequisite), and runs `helio install` - which generates secrets and
 # brings the stack up.
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -36,11 +36,11 @@ Write-Host ''
 Write-Host "helio installed to $exe"
 Write-Host ''
 
-# One-time prerequisite: Docker Desktop — a normal, free app install.
+# One-time prerequisite: Docker Desktop - a normal, free app install.
 # When it's missing, offer to install it right here through winget
 # (ships with Windows 10/11) instead of sending people to a website.
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-  Write-Host 'Helio runs on Docker Desktop — a one-time, free app install.'
+  Write-Host 'Helio runs on Docker Desktop - a one-time, free app install.'
   $winget = Get-Command winget -ErrorAction SilentlyContinue
   $answer = if ($winget) { Read-Host 'Install Docker Desktop now? [Y/n]' } else { 'n' }
   if ($winget -and ($answer -eq '' -or $answer -match '^[Yy]')) {
@@ -55,7 +55,7 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
       [Environment]::GetEnvironmentVariable('Path', 'User')
     $desktop = Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe'
     if (Test-Path $desktop) { Start-Process $desktop }
-    Write-Host 'waiting for Docker to start (the first start sets itself up — a few minutes)...'
+    Write-Host 'waiting for Docker to start (the first start sets itself up - a few minutes)...'
     $deadline = (Get-Date).AddMinutes(6)
     $up = $false
     # Engine-down probes write to stderr; under 'Stop' PS 5.1 would treat
@@ -74,7 +74,7 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
       Write-Host ''
       Write-Host 'Docker Desktop is installed but not running yet. On a first install Windows'
       Write-Host 'sometimes needs a restart: reboot, open Docker Desktop once, then run this'
-      Write-Host 'installer command again — it picks up exactly where it left off.'
+      Write-Host 'installer command again - it picks up exactly where it left off.'
       exit 1
     }
   } else {

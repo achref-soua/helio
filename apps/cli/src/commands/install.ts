@@ -78,14 +78,18 @@ async function run(argv: string[]): Promise<number> {
   const template = readFileSync(path.join(bundleDir, '.env.template'), 'utf8');
   const { content } = fillTemplate(template);
 
-  const profile =
-    values.profile ??
-    (values.yes
-      ? 'core'
-      : await prompt(
-          'Which stack? core = dashboard/API/AI (~2.5 GB RAM); full adds campaign sending, tracking & analytics (~8 GB hosts)',
-          'core',
-        ));
+  let profile = values.profile;
+  if (!profile) {
+    if (values.yes) {
+      profile = 'core';
+    } else {
+      say('');
+      say('Choose your stack - type one of these and press Enter:');
+      say('  core   dashboard, REST API, AI copilot (~2.5 GB RAM) - right for most');
+      say('  full   adds campaign sending, event tracking, analytics (~8 GB RAM)');
+      profile = await prompt('Your choice, core or full', 'core');
+    }
+  }
   if (profile !== 'core' && profile !== 'full') fail(`unknown profile "${profile}"`);
   const envContent = content.replace(/^COMPOSE_PROFILES=.*$/m, `COMPOSE_PROFILES=${profile}`);
   writeFileSync(paths.envFile, envContent);
