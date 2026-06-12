@@ -1,16 +1,16 @@
 import { type APIRequestContext, expect, type Page, test } from '@playwright/test';
 
-const MAILPIT = `http://localhost:${process.env.MAILPIT_UI_PORT ?? '8025'}`;
+import { mailpitUrl } from './mailpit';
 
 async function mailLink(request: APIRequestContext, to: string, pattern: RegExp) {
   let link: string | undefined;
   await expect
     .poll(
       async () => {
-        const list = await request.get(`${MAILPIT}/api/v1/search?query=to:${to}`);
+        const list = await request.get(`${mailpitUrl()}/api/v1/search?query=to:${to}`);
         const { messages } = (await list.json()) as { messages: Array<{ ID: string }> };
         if (!messages?.length) return false;
-        const message = await request.get(`${MAILPIT}/api/v1/message/${messages[0]!.ID}`);
+        const message = await request.get(`${mailpitUrl()}/api/v1/message/${messages[0]!.ID}`);
         const { Text } = (await message.json()) as { Text: string };
         link = Text.match(pattern)?.[0];
         return Boolean(link);

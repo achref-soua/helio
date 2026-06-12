@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 
 import { expect, test } from '@playwright/test';
 
-const MAILPIT = `http://localhost:${process.env.MAILPIT_UI_PORT ?? '8025'}`;
+import { mailpitUrl } from './mailpit';
 
 function psql(query: string): string {
   return execFileSync('docker', [
@@ -51,10 +51,10 @@ test.describe('forgot & reset', () => {
     await expect
       .poll(
         async () => {
-          const list = await request.get(`${MAILPIT}/api/v1/search?query=to:${email}`);
+          const list = await request.get(`${mailpitUrl()}/api/v1/search?query=to:${email}`);
           const { messages } = (await list.json()) as { messages: Array<{ ID: string }> };
           for (const message of messages ?? []) {
-            const full = await request.get(`${MAILPIT}/api/v1/message/${message.ID}`);
+            const full = await request.get(`${mailpitUrl()}/api/v1/message/${message.ID}`);
             const { Text } = (await full.json()) as { Text: string };
             link = Text.match(/https?:\/\/\S*reset-password\S*/)?.[0];
             if (link) return true;
@@ -118,10 +118,10 @@ test.describe('forced rotation', () => {
     await expect
       .poll(
         async () => {
-          const list = await request.get(`${MAILPIT}/api/v1/search?query=to:${email}`);
+          const list = await request.get(`${mailpitUrl()}/api/v1/search?query=to:${email}`);
           const { messages } = (await list.json()) as { messages: Array<{ ID: string }> };
           if (!messages?.length) return false;
-          const full = await request.get(`${MAILPIT}/api/v1/message/${messages[0]!.ID}`);
+          const full = await request.get(`${mailpitUrl()}/api/v1/message/${messages[0]!.ID}`);
           const { Text } = (await full.json()) as { Text: string };
           link = Text.match(/https?:\/\/\S+verify-email\S+/)?.[0];
           return Boolean(link);

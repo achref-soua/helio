@@ -4,8 +4,6 @@ import { loadEnvFile } from 'node:process';
 
 import { Client } from 'pg';
 
-const MAILPIT = `http://localhost:${process.env.MAILPIT_UI_PORT ?? '8025'}`;
-
 /**
  * Deterministic E2E: every suite starts from an empty LOCAL development
  * database and an empty mailbox. Truncates all tables (migrations table
@@ -37,5 +35,8 @@ export default async function globalSetup() {
     await client.end();
   }
 
-  await fetch(`${MAILPIT}/api/v1/messages`, { method: 'DELETE' });
+  // Resolved here, not at module load — MAILPIT_UI_PORT comes from the
+  // root .env read above, so an import-time constant would miss it.
+  const mailpit = `http://localhost:${process.env.MAILPIT_UI_PORT ?? '8025'}`;
+  await fetch(`${mailpit}/api/v1/messages`, { method: 'DELETE' });
 }
