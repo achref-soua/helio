@@ -161,7 +161,7 @@ async function shoot(page: Page, showroom: Showroom): Promise<void> {
   await titleCard(page, {
     heading: 'Helio',
     sub: 'The open-source growth platform — CDP, journeys, every channel, and AI. Self-hosted.',
-    lines: ['v1.0.0', 'AGPL-3.0', 'github.com/achref-soua/helio'],
+    lines: ['v2.0.0', 'AGPL-3.0', 'github.com/achref-soua/helio'],
     dwellMs: 5_000,
   });
 
@@ -276,7 +276,8 @@ async function shoot(page: Page, showroom: Showroom): Promise<void> {
   await type(page, page.getByLabel('Ask the copilot…'), 'How many pro contacts do we have?');
   await click(page, page.getByTestId('copilot-chat').getByRole('button', { name: 'Send' }));
   await page.getByTestId('turn-assistant').waitFor({ timeout: 45_000 });
-  await dwell(page, 5_500);
+  // Let the streamed answer settle on screen before moving on.
+  await dwell(page, 6_500);
 
   await caption(
     page,
@@ -289,8 +290,9 @@ async function shoot(page: Page, showroom: Showroom): Promise<void> {
     'when someone signs up, send the welcome email, wait 2 days, then upsell pro users',
   );
   await click(page, page.getByTestId('copilot-journey').getByRole('button', { name: 'Draft' }));
-  await page.getByRole('button', { name: 'Create this journey' }).waitFor({ timeout: 60_000 });
-  await dwell(page, 3_500);
+  // Show the drafted step-by-step preview, then save the real journey.
+  await page.getByTestId('journey-draft-steps').waitFor({ timeout: 60_000 });
+  await dwell(page, 5_000);
   await click(page, page.getByRole('button', { name: 'Create this journey' }));
   await dwell(page, 3_500);
 
@@ -306,6 +308,11 @@ async function shoot(page: Page, showroom: Showroom): Promise<void> {
   );
   await click(page, page.getByTestId('copilot-email').getByRole('button', { name: 'Draft' }));
   await page.getByTestId('email-draft').waitFor({ timeout: 60_000 });
+  // The live email preview renders inside the draft card.
+  await page
+    .getByTestId('email-draft-preview')
+    .waitFor({ timeout: 15_000 })
+    .catch(() => {});
   await dwell(page, 6_500);
 
   // 09 — the AI journey, opened on the canvas
@@ -489,9 +496,9 @@ async function shoot(page: Page, showroom: Showroom): Promise<void> {
 
   // 16 — outro
   await titleCard(page, {
-    heading: 'Helio v1.0.0',
+    heading: 'Helio v2.0.0',
     sub: 'Own your growth stack. One command to self-host — your data never leaves your servers.',
-    lines: ['github.com/achref-soua/helio', 'docker compose up', 'AGPL-3.0'],
+    lines: ['github.com/achref-soua/helio', 'install in one command', 'AGPL-3.0'],
     dwellMs: 5_500,
   });
 }

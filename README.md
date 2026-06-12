@@ -13,13 +13,13 @@
 > ☀️ **v2.0.0 — Helio for humans.** v1 proved the engine; v2 makes it yours without a terminal career. Install on any machine with [one command](#install-in-one-command) — the `helio` CLI drives Docker for you, the app installs to your desktop or phone (PWA), and a setup wizard takes you from blank box to working organization in minutes. Every channel sends for real, per organization: bring your own SMTP/Postmark/Resend/Mailgun, Twilio SMS, WhatsApp — and your own AI key (OpenAI, Anthropic, Groq, or a local model server), every secret sealed in an encrypted vault and shown only masked. Admins get a control room: a filterable audit trail, reports, live system health, a validated Database Studio over your own tables, and scheduled backups with one-command restore. The CRM closes the loop — contact & deal pages, companies, notes, a draggable board, sales reports — and the migration wizard pulls contacts straight from the HubSpot, Mailchimp, or Klaviyo APIs. If your data team trains its own churn model, upload it (ONNX or XGBoost; pickle refused by design) or point Helio at your model server, with automatic fallback if it ever fails. Security got the deep pass: TOTP 2FA with any authenticator app, org-enforced 2FA and password-rotation policies, scoped API keys, strict headers and rate limits everywhere. And billing is gone for good — Helio is **free forever**: no plans, no contact caps, no metering. The [roadmap](#roadmap) tells the story.
 
 <p align="center">
-  <a href="https://github.com/achref-soua/helio/releases/download/v1.0.0/helio-demo.mp4">
+  <a href="https://github.com/achref-soua/helio/releases/download/v2.0.0/helio-demo.mp4">
     <img src="docs/assets/demo.gif" alt="Helio in action: the multi-channel journey canvas, then the AI copilot answering from workspace data and drafting a journey from a sentence" width="900" />
   </a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/achref-soua/helio/releases/download/v1.0.0/helio-demo.mp4"><b>▶&nbsp;Watch the demo film (3:47, MP4 — recorded on v1.0)</b></a>
+  <a href="https://github.com/achref-soua/helio/releases/download/v2.0.0/helio-demo.mp4"><b>▶&nbsp;Watch the demo film (3:58, MP4 — recorded on v2.0)</b></a>
   &nbsp;·&nbsp;
   <a href="docs/helio-product-guide.pdf"><b>📘&nbsp;Read the v2.0 product guide (PDF)</b></a>
 </p>
@@ -236,7 +236,8 @@ Hot-path budgets (ingestion ≥ 5k events/s, API reads p95 < 150 ms) have a comm
 
 ## Documentation
 
-- 📘 **[Product guide (PDF)](docs/helio-product-guide.pdf)** — the whole story in 17 pages: why Helio, a screenshot tour, installation and org setup, migrating from HubSpot/Mailchimp/Klaviyo, the usage guide, and how to contribute. Written for technical and non-technical readers alike.
+- 📘 **[Product guide (PDF)](docs/helio-product-guide.pdf)** — the whole story in 23 pages: why Helio, a screenshot tour, installation and org setup, migrating from HubSpot/Mailchimp/Klaviyo, the CRM, the admin control room, the usage guide, and how to contribute. Written for technical and non-technical readers alike.
+- 🧭 **[Setup guide (PDF)](docs/helio-setup-guide.pdf)** — a plain-language walkthrough for operators: install Helio, complete first-run setup, and understand every settings panel. No technical background needed.
 - 📖 **[Documentation site](apps/docs)** (Fumadocs) — concepts, self-hosting, configuration, every feature guide, the REST API, SDKs, the MCP server, and migration guides. Run it locally with `task docs` (→ `localhost:3002`).
 - [Architecture (C4) & trust boundaries](docs/architecture.md) · [Decision log (ADRs)](docs/adr) · [Threat model](docs/threat-model.md)
 - [Local-dev runbook](docs/runbooks/local-dev.md) · [SSO & SCIM setup](docs/sso.md) · [REST API guide](docs/api.md) · [API spec (OpenAPI 3.1)](apps/api/openapi.json)
