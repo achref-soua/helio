@@ -1385,7 +1385,6 @@
     "urlLabel": "Endpoint URL",
     "authLabel": "Authorization header (optional)",
     "authHint": "Stored encrypted in the credential vault; sent as the Authorization header on every call.",
-    "mappingLabel": "Feature mapping (which inputs your model expects, in order)",
     "upload": "Upload & validate",
     "register": "Connect & validate",
     "activate": "Activate",
@@ -1396,7 +1395,8 @@
     "validationFailed": "Validation failed",
     "exportHint": "Download this workspace’s training data (features + churn label) as CSV.",
     "export": "Training CSV",
-    "genericError": "Something went wrong — try again."
+    "genericError": "Something went wrong — try again.",
+    "autoMappingHint": "Helio maps all {count} computed contact features to your model automatically, in the training-data export’s column order — train on that export and it plugs straight in."
   },
   "admin": {
     "title": "Admin",
