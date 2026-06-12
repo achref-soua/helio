@@ -62,3 +62,26 @@ export function parseGatewayApiKey(key: string): { organizationId: string } | nu
   if (!organizationId || !secret) return null;
   return { organizationId };
 }
+
+// ── API key scopes (M2) ─────────────────────────────────────────────────────
+
+/** The grantable scopes; '*' (the default) grants everything. */
+export const API_SCOPES = [
+  'contacts:read',
+  'contacts:write',
+  'lists:read',
+  'lists:write',
+  'workspaces:read',
+  'workspaces:write',
+] as const;
+export type ApiScope = (typeof API_SCOPES)[number];
+
+/**
+ * Does a key's scope list allow the needed scope? `*` is the legacy/full
+ * grant; a `<resource>:write` grant implies its `:read`.
+ */
+export function scopeAllows(scopes: string[], needed: ApiScope): boolean {
+  if (scopes.includes('*') || scopes.includes(needed)) return true;
+  const [resource, action] = needed.split(':');
+  return action === 'read' && scopes.includes(`${resource}:write`);
+}

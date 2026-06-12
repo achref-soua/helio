@@ -34,6 +34,7 @@ import { useState } from 'react';
 import { AlertBell } from '@/components/alert-bell';
 import { HelpMenu } from '@/components/help-menu';
 import { ReportDialog } from '@/components/report-dialog';
+import { RequireTwoFactor } from '@/components/require-two-factor';
 import { SunSplash } from '@/components/sun-splash';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { UserMenu } from '@/components/user-menu';
@@ -172,7 +173,10 @@ export function AppShell({
             <UserMenu />
           </div>
         </header>
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6">
+          <RequireTwoFactor />
+          {children}
+        </main>
       </div>
     </div>
   );

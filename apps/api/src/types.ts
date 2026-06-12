@@ -27,6 +27,8 @@ export interface GatewayVariables {
   requestId: string;
   /** The organization resolved from the API key; set by apiKeyAuth on /v1. */
   organizationId: string;
+  /** The presenting API key's grants (M2). */
+  scopes: string[];
 }
 
 export type GatewayEnv = { Variables: GatewayVariables };

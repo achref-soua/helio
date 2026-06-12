@@ -37,6 +37,8 @@ export function PasswordPolicyPanel({ canManage }: { canManage: boolean }) {
     enabled: canManage,
   });
   const update = useMutation(trpc.security.updatePasswordPolicy.mutationOptions());
+  const updateRequire2fa = useMutation(trpc.security.updateRequire2fa.mutationOptions());
+  const [optimistic2fa, setOptimistic2fa] = useState<boolean | null>(null);
 
   if (!canManage) return null;
   const enabled = optimistic ?? policy.data?.passwordExpiryEnabled ?? false;
@@ -97,6 +99,29 @@ export function PasswordPolicyPanel({ canManage }: { canManage: boolean }) {
           </Button>
         </div>
         <p className="text-muted-foreground text-xs">{t('note')}</p>
+        <label className="flex items-center gap-2 border-t pt-3 text-sm">
+          <input
+            type="checkbox"
+            className="accent-primary size-4"
+            data-testid="require-2fa-toggle"
+            checked={optimistic2fa ?? policy.data?.require2fa ?? false}
+            onChange={async (event) => {
+              const next = event.target.checked;
+              setOptimistic2fa(next);
+              try {
+                await updateRequire2fa.mutateAsync({ require2fa: next });
+                await queryClient.invalidateQueries(trpc.security.passwordPolicy.pathFilter());
+                toast.success(t('saved'));
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : t('genericError'));
+              } finally {
+                setOptimistic2fa(null);
+              }
+            }}
+          />
+          {t('require2fa')}
+        </label>
+        <p className="text-muted-foreground text-xs">{t('require2faNote')}</p>
       </CardContent>
     </Card>
   );

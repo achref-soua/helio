@@ -13,11 +13,33 @@ export const securityRouter = router({
   passwordPolicy: orgProcedure.query(async ({ ctx }) => {
     const org = await ctx.tenantDb.organization.findUnique({
       where: { id: ctx.organizationId },
-      select: { passwordExpiryEnabled: true, passwordExpiryDays: true },
+      select: { passwordExpiryEnabled: true, passwordExpiryDays: true, require2fa: true },
     });
     if (!org) throw new TRPCError({ code: 'NOT_FOUND' });
     return org;
   }),
+
+  updateRequire2fa: orgProcedure
+    .input(z.object({ require2fa: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'settings:workspace');
+      await ctx.tenantDb.organization.update({
+        where: { id: ctx.organizationId },
+        data: { require2fa: input.require2fa },
+      });
+      await ctx.tenantDb.auditLog.create({
+        data: {
+          id: newId('audit'),
+          organizationId: ctx.organizationId,
+          actorId: ctx.session.user.id,
+          action: 'security.require_2fa_updated',
+          targetType: 'organization',
+          targetId: ctx.organizationId,
+          metadata: { require2fa: input.require2fa },
+        },
+      });
+      return { ok: true };
+    }),
 
   updatePasswordPolicy: orgProcedure
     .input(

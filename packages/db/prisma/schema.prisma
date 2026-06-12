@@ -22,6 +22,8 @@ model Organization {
   /// Admin-configurable password rotation (M1, owner requirement).
   passwordExpiryEnabled Boolean  @default(false) @map("password_expiry_enabled")
   passwordExpiryDays    Int      @default(90) @map("password_expiry_days")
+  /// Every member must have two-factor enabled (M2, owner requirement).
+  require2fa            Boolean  @default(false) @map("require_2fa")
   metadata              String?
   /// White-label display name shown in the dashboard and on hosted pages
   /// (falls back to the product name when unset).
@@ -862,6 +864,8 @@ model GatewayApiKey {
   name           String
   keyHash        String    @unique @map("key_hash")
   prefix         String
+  /// Per-resource grants (M2): e.g. contacts:read; '*' = everything.
+  scopes         String[]  @default(["*"])
   createdAt      DateTime  @default(now()) @map("created_at")
   lastUsedAt     DateTime? @map("last_used_at")
 

@@ -24,6 +24,7 @@ describe('gateway contract', () => {
   // API keys minted for each org; the bearer carries the org, so requests
   // never name it. Assigned in beforeAll once the orgs exist.
   let auth: Record<string, string>;
+  let readOnlyAuth: Record<string, string>;
   let otherAuth: Record<string, string>;
   // A dedicated credential for the rate-limit test: ioredis-mock shares one
   // keyspace across instances, so a key used nowhere else gets its own bucket.
@@ -54,6 +55,7 @@ describe('gateway contract', () => {
     const orgKeyParts = await generateGatewayApiKey(orgId);
     const otherKeyParts = await generateGatewayApiKey(otherOrgId);
     const rateKeyParts = await generateGatewayApiKey(otherOrgId);
+    const readOnlyParts = await generateGatewayApiKey(orgId);
     await admin.gatewayApiKey.createMany({
       data: [orgKeyParts, otherKeyParts, rateKeyParts].map((parts, index) => ({
         id: newId('gwk'),
@@ -63,6 +65,18 @@ describe('gateway contract', () => {
         prefix: parts.prefix,
       })),
     });
+    // A scoped key (M2): contacts read-only — nothing else.
+    await admin.gatewayApiKey.create({
+      data: {
+        id: newId('gwk'),
+        organizationId: orgId,
+        name: 'scoped',
+        keyHash: readOnlyParts.keyHash,
+        prefix: readOnlyParts.prefix,
+        scopes: ['contacts:read'],
+      },
+    });
+    readOnlyAuth = { authorization: `Bearer ${readOnlyParts.key}` };
     auth = { authorization: `Bearer ${orgKeyParts.key}` };
     otherAuth = { authorization: `Bearer ${otherKeyParts.key}` };
     rateLimitAuth = { authorization: `Bearer ${rateKeyParts.key}` };
@@ -75,6 +89,27 @@ describe('gateway contract', () => {
       redis,
       rateLimit: { max: 100, windowSeconds: 3600 },
     });
+  });
+
+  it('scoped keys: read allowed, write refused with a named scope (M2)', async () => {
+    const list = await app.request('/v1/contacts?workspaceId=' + contactWsId, {
+      headers: readOnlyAuth,
+    });
+    expect(list.status).toBe(200);
+
+    const denied = await app.request('/v1/contacts', {
+      method: 'POST',
+      headers: { ...readOnlyAuth, 'content-type': 'application/json' },
+      body: JSON.stringify({ workspaceId: contactWsId, email: 'scoped@example.com' }),
+    });
+    expect(denied.status).toBe(403);
+    const body = (await denied.json()) as { detail?: string; title?: string };
+    expect(JSON.stringify(body)).toContain('contacts:write');
+
+    const wrongResource = await app.request('/v1/lists?workspaceId=' + contactWsId, {
+      headers: readOnlyAuth,
+    });
+    expect(wrongResource.status).toBe(403);
   });
 
   afterAll(async () => {

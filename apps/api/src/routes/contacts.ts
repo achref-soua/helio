@@ -3,6 +3,7 @@ import { type Contact, forTenant } from '@helio/db';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { HTTPException } from 'hono/http-exception';
 
+import { assertScope } from '../middleware/scopes';
 import type { GatewayDeps, GatewayEnv } from '../types';
 
 // Mirrors @helio/db's ContactStatus enum; kept inline so the generated
@@ -242,6 +243,7 @@ export function contactRoutes(deps: GatewayDeps) {
   const app = new OpenAPIHono<GatewayEnv>();
 
   app.openapi(listRoute, async (c) => {
+    assertScope(c, 'contacts:read');
     const organizationId = c.get('organizationId');
     const { workspaceId, listId, search, limit, cursor } = c.req.valid('query');
     const tenantDb = forTenant(deps.prisma, organizationId);
@@ -273,6 +275,7 @@ export function contactRoutes(deps: GatewayDeps) {
   });
 
   app.openapi(getRoute, async (c) => {
+    assertScope(c, 'contacts:read');
     const organizationId = c.get('organizationId');
     const { id } = c.req.valid('param');
     const tenantDb = forTenant(deps.prisma, organizationId);
@@ -282,6 +285,7 @@ export function contactRoutes(deps: GatewayDeps) {
   });
 
   app.openapi(createContactRoute, async (c) => {
+    assertScope(c, 'contacts:write');
     const organizationId = c.get('organizationId');
     const input = c.req.valid('json');
     const tenantDb = forTenant(deps.prisma, organizationId);
@@ -327,6 +331,7 @@ export function contactRoutes(deps: GatewayDeps) {
   });
 
   app.openapi(updateContactRoute, async (c) => {
+    assertScope(c, 'contacts:write');
     const organizationId = c.get('organizationId');
     const { id } = c.req.valid('param');
     const input = c.req.valid('json');
@@ -358,6 +363,7 @@ export function contactRoutes(deps: GatewayDeps) {
   });
 
   app.openapi(deleteContactRoute, async (c) => {
+    assertScope(c, 'contacts:write');
     const organizationId = c.get('organizationId');
     const { id } = c.req.valid('param');
     const tenantDb = forTenant(deps.prisma, organizationId);

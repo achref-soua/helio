@@ -3,6 +3,7 @@ import { forTenant } from '@helio/db';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { HTTPException } from 'hono/http-exception';
 
+import { assertScope } from '../middleware/scopes';
 import type { GatewayDeps, GatewayEnv } from '../types';
 
 const WorkspaceSchema = z
@@ -101,6 +102,7 @@ export function workspaceRoutes(deps: GatewayDeps) {
   const app = new OpenAPIHono<GatewayEnv>();
 
   app.openapi(listRoute, async (c) => {
+    assertScope(c, 'workspaces:read');
     const organizationId = c.get('organizationId');
     const tenantDb = forTenant(deps.prisma, organizationId);
     const workspaces = await tenantDb.workspace.findMany({ orderBy: { createdAt: 'asc' } });
@@ -108,6 +110,7 @@ export function workspaceRoutes(deps: GatewayDeps) {
   });
 
   app.openapi(createWorkspaceRoute, async (c) => {
+    assertScope(c, 'workspaces:write');
     const organizationId = c.get('organizationId');
     const input = c.req.valid('json');
     const tenantDb = forTenant(deps.prisma, organizationId);

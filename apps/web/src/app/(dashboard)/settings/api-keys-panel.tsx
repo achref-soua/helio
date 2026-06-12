@@ -1,5 +1,6 @@
 'use client';
 
+import { API_SCOPES } from '@helio/core';
 import { Button } from '@helio/ui/components/button';
 import {
   Card,
@@ -41,6 +42,7 @@ export function ApiKeysPanel({ canManage }: { canManage: boolean }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [revealed, setRevealed] = useState<string | null>(null);
+  const [scopePicks, setScopePicks] = useState<Record<string, boolean>>({});
 
   const keys = useQuery({ ...trpc.apiKey.list.queryOptions(), enabled: canManage });
   const create = useMutation(trpc.apiKey.create.mutationOptions());
@@ -51,8 +53,13 @@ export function ApiKeysPanel({ canManage }: { canManage: boolean }) {
   async function onCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const name = String(new FormData(event.currentTarget).get('name') ?? '').trim();
+    const selected = API_SCOPES.filter((scope) => scopePicks[scope]);
     try {
-      const { key } = await create.mutateAsync({ name });
+      const { key } = await create.mutateAsync({
+        name,
+        // No selection = full grant (the default for server-to-server keys).
+        scopes: selected.length > 0 ? selected : undefined,
+      });
       setRevealed(key);
       setOpen(false);
       await invalidate();
@@ -105,6 +112,25 @@ export function ApiKeysPanel({ canManage }: { canManage: boolean }) {
                     data-testid="api-key-name"
                   />
                 </div>
+                <div className="grid gap-2">
+                  <span className="text-sm font-medium">{t('scopesLabel')}</span>
+                  <p className="text-muted-foreground text-xs">{t('scopesHint')}</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {API_SCOPES.map((scope) => (
+                      <label key={scope} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          className="accent-primary size-4"
+                          checked={scopePicks[scope] ?? false}
+                          onChange={() =>
+                            setScopePicks((current) => ({ ...current, [scope]: !current[scope] }))
+                          }
+                        />
+                        <code className="text-xs">{scope}</code>
+                      </label>
+                    ))}
+                  </div>
+                </div>
                 <DialogFooter>
                   <Button type="submit" disabled={create.isPending} data-testid="api-key-submit">
                     {create.isPending ? t('working') : t('createSubmit')}
@@ -126,6 +152,7 @@ export function ApiKeysPanel({ canManage }: { canManage: boolean }) {
               <TableRow>
                 <TableHead>{t('columns.name')}</TableHead>
                 <TableHead>{t('columns.key')}</TableHead>
+                <TableHead>{t('columns.scopes')}</TableHead>
                 <TableHead>{t('columns.lastUsed')}</TableHead>
                 {canManage && (
                   <TableHead className="sr-only w-10">{t('columns.actions')}</TableHead>
@@ -138,6 +165,9 @@ export function ApiKeysPanel({ canManage }: { canManage: boolean }) {
                   <TableCell className="font-medium">{key.name}</TableCell>
                   <TableCell>
                     <code className="text-muted-foreground text-xs">{key.prefix}</code>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs">
+                    {key.scopes.includes('*') ? t('fullAccess') : key.scopes.join(', ')}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-xs">
                     {key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleDateString() : t('never')}

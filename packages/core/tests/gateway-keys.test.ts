@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { generateGatewayApiKey, hashGatewayApiKey, parseGatewayApiKey } from '../src/gateway-keys';
+import {
+  generateGatewayApiKey,
+  hashGatewayApiKey,
+  parseGatewayApiKey,
+  scopeAllows,
+} from '../src/gateway-keys';
 
 describe('generateGatewayApiKey', () => {
   it('mints an org-bound key whose hash is stable', async () => {
@@ -39,5 +44,15 @@ describe('parseGatewayApiKey', () => {
   it('round-trips a freshly generated key', async () => {
     const { key } = await generateGatewayApiKey('org_round_trip');
     expect(parseGatewayApiKey(key)).toEqual({ organizationId: 'org_round_trip' });
+  });
+});
+
+describe('API key scopes', () => {
+  it('star grants everything; write implies read; read never implies write', () => {
+    expect(scopeAllows(['*'], 'contacts:write')).toBe(true);
+    expect(scopeAllows(['contacts:write'], 'contacts:read')).toBe(true);
+    expect(scopeAllows(['contacts:read'], 'contacts:write')).toBe(false);
+    expect(scopeAllows(['lists:read'], 'contacts:read')).toBe(false);
+    expect(scopeAllows([], 'workspaces:read')).toBe(false);
   });
 });

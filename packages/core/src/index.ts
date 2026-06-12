@@ -144,10 +144,13 @@ export {
   trackEventSchema,
 } from './events';
 export {
+  API_SCOPES,
+  type ApiScope,
   type GeneratedApiKey,
   generateGatewayApiKey,
   hashGatewayApiKey,
   parseGatewayApiKey,
+  scopeAllows,
 } from './gateway-keys';
 export { type Id, idTimestamp, isId, newId } from './id';
 export {
