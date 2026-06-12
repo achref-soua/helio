@@ -23,49 +23,13 @@ import { useTRPC } from '@/trpc/client';
 
 /**
  * Bring-your-own churn model (ADR-0021): upload ONNX/XGBoost artifacts or
- * register an HTTPS model server, map Helio's features onto the model's
- * inputs, validate, and activate — with every failure explained in plain
- * words on the row. Training data exports as CSV for offline model work.
+ * register an HTTPS model server, validate, and activate — with every
+ * failure explained in plain words on the row. The feature mapping is
+ * automatic: Helio always sends every contact feature it computes, in
+ * the training-data export's column order, so models trained on that
+ * export plug in with zero configuration. Training data exports as CSV
+ * for offline model work.
  */
-
-type MappingState = Record<string, boolean>;
-
-function FeaturePicker({
-  features,
-  state,
-  onToggle,
-  idPrefix,
-}: {
-  features: string[];
-  state: MappingState;
-  onToggle: (name: string) => void;
-  idPrefix: string;
-}) {
-  return (
-    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-      {features.map((name) => (
-        <label
-          key={name}
-          htmlFor={`${idPrefix}-${name}`}
-          className="flex items-center gap-2 text-sm"
-        >
-          <input
-            id={`${idPrefix}-${name}`}
-            type="checkbox"
-            className="accent-primary size-4"
-            checked={state[name] ?? true}
-            onChange={() => onToggle(name)}
-          />
-          <code className="text-xs">{name}</code>
-        </label>
-      ))}
-    </div>
-  );
-}
-
-function selectedInputs(features: string[], state: MappingState): ChurnFeatureName[] {
-  return features.filter((name) => state[name] ?? true) as ChurnFeatureName[];
-}
 
 const STATUS_VARIANT = {
   ACTIVE: 'default',
@@ -82,12 +46,10 @@ export function ChurnModelPanel({ canManage }: { canManage: boolean }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [uploadName, setUploadName] = useState('');
-  const [uploadMapping, setUploadMapping] = useState<MappingState>({});
   const [uploading, setUploading] = useState(false);
   const [endpointName, setEndpointName] = useState('');
   const [endpointUrl, setEndpointUrl] = useState('');
   const [endpointAuth, setEndpointAuth] = useState('');
-  const [endpointMapping, setEndpointMapping] = useState<MappingState>({});
 
   const list = useQuery({
     ...trpc.churnModel.list.queryOptions({ workspaceId: workspaceId ?? '' }),
@@ -142,7 +104,7 @@ export function ChurnModelPanel({ canManage }: { canManage: boolean }) {
     body.set('workspaceId', targetWorkspaceId);
     body.set('name', uploadName);
     body.set('format', format);
-    body.set('inputs', JSON.stringify(selectedInputs(features, uploadMapping)));
+    body.set('inputs', JSON.stringify(features as ChurnFeatureName[]));
     setUploading(true);
     try {
       const response = await fetch('/api/admin/churn-model/upload', { method: 'POST', body });
@@ -179,7 +141,7 @@ export function ChurnModelPanel({ canManage }: { canManage: boolean }) {
         name: endpointName,
         url: endpointUrl,
         authHeader: endpointAuth || undefined,
-        mapping: { inputs: selectedInputs(features, endpointMapping) },
+        mapping: { inputs: features as ChurnFeatureName[] },
       });
       reportVerdict(result.status, result.lastError);
       setEndpointName('');
@@ -312,19 +274,9 @@ export function ChurnModelPanel({ canManage }: { canManage: boolean }) {
             <Label htmlFor="churn-upload-file">{t('fileLabel')}</Label>
             <Input id="churn-upload-file" ref={fileRef} type="file" accept=".onnx,.json" required />
           </div>
-          <details>
-            <summary className="cursor-pointer text-sm">{t('mappingLabel')}</summary>
-            <div className="pt-2">
-              <FeaturePicker
-                features={features}
-                state={uploadMapping}
-                idPrefix="churn-upload"
-                onToggle={(name) =>
-                  setUploadMapping((state) => ({ ...state, [name]: !(state[name] ?? true) }))
-                }
-              />
-            </div>
-          </details>
+          <p className="text-muted-foreground text-xs">
+            {t('autoMappingHint', { count: features.length })}
+          </p>
           <div>
             <Button type="submit" disabled={uploading}>
               {t('upload')}
@@ -368,19 +320,9 @@ export function ChurnModelPanel({ canManage }: { canManage: boolean }) {
             />
             <p className="text-muted-foreground text-xs">{t('authHint')}</p>
           </div>
-          <details>
-            <summary className="cursor-pointer text-sm">{t('mappingLabel')}</summary>
-            <div className="pt-2">
-              <FeaturePicker
-                features={features}
-                state={endpointMapping}
-                idPrefix="churn-endpoint"
-                onToggle={(name) =>
-                  setEndpointMapping((state) => ({ ...state, [name]: !(state[name] ?? true) }))
-                }
-              />
-            </div>
-          </details>
+          <p className="text-muted-foreground text-xs">
+            {t('autoMappingHint', { count: features.length })}
+          </p>
           <div>
             <Button type="submit" disabled={registerHttp.isPending}>
               {t('register')}

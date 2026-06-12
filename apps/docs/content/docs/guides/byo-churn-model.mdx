@@ -24,8 +24,10 @@ Three ways to connect one:
 
 ## The feature contract
 
-Your model receives a matrix built from these columns, in the order you
-pick in the **feature mapping** (default: all ten, in this order):
+The mapping is **automatic**: your model always receives a matrix built
+from every contact feature Helio computes, in exactly this order — the
+same columns, in the same order, as the training-data export. Train on
+that export and your model plugs straight in, no configuration:
 
 | Column            | Meaning                                       |
 | ----------------- | --------------------------------------------- |
@@ -114,8 +116,9 @@ sample frame through it (uploads execute in a locked-down sandbox process
 with memory and CPU limits) and checks the output shape and range. The
 verdict lands on the model row in plain words — for example:
 
-- _the model expects 4 input features but the mapping provides 10_ — edit
-  the feature mapping to match what the model was trained on
+- _the model expects 4 input features but Helio provides 10_ — retrain
+  the model on the training-data export, which has every column Helio
+  sends, in order
 - _pickle files are not accepted…_ — export to ONNX (recipe above)
 - _the endpoint answered HTTP 401_ — fix the Authorization header
 - _the model file is missing — upload it again_ — the artifact volume was
