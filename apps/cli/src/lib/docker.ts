@@ -23,7 +23,7 @@ export function detectDocker(): DockerStatus {
   if (!dockerInstalled) {
     if (process.platform === 'win32') {
       hints.push(
-        'Install Docker Desktop (https://docs.docker.com/desktop/setup/install/windows-install/) — it needs the WSL 2 backend, which its installer sets up.',
+        'Install Docker Desktop (https://docs.docker.com/desktop/setup/install/windows-install/) — a normal, free app install; its installer sets up everything it needs (allow the one restart if it asks).',
       );
     } else if (process.platform === 'darwin') {
       hints.push(
