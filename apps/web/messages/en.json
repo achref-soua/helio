@@ -521,7 +521,24 @@
         "image": "Image",
         "divider": "Divider",
         "spacer": "Spacer"
-      }
+      },
+      "blockDescriptions": {
+        "heading": "A bold title line",
+        "paragraph": "Body text with personalization",
+        "button": "A call-to-action link",
+        "image": "A picture, uploaded or linked",
+        "divider": "A thin separating line",
+        "spacer": "Breathing room between blocks"
+      },
+      "uploadImage": "Upload from device",
+      "uploading": "Uploading…",
+      "uploadFailed": "The image could not be uploaded",
+      "imageWidth": "Width",
+      "imageAlign": "Alignment",
+      "alignLeft": "Align left",
+      "alignCenter": "Align center",
+      "alignRight": "Align right",
+      "imageRadius": "Corner rounding"
     }
   },
   "campaigns": {

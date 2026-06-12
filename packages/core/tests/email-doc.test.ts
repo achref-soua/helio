@@ -17,6 +17,19 @@ describe('emailDocumentSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('accepts image display options and rejects out-of-range values', () => {
+    const image = (extra: object) => ({
+      blocks: [{ id: 'b', type: 'image', url: 'https://cdn.example.com/x.png', alt: '', ...extra }],
+    });
+    expect(
+      emailDocumentSchema.safeParse(image({ width: 50, align: 'center', radius: 12 })).success,
+    ).toBe(true);
+    expect(emailDocumentSchema.safeParse(image({ width: 5 })).success).toBe(false);
+    expect(emailDocumentSchema.safeParse(image({ width: 101 })).success).toBe(false);
+    expect(emailDocumentSchema.safeParse(image({ align: 'top' })).success).toBe(false);
+    expect(emailDocumentSchema.safeParse(image({ radius: 40 })).success).toBe(false);
+  });
+
   it('rejects empty documents, bad urls, and unknown block types', () => {
     expect(emailDocumentSchema.safeParse({ blocks: [] }).success).toBe(false);
     expect(
