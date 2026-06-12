@@ -207,7 +207,7 @@ export function DealsView() {
     <div className="grid gap-4">
       <div className="flex items-center gap-2">
         <Handshake className="text-primary size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight">{t('title')}</h1>
         <div className="ml-auto flex gap-2">
           <Button asChild size="sm" variant="outline">
             <Link href="/deals/reports">{t('reports')}</Link>

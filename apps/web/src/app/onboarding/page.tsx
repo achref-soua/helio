@@ -58,7 +58,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main className="grid min-h-svh place-items-center p-6">
+    <main className="bg-radiant grid min-h-svh place-items-center p-6">
       <div className="grid w-full max-w-sm gap-6">
         <div className="flex items-center justify-center gap-2 text-lg font-semibold">
           <Sun className="text-primary size-6" aria-hidden />

@@ -161,7 +161,7 @@ export function TasksView() {
     <div className="grid gap-4">
       <div className="flex items-center gap-2">
         <ListTodo className="text-primary size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight">{t('title')}</h1>
         <div className="ml-auto">
           <Button size="sm" onClick={() => setCreateOpen(true)} data-testid="new-task">
             <Plus aria-hidden /> {t('newTask')}

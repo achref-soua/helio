@@ -79,7 +79,10 @@ export default async function PublicLandingPage({
                     {block.text}
                   </h1>
                 ) : (
-                  <h2 key={index} className="text-2xl font-semibold tracking-tight text-balance">
+                  <h2
+                    key={index}
+                    className="font-display text-3xl font-semibold tracking-tight text-balance"
+                  >
                     {block.text}
                   </h2>
                 );

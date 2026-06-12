@@ -140,7 +140,7 @@ export function SchedulingView() {
     <div className="grid max-w-3xl gap-6">
       <div className="flex items-center gap-2">
         <CalendarClock className="text-primary size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight">{t('title')}</h1>
       </div>
       <p className="text-muted-foreground -mt-4 text-sm">{t('subtitle')}</p>
 

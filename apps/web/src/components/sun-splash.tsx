@@ -117,7 +117,7 @@ export function SunSplash({ brand }: { brand?: BrandMark }) {
           </div>
         </div>
         <div className="splash-horizon h-px w-full" />
-        <p className="splash-name mt-6 text-2xl font-semibold tracking-tight text-amber-50">
+        <p className="splash-name mt-6 font-display text-3xl font-semibold tracking-tight text-amber-50">
           {brand?.name || t('name')}
         </p>
       </div>
