@@ -4,6 +4,7 @@ import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -20,11 +21,13 @@ import {
 import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
 import { ShieldCheck } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { renderSVG } from 'uqr';
 
+import { SessionsList } from '@/components/sessions-list';
 import { authClient, useSession } from '@/lib/auth-client';
 
 type EnrollStep =
@@ -38,11 +41,33 @@ type EnrollStep =
  * and 2FA only becomes active once the first code verifies, so a lost
  * QR can never lock the account.
  */
-export function SecurityPanel() {
+export function SecurityPanel({ autoEnroll = false }: { autoEnroll?: boolean }) {
   const t = useTranslations('twoFactor');
+  const router = useRouter();
   const { data: session, refetch } = useSession();
   const [state, setState] = useState<EnrollStep>({ step: 'closed' });
   const [pending, setPending] = useState(false);
+
+  // The require-2FA banner deep-links here with ?enroll2fa=1. The banner
+  // usually sits on /settings already, so the click is a same-route
+  // navigation that re-renders this mounted panel with a new prop — a
+  // mount-only state seed would miss it. Reacting to the false→true
+  // transition at render time opens the dialog on every click.
+  const [autoEnrollSeen, setAutoEnrollSeen] = useState(false);
+  if (autoEnroll && !autoEnrollSeen) {
+    setAutoEnrollSeen(true);
+    if (state.step === 'closed') setState({ step: 'password', mode: 'enable' });
+  }
+  if (!autoEnroll && autoEnrollSeen) {
+    setAutoEnrollSeen(false);
+  }
+
+  /** Ends the dialog flow; dropping ?enroll2fa=1 lets the banner button
+   *  produce a fresh transition next time (same-URL clicks are no-ops). */
+  function closeFlow() {
+    setState({ step: 'closed' });
+    if (autoEnroll) router.replace('/settings', { scroll: false });
+  }
 
   const enabled = Boolean(
     (session?.user as { twoFactorEnabled?: boolean | null } | undefined)?.twoFactorEnabled,
@@ -69,7 +94,7 @@ export function SecurityPanel() {
         return;
       }
       toast.success(t('disabled'));
-      setState({ step: 'closed' });
+      closeFlow();
       await refetch();
     }
   }
@@ -85,48 +110,48 @@ export function SecurityPanel() {
       return;
     }
     toast.success(t('enabled'));
-    setState({ step: 'closed' });
+    closeFlow();
     await refetch();
   }
 
   return (
     <Card data-testid="security-panel">
-      <CardHeader className="flex-row items-start justify-between gap-4">
-        <div className="grid gap-1.5">
-          <CardTitle className="flex items-center gap-2">
-            <ShieldCheck className="size-4" aria-hidden />
-            {t('title')}
-            {enabled && (
-              <Badge variant="secondary" data-testid="twofa-enabled-badge">
-                {t('enabledBadge')}
-              </Badge>
-            )}
-          </CardTitle>
-          <CardDescription>{t('subtitle')}</CardDescription>
-        </div>
-        {enabled ? (
-          <Button
-            variant="outline"
-            data-testid="twofa-disable"
-            onClick={() => setState({ step: 'password', mode: 'disable' })}
-          >
-            {t('disableAction')}
-          </Button>
-        ) : (
-          <Button
-            data-testid="twofa-enable"
-            onClick={() => setState({ step: 'password', mode: 'enable' })}
-          >
-            {t('enableAction')}
-          </Button>
-        )}
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ShieldCheck className="size-4" aria-hidden />
+          {t('title')}
+          {enabled && (
+            <Badge variant="secondary" data-testid="twofa-enabled-badge">
+              {t('enabledBadge')}
+            </Badge>
+          )}
+        </CardTitle>
+        <CardDescription>{t('subtitle')}</CardDescription>
+        <CardAction>
+          {enabled ? (
+            <Button
+              variant="outline"
+              data-testid="twofa-disable"
+              onClick={() => setState({ step: 'password', mode: 'disable' })}
+            >
+              {t('disableAction')}
+            </Button>
+          ) : (
+            <Button
+              data-testid="twofa-enable"
+              onClick={() => setState({ step: 'password', mode: 'enable' })}
+            >
+              {t('enableAction')}
+            </Button>
+          )}
+        </CardAction>
       </CardHeader>
-      <CardContent className="text-muted-foreground text-sm">{t('body')}</CardContent>
+      <CardContent className="grid gap-4">
+        <p className="text-muted-foreground text-sm">{t('body')}</p>
+        <SessionsList />
+      </CardContent>
 
-      <Dialog
-        open={state.step === 'password'}
-        onOpenChange={(open) => !open && setState({ step: 'closed' })}
-      >
+      <Dialog open={state.step === 'password'} onOpenChange={(open) => !open && closeFlow()}>
         <DialogContent>
           <form onSubmit={onPasswordSubmit} className="grid gap-4">
             <DialogHeader>
@@ -157,10 +182,7 @@ export function SecurityPanel() {
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={state.step === 'verify'}
-        onOpenChange={(open) => !open && setState({ step: 'closed' })}
-      >
+      <Dialog open={state.step === 'verify'} onOpenChange={(open) => !open && closeFlow()}>
         <DialogContent>
           <form onSubmit={onVerify} className="grid gap-4">
             <DialogHeader>

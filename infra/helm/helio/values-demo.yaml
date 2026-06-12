@@ -64,4 +64,4 @@ ingress:
 # an image that bundles @helio/db, e.g. by running `db:seed` as a one-off Job.
 migrations:
   enabled: true
-  image: ghcr.io/achref-soua/helio-web:0.8.0
+  image: ghcr.io/achref-soua/helio-web:1.0.0

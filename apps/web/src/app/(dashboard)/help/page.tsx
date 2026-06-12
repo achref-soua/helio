@@ -42,7 +42,7 @@ export default async function HelpPage() {
   return (
     <div className="mx-auto grid max-w-4xl gap-6" data-testid="usage-guide">
       <header className="grid gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('guide.title')}</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight">{t('guide.title')}</h1>
         <p className="text-muted-foreground text-sm">{t('guide.subtitle')}</p>
       </header>
 

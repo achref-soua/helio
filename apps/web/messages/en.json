@@ -1,7 +1,13 @@
 {
   "app": {
     "name": "Helio",
-    "tagline": "The open-source growth platform"
+    "tagline": "The open-source growth platform",
+    "versionBadge": "Helio {version}",
+    "splash": {
+      "starting": "Helio is starting",
+      "signingOut": "Signing you out"
+    },
+    "backToTop": "Back to top"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -21,7 +27,18 @@
     "widgets": "Widgets",
     "inApp": "In-app",
     "insights": "Insights",
-    "help": "Help"
+    "help": "Help",
+    "admin": "Admin",
+    "companies": "Companies",
+    "hideSidebar": "Hide the sidebar",
+    "showSidebar": "Show the sidebar",
+    "sections": {
+      "audience": "Audience",
+      "engage": "Engage",
+      "intelligence": "Intelligence",
+      "sales": "Sales",
+      "system": "System"
+    }
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -47,7 +64,18 @@
       "events": "All events",
       "opens": "Opens",
       "clicks": "Clicks"
-    }
+    },
+    "rangeLabel": "Time range",
+    "rangeDays": "{days, plural, one {Last # day} other {Last # days}}",
+    "pipelineTitle": "Sales pipeline",
+    "pipelineLink": "Open the deal board",
+    "pipelineOpenDeals": "Open deals",
+    "pipelineOpenValue": "Open value",
+    "pipelineWonValue": "Won",
+    "recentCampaignsTitle": "Recent campaigns",
+    "recentCampaignsLink": "All campaigns",
+    "recentCampaignsEmpty": "Nothing sent yet — your first campaign’s engagement lands here.",
+    "campaignNumbers": "{sends} sent · {opens} opens · {clicks} clicks"
   },
   "onboarding": {
     "title": "Create your organization",
@@ -70,21 +98,6 @@
     "returnHint": "Then open the invitation link from your email again.",
     "working": "Joining…",
     "genericError": "This invitation can't be accepted. It may have expired."
-  },
-  "billing": {
-    "title": "Billing",
-    "selfHosted": "Self-hosted — unlimited contacts, no metering.",
-    "priced": "${price}/month",
-    "contactsUsage": "Contacts",
-    "usageOf": "{count, number} / {limit, number}",
-    "usageUnlimited": "{count, number}",
-    "nearLimit": "You're close to your plan's contact limit. Upgrade to keep importing.",
-    "plans": {
-      "FREE": "Free",
-      "PRO": "Pro",
-      "SCALE": "Scale",
-      "UNLIMITED": "Unlimited"
-    }
   },
   "members": {
     "title": "Settings",
@@ -183,8 +196,12 @@
       "name": "Name",
       "key": "Key",
       "lastUsed": "Last used",
-      "actions": "Actions"
-    }
+      "actions": "Actions",
+      "scopes": "Scopes"
+    },
+    "scopesLabel": "Scopes",
+    "scopesHint": "Tick nothing for full access. Write includes read.",
+    "fullAccess": "full access"
   },
   "userMenu": {
     "open": "Open user menu",
@@ -209,7 +226,47 @@
     "ssoAction": "Sign in with SSO",
     "ssoEmailRequired": "Enter your work email to continue with single sign-on.",
     "ssoNoProvider": "No single sign-on is configured for that email domain.",
-    "genericError": "Something went wrong. Please try again."
+    "genericError": "Something went wrong. Please try again.",
+    "inviteOnlyTitle": "Invite-only",
+    "inviteOnlyBody": "This Helio does not accept public signups. Ask an admin to invite you — invitations arrive by email.",
+    "backToLogin": "Back to login",
+    "forgotAction": "Forgot password?",
+    "forgot": {
+      "title": "Reset your password",
+      "subtitle": "We will email you a reset link.",
+      "email": "Email",
+      "send": "Send reset link",
+      "working": "Sending…",
+      "sent": "If that address has an account, a reset link is on its way. Check your inbox."
+    },
+    "reset": {
+      "title": "Choose a new password",
+      "subtitle": "You followed a reset link — set the new password here.",
+      "newPassword": "New password",
+      "save": "Set new password",
+      "working": "Saving…",
+      "done": "Password updated — log in with the new one.",
+      "failed": "That link is invalid or expired — request a new one.",
+      "missingToken": "This page needs a reset link from your email."
+    },
+    "change": {
+      "title": "Update your password",
+      "subtitle": "Your organization requires a fresh password. Other sessions sign out when you change it.",
+      "current": "Current password",
+      "new": "New password",
+      "save": "Update password",
+      "working": "Saving…",
+      "done": "Password updated.",
+      "failed": "The current password did not match.",
+      "signOutInstead": "Sign out instead"
+    },
+    "strength": {
+      "score0": "Far too weak — keep typing.",
+      "score1": "Weak — easy to guess.",
+      "score2": "Okay — could be stronger.",
+      "score3": "Good password.",
+      "score4": "Excellent password."
+    }
   },
   "errors": {
     "title": "Something went wrong",
@@ -286,7 +343,44 @@
       "working": "Importing…",
       "parseError": "Could not parse that file as CSV.",
       "resultToast": "Imported {created} contacts ({skipped} already existed)",
-      "genericError": "Import failed. Please try again."
+      "genericError": "Import failed. Please try again.",
+      "mapSubtitle": "Tell Helio what each column means — the suggestions come from the file itself.",
+      "previewSubtitle": "A last look before anything is written.",
+      "runSubtitle": "Importing in the background — progress updates live.",
+      "emptyFile": "That file has no rows.",
+      "truncated": "Large file — the first {max} rows will be imported.",
+      "column": "Column",
+      "example": "Example",
+      "importsAs": "Imports as",
+      "mappingFor": "Mapping for {column}",
+      "targets": {
+        "email": "Email",
+        "firstName": "First name",
+        "lastName": "Last name",
+        "status": "Subscription status",
+        "company": "Company",
+        "attribute": "Keep as trait",
+        "skip": "Skip column"
+      },
+      "needEmail": "Map one column to Email to continue.",
+      "companies": "{count} companies will be matched or created.",
+      "emailCol": "Email",
+      "nameCol": "Name",
+      "companyCol": "Company",
+      "updateExisting": "Update contacts that already exist (unsubscribes always stick)",
+      "next": "Continue",
+      "backToMapping": "Back",
+      "running": "Importing…",
+      "counts": "{created} created · {updated} updated · {skipped} skipped",
+      "doneTitle": "Import finished.",
+      "downloadErrors": "Download {count} rejected rows (CSV)",
+      "close": "Done",
+      "connectorTitle": "Or pull straight from a platform",
+      "connectorEmpty": "Connect HubSpot, Mailchimp, or Klaviyo under Settings → Provider credentials first — then your contacts import with one click here.",
+      "connectorLabel": "Import connection",
+      "connectorPlaceholder": "Choose a connection…",
+      "connectorStart": "Pull contacts",
+      "connectorPulling": "Pulling…"
     },
     "scoring": {
       "title": "Scoring rules",
@@ -439,7 +533,24 @@
         "image": "Image",
         "divider": "Divider",
         "spacer": "Spacer"
-      }
+      },
+      "blockDescriptions": {
+        "heading": "A bold title line",
+        "paragraph": "Body text with personalization",
+        "button": "A call-to-action link",
+        "image": "A picture, uploaded or linked",
+        "divider": "A thin separating line",
+        "spacer": "Breathing room between blocks"
+      },
+      "uploadImage": "Upload from device",
+      "uploading": "Uploading…",
+      "uploadFailed": "The image could not be uploaded",
+      "imageWidth": "Width",
+      "imageAlign": "Alignment",
+      "alignLeft": "Align left",
+      "alignCenter": "Align center",
+      "alignRight": "Align right",
+      "imageRadius": "Corner rounding"
     }
   },
   "campaigns": {
@@ -480,7 +591,8 @@
     "abBadge": "A/B",
     "autoWinnerBadge": "Auto-winner",
     "winnerBadge": "Winner: {variant}",
-    "variantSplit": "A {a} vs B {b} opens"
+    "variantSplit": "A {a} vs B {b} opens",
+    "preview": "Email preview"
   },
   "unsubscribe": {
     "title": "Unsubscribe from marketing email",
@@ -510,7 +622,27 @@
     "moveTo": "Move {title} to another stage",
     "deleteDeal": "Delete {title}",
     "cancel": "Cancel",
-    "genericError": "Something went wrong. Please try again."
+    "genericError": "Something went wrong. Please try again.",
+    "reports": "Reports",
+    "selectDeal": "Select {title}",
+    "bulkSelected": "{count} selected",
+    "bulkStageLabel": "Move selected to stage",
+    "bulkStagePlaceholder": "Choose stage…",
+    "bulkMove": "Move",
+    "bulkClear": "Clear",
+    "bulkMoved": "Moved {count} deals",
+    "viewLabel": "View",
+    "viewBoard": "Board view",
+    "viewTable": "Table view",
+    "tableEmpty": "No deals yet — create one to fill the table.",
+    "tableSummary": "{count, plural, one {# deal} other {# deals}} · {total} open",
+    "columns": {
+      "deal": "Deal",
+      "stage": "Stage",
+      "value": "Value",
+      "contact": "Contact",
+      "status": "Status"
+    }
   },
   "journeys": {
     "title": "Journeys",
@@ -633,7 +765,9 @@
     "copyLink": "Copy link for {name}",
     "deleteAction": "Delete {name}",
     "emptyTitle": "No forms yet",
-    "emptyBody": "Host a signup page and grow your audience."
+    "emptyBody": "Host a signup page and grow your audience.",
+    "preview": "Preview",
+    "hidePreview": "Hide preview"
   },
   "hostedForm": {
     "subtitle": "Sign up to hear from us.",
@@ -647,7 +781,6 @@
   },
   "copilot": {
     "title": "AI Copilot",
-    "beta": "Beta",
     "subtitle": "Ask about your audience, or describe a segment, journey, or email and let AI draft it.",
     "chatTitle": "Ask the copilot",
     "chatSubtitle": "Grounded in this workspace's data — it only sees your organization.",
@@ -673,7 +806,19 @@
     "emailPlaceholder": "e.g. win back trial users whose trial ends this week",
     "emailBlocks": "{count, plural, one {# block} other {# blocks}}",
     "createEmail": "Save as template",
-    "emailCreated": "Email template created"
+    "emailCreated": "Email template created",
+    "providerOrganization": "Your AI: {provider} · {model}",
+    "providerDeployment": "Deployment AI: {provider} · {model}",
+    "draftNameLabel": "Draft name",
+    "providerNotConfigured": "No AI connected yet",
+    "providerConnectCta": "Connect a provider in Settings",
+    "suggestionsLabel": "Try asking",
+    "suggestions": {
+      "contacts": "How many contacts joined this month?",
+      "journeys": "Which journeys are active right now?",
+      "engagement": "Which campaign got the most opens this week?"
+    },
+    "emailPreviewTitle": "Email preview"
   },
   "tasks": {
     "title": "Tasks",
@@ -712,7 +857,11 @@
       "LOW": "Low",
       "MEDIUM": "Medium",
       "HIGH": "High"
-    }
+    },
+    "editTask": "Edit {title}",
+    "editTaskTitle": "Edit task",
+    "taskUpdated": "Task updated",
+    "saveTask": "Save changes"
   },
   "webhooks": {
     "title": "Webhooks",
@@ -757,7 +906,9 @@
     "save": "Save branding",
     "saving": "Saving…",
     "saved": "Branding updated",
-    "genericError": "Something went wrong. Please try again."
+    "genericError": "Something went wrong. Please try again.",
+    "uploadLogo": "Upload from device",
+    "uploading": "Uploading…"
   },
   "scheduling": {
     "title": "Scheduling",
@@ -918,7 +1069,8 @@
     "status": {
       "PENDING": "Pending",
       "VERIFIED": "Verified"
-    }
+    },
+    "spfSuggested": "Suggested from your \"{name}\" email credential."
   },
   "landing": {
     "title": "Landing pages",
@@ -948,7 +1100,9 @@
       "image": "Image",
       "button": "Button",
       "form": "Form"
-    }
+    },
+    "preview": "Live preview",
+    "previewFormCta": "Subscribe"
   },
   "hostedLanding": {
     "notFound": "This page does not exist or is not published.",
@@ -983,7 +1137,10 @@
     "types": {
       "BANNER": "Banner",
       "POPUP": "Popup"
-    }
+    },
+    "preview": "Live preview",
+    "previewTitleFallback": "Your headline",
+    "previewBodyFallback": "Your message appears here as visitors will see it."
   },
   "inApp": {
     "title": "In-app messages",
@@ -1007,7 +1164,10 @@
       "body": "Body",
       "ctaLabel": "Button label",
       "ctaUrl": "Button URL"
-    }
+    },
+    "preview": "Live preview",
+    "previewTitleFallback": "Your headline",
+    "previewBodyFallback": "Your message appears here as users will see it."
   },
   "insights": {
     "title": "Insights",
@@ -1154,6 +1314,409 @@
           "cta": "Open settings"
         }
       }
+    },
+    "installApp": "Install the app",
+    "install": {
+      "title": "Install Helio as an app",
+      "subtitle": "Its own window, its own icon — no browser chrome.",
+      "chrome": "Chrome / Edge: the install icon at the right of the address bar, or menu → Cast, save and share → Install page as app.",
+      "safari": "Safari (Mac): File → Add to Dock. iPhone/iPad: Share → Add to Home Screen.",
+      "android": "Android Chrome: menu → Add to home screen.",
+      "installNow": "Install now"
     }
+  },
+  "about": {
+    "title": "About",
+    "subtitle": "Version, license, and project links for this Helio deployment.",
+    "version": "Version",
+    "devBuild": "dev build",
+    "license": "License",
+    "updateAvailable": "Update available: {version} — view the release notes",
+    "upToDate": "You're on the latest release.",
+    "repo": "GitHub repository",
+    "releases": "Releases & changelog",
+    "docs": "Documentation"
+  },
+  "credentials": {
+    "title": "Provider credentials",
+    "subtitle": "Connect the services Helio sends through. Secrets are encrypted at rest and shown masked — they never leave the server.",
+    "channels": {
+      "email": "Email sending",
+      "sms": "SMS",
+      "whatsapp": "WhatsApp",
+      "ai": "AI copilot",
+      "model": "Churn model",
+      "import": "Migration imports"
+    },
+    "add": "Add…",
+    "addFor": "Add a {channel} credential",
+    "addTitle": "Connect a provider",
+    "addSubtitle": "Enter your {kind} details. Secrets are sealed with AES-256-GCM before they reach the database.",
+    "editTitle": "Edit {name}",
+    "emptyChannel": "Nothing connected yet.",
+    "name": "Name",
+    "namePlaceholder": "e.g. Production",
+    "secretKeep": "Stored ({mask}) — leave blank to keep",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "verify": "Verify",
+    "verified": "Credentials verified",
+    "verifyFailed": "Verification failed",
+    "saved": "Credential saved",
+    "deleted": "Credential removed",
+    "deleteAria": "Delete {name}",
+    "confirmDelete": "Remove \"{name}\"? Sends that depend on it will fall back to the deployment defaults.",
+    "status": {
+      "UNVERIFIED": "Unverified",
+      "VERIFIED": "Verified",
+      "FAILED": "Failed"
+    },
+    "encryptionMissing": "HELIO_ENCRYPTION_KEY is not set on this deployment, so credentials cannot be stored. Add it to your environment and restart.",
+    "genericError": "Something went wrong",
+    "testSend": "Send test",
+    "testSent": "Test email sent to {to}",
+    "emailFallbackNotice": "No provider connected — mail uses the deployment fallback SMTP. In local setups that is Mailpit, a test inbox: nothing reaches real recipients until you connect a provider here."
+  },
+  "analyticsSettings": {
+    "title": "Workspace analytics",
+    "subtitle": "Which event names count as a conversion for predictive scoring in the active workspace. Leave empty to use the deployment default.",
+    "label": "Conversion events (comma-separated)",
+    "placeholder": "Order Completed, Signed Up",
+    "save": "Save",
+    "saved": "Conversion events saved",
+    "genericError": "Something went wrong"
+  },
+  "backups": {
+    "title": "Backups",
+    "subtitle": "Nightly local database backups, taken by the bundled backup service. Restore from the command line with the helio restore command.",
+    "runNow": "Back up now",
+    "queued": "Backup queued — it appears below within ~20 seconds",
+    "stale": "No successful backup in the last 36 hours — check helio logs backup.",
+    "empty": "No backups yet. The nightly run is scheduled; you can also back up now.",
+    "when": "When",
+    "label": "Label",
+    "size": "Size",
+    "status": "Status",
+    "encrypted": "encrypted",
+    "download": "Download",
+    "downloadAria": "Download {file}",
+    "restoreHint": "Keep a copy of your .env with these files — restoring on a new machine needs the same encryption key.",
+    "genericError": "Something went wrong",
+    "inProgress": "Backing up…",
+    "pendingHint": "The backup service picks this up within ~15 seconds; the run appears below as soon as it starts."
+  },
+  "churnModel": {
+    "title": "Churn prediction model",
+    "subtitle": "Bring your own churn model: upload an ONNX or XGBoost file, or point Helio at a model server. The active model scores every contact on the next recompute, and Helio falls back to its built-in model if yours ever fails.",
+    "status": {
+      "ACTIVE": "Active",
+      "DISABLED": "Ready",
+      "VALIDATING": "Validating",
+      "FAILED": "Failed"
+    },
+    "featuresShort": "features",
+    "uploadTitle": "Upload a model file",
+    "uploadHint": "ONNX (.onnx) or XGBoost JSON (.json), up to 50 MiB. Pickle files are not accepted — export scikit-learn models with skl2onnx.",
+    "endpointTitle": "Or connect a model server",
+    "endpointHint": "Helio POSTs JSON with feature_names and inputs (rows of numbers) and expects predictions back — one probability per row. See the docs for the exact contract.",
+    "nameLabel": "Model name",
+    "fileLabel": "Model file",
+    "urlLabel": "Endpoint URL",
+    "authLabel": "Authorization header (optional)",
+    "authHint": "Stored encrypted in the credential vault; sent as the Authorization header on every call.",
+    "upload": "Upload & validate",
+    "register": "Connect & validate",
+    "activate": "Activate",
+    "disable": "Deactivate",
+    "revalidate": "Re-validate",
+    "delete": "Delete",
+    "validated": "Model validated — it is ready to activate.",
+    "validationFailed": "Validation failed",
+    "exportHint": "Download this workspace’s training data (features + churn label) as CSV.",
+    "export": "Training CSV",
+    "genericError": "Something went wrong — try again.",
+    "autoMappingHint": "Helio maps all {count} computed contact features to your model automatically, in the training-data export’s column order — train on that export and it plugs straight in."
+  },
+  "admin": {
+    "title": "Admin",
+    "subtitle": "Audit trail, reports, and system health for this organization.",
+    "nav": {
+      "audit": "Audit log",
+      "reports": "Reports",
+      "health": "System health",
+      "database": "Database"
+    },
+    "audit": {
+      "actionFilter": "Action starts with",
+      "actorFilter": "Actor (name or email)",
+      "from": "From",
+      "to": "To",
+      "apply": "Apply filters",
+      "export": "Export CSV",
+      "exportFailed": "Export failed — try again.",
+      "truncated": "Export capped at 1,000 rows — narrow the filters for the rest.",
+      "time": "Time",
+      "actor": "Actor",
+      "action": "Action",
+      "target": "Target",
+      "system": "system",
+      "empty": "No audit entries match these filters yet.",
+      "loadMore": "Load more"
+    },
+    "reports": {
+      "period": "Period",
+      "days": "{days} days",
+      "sends": "Messages sent",
+      "sendsHint": "Email and in-app deliveries per day, across the organization.",
+      "growth": "Contact growth",
+      "growthHint": "New contacts per day.",
+      "campaigns": "Top campaigns",
+      "campaignsHint": "By emails sent, with opens and clicks from the analytics store.",
+      "engagementDown": "Opens and clicks need the analytics store (ClickHouse), which is not reachable right now — send counts remain accurate.",
+      "campaign": "Campaign",
+      "sendsCol": "Sends",
+      "opens": "Opens",
+      "clicks": "Clicks",
+      "journeys": "Journey outcomes",
+      "journeysHint": "Enrollments by status, all time.",
+      "journey": "Journey",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "members": "Member activity",
+      "membersHint": "Audited actions per member, last 30 days.",
+      "member": "Member",
+      "actions": "Actions",
+      "csv": "CSV",
+      "empty": "Nothing here yet."
+    },
+    "health": {
+      "services": "Services",
+      "servicesHint": "Every Helio service, with the version it reports.",
+      "stores": "Stores & checks",
+      "storesHint": "Data stores by reachability, plus the operational pulse.",
+      "up": "Up",
+      "down": "Down",
+      "off": "Off",
+      "lastBackup": "Last successful backup",
+      "never": "never",
+      "hoursAgo": "{hours}h ago",
+      "failedCredentials": "Failed credentials",
+      "failedModels": "Failed churn models",
+      "alerts": "System alerts",
+      "alertsHint": "Raised by send, backup, and model failures. One unread alert per cause.",
+      "when": "When",
+      "kind": "Kind",
+      "message": "Message",
+      "markRead": "Mark read",
+      "markAllRead": "Mark all read",
+      "noAlerts": "No alerts — quiet skies."
+    },
+    "bell": {
+      "open": "Open system alerts ({count} unread)",
+      "title": "System alerts",
+      "empty": "No alerts.",
+      "markAllRead": "Mark all read"
+    },
+    "database": {
+      "table": "Table",
+      "search": "Search",
+      "apply": "Apply",
+      "newRow": "New row",
+      "empty": "No rows here yet.",
+      "editRow": "Edit row {id}",
+      "deleteRow": "Delete row {id}",
+      "editTitle": "Edit row",
+      "editSubtitle": "Validated server-side; every change lands in the audit log.",
+      "badJson": "{field} is not valid JSON",
+      "save": "Save changes",
+      "saved": "Row saved",
+      "deleteTitle": "Delete this row?",
+      "deleteSubtitle": "Row {id} will be permanently deleted (owners only). Related data may cascade.",
+      "deletePrompt": "Type “I understand” to enable deletion",
+      "deleteConfirm": "Delete row",
+      "deleted": "Row deleted",
+      "genericError": "Something went wrong — try again.",
+      "chartTitle": "{table} at a glance",
+      "chartField": "Group by",
+      "chartCount": "Rows",
+      "chartEmpty": "No rows to chart yet.",
+      "deletePassword": "Your password",
+      "deleteTotp": "Authenticator code"
+    }
+  },
+  "contactDetail": {
+    "loading": "Loading contact…",
+    "notFound": "This contact does not exist (or belongs to another workspace).",
+    "back": "Back to contacts",
+    "edit": "Edit",
+    "scores": "Scores & predictions",
+    "leadScore": "Lead score",
+    "conversion": "Conversion likelihood",
+    "churn": "Churn risk",
+    "bestHour": "Best send hour",
+    "traits": "Traits",
+    "noTraits": "No traits yet — they arrive with identify calls and imports.",
+    "lists": "Lists",
+    "noLists": "Not on any list.",
+    "notes": "Notes",
+    "notesHint": "Pinned notes stay on top. Visible to your whole team.",
+    "noteLabel": "New note",
+    "addNote": "Add note",
+    "pin": "Pin note",
+    "unpin": "Unpin note",
+    "deleteNote": "Delete note",
+    "deals": "Deals",
+    "noDeals": "No deals yet.",
+    "tasks": "Tasks",
+    "noTasks": "No tasks yet.",
+    "timeline": "Activity timeline",
+    "timelineHint": "Emails, behavioral events, and changes — newest first.",
+    "timelineDegraded": "Emails and changes shown; behavioral events need the analytics store (ClickHouse), which is not reachable right now.",
+    "noActivity": "No activity recorded yet.",
+    "type": {
+      "email": "Email",
+      "event": "Event",
+      "audit": "Change"
+    },
+    "genericError": "Something went wrong — try again.",
+    "companyLabel": "Company",
+    "noCompany": "No company"
+  },
+  "dealDetail": {
+    "loading": "Loading deal…",
+    "notFound": "This deal does not exist (or belongs to another workspace).",
+    "back": "Back to deals",
+    "status": {
+      "OPEN": "Open",
+      "WON": "Won",
+      "LOST": "Lost"
+    },
+    "markWon": "Mark won",
+    "markLost": "Mark lost",
+    "reopen": "Reopen",
+    "details": "Details",
+    "stage": "Stage",
+    "owner": "Owner",
+    "unassigned": "Unassigned",
+    "closedAt": "Closed",
+    "linked": "Linked records",
+    "contact": "Contact",
+    "company": "Company",
+    "tasks": "Tasks",
+    "noTasks": "No tasks yet.",
+    "notes": "Notes",
+    "notesHint": "Pinned notes stay on top. Visible to your whole team.",
+    "noteLabel": "New note",
+    "addNote": "Add note",
+    "pin": "Pin note",
+    "unpin": "Unpin note",
+    "deleteNote": "Delete note",
+    "history": "History",
+    "historyHint": "Every recorded change to this deal, newest first.",
+    "noHistory": "No history yet.",
+    "reasonLabel": "Reason (optional — kept in the history)",
+    "confirmClose": "Confirm",
+    "genericError": "Something went wrong — try again.",
+    "noCompany": "No company"
+  },
+  "companies": {
+    "title": "Companies",
+    "subtitle": "B2B accounts — attach contacts and deals from their detail pages.",
+    "searchLabel": "Search companies",
+    "searchPlaceholder": "Search…",
+    "add": "Add company",
+    "addTitle": "Add a company",
+    "editTitle": "Edit company",
+    "name": "Name",
+    "domain": "Domain",
+    "industry": "Industry",
+    "website": "Website",
+    "contacts": "Contacts",
+    "deals": "Deals",
+    "edit": "Edit {name}",
+    "delete": "Delete {name}",
+    "create": "Create company",
+    "save": "Save changes",
+    "saved": "Company saved",
+    "empty": "No companies yet — add the first one.",
+    "genericError": "Something went wrong — try again."
+  },
+  "salesReports": {
+    "title": "Sales reports",
+    "subtitle": "Pipeline, win rate, cycle time, and the leaderboard — for the active workspace.",
+    "back": "Back to deals",
+    "winRate": "Win rate",
+    "avgCycle": "Average cycle",
+    "days": "{days} days",
+    "forecast": "Forecast",
+    "forecastHint": "Open pipeline × win rate to date — a simple, honest estimate.",
+    "byStage": "Open pipeline by stage",
+    "byStageHint": "Open deals only; closed deals leave the pipeline.",
+    "stage": "Stage",
+    "deals": "Deals",
+    "value": "Value",
+    "leaderboard": "Owner leaderboard",
+    "leaderboardHint": "Won value per member.",
+    "owner": "Owner",
+    "won": "Won",
+    "unassigned": "Unassigned",
+    "empty": "No open deals yet.",
+    "noWins": "No wins yet — they will land here."
+  },
+  "setup": {
+    "title": "Welcome to Helio",
+    "subtitle": "One minute of setup: you, your organization, and you are in.",
+    "name": "Your name",
+    "email": "Email",
+    "emailHint": "Verified automatically on first-run — no mail provider exists yet.",
+    "password": "Password",
+    "passwordHint": "At least 10 characters.",
+    "organization": "Organization name",
+    "start": "Create & enter Helio",
+    "working": "Setting up…",
+    "afterNote": "Email sending, your AI key, branding, and demo data all live in Settings — the dashboard will point you there.",
+    "signInFailed": "Setup succeeded but sign-in failed — use the login page.",
+    "genericError": "Something went wrong — try again.",
+    "seedDemo": "Start with sample data to explore (you can delete it any time)"
+  },
+  "checklist": {
+    "title": "Get Helio ready",
+    "dismiss": "Dismiss checklist",
+    "email": "Connect your email sending",
+    "contacts": "Import or add contacts",
+    "team": "Invite a teammate",
+    "launch": "Create your first campaign or journey"
+  },
+  "sessions": {
+    "title": "Active sessions",
+    "revoke": "Sign out",
+    "revokeOthers": "Sign out everywhere else",
+    "revoked": "Session signed out",
+    "revokedOthers": "All other sessions signed out",
+    "failed": "Could not revoke — try again.",
+    "unknownDevice": "Unknown device",
+    "thisDevice": "this device"
+  },
+  "passwordPolicy": {
+    "title": "Password policy",
+    "subtitle": "Require members to rotate their passwords on a schedule.",
+    "enable": "Require a password change every…",
+    "days": "Days",
+    "save": "Save",
+    "saved": "Policy saved",
+    "badDays": "Days must be between 7 and 365.",
+    "note": "Members past the deadline are routed to a password change at sign-in. SSO-only members are unaffected — they have no Helio password.",
+    "genericError": "Something went wrong — try again.",
+    "require2fa": "Require two-factor authentication for every member",
+    "require2faNote": "Members without 2FA are taken to Security settings until they enroll. Any RFC-6238 authenticator app works."
+  },
+  "security": {
+    "body": "Two-factor codes work with any authenticator app — Google Authenticator, Authy, 1Password, Microsoft Authenticator, or any other RFC-6238 TOTP app. Scan the QR code once; backup codes cover a lost phone."
+  },
+  "require2fa": {
+    "banner": "Your organization requires two-factor authentication. Enable it below (any authenticator app works) to continue.",
+    "enrollCta": "Enable two-factor now"
   }
 }

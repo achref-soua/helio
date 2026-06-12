@@ -28,6 +28,15 @@ import {
  * (OUT_FILE to override).
  */
 const rootEnv = path.resolve(import.meta.dirname, '../../../.env');
+// The guide always states the version it documents — read from the root
+// package.json (kept current by release tooling) instead of hardcoding.
+const VERSION = `v${
+  (
+    JSON.parse(
+      readFileSync(path.resolve(import.meta.dirname, '../../../package.json'), 'utf8'),
+    ) as { version: string }
+  ).version
+}`;
 if (existsSync(rootEnv)) loadEnvFile(rootEnv);
 
 const OUT_FILE =
@@ -107,6 +116,84 @@ async function captureShots(page: Page, showroom: Showroom): Promise<void> {
   await page.goto(`${BASE_URL}/help`);
   await page.getByTestId('usage-guide').waitFor();
   await capture(page, 'help');
+
+  // ── v2 screens ──────────────────────────────────────────────────────────
+
+  // Settings: store + verify a real SMTP credential (against the local
+  // Mailpit) so the vault section shows a masked, verified provider.
+  await page.goto(`${BASE_URL}/settings`);
+  const credentials = page.getByTestId('credentials-panel');
+  await credentials.getByText('Provider credentials').waitFor();
+  await credentials.getByLabel('Add a Email sending credential').click();
+  await page.getByRole('option', { name: 'SMTP', exact: true }).click();
+  const smtpDialog = page.getByRole('dialog');
+  await smtpDialog.getByLabel('Name', { exact: true }).fill('Acme SMTP');
+  await smtpDialog.getByLabel('Host', { exact: true }).fill('localhost');
+  await smtpDialog.getByLabel('Port', { exact: true }).fill(process.env.SMTP_PORT ?? '1025');
+  await smtpDialog.getByLabel('From email').fill('hello@acme.example');
+  await smtpDialog.getByLabel('SMTP password').fill('a-sealed-example-secret');
+  await smtpDialog.getByRole('button', { name: 'Save', exact: true }).click();
+  const credentialRow = credentials.locator('li', { hasText: 'Acme SMTP' });
+  await credentialRow.getByRole('button', { name: 'Verify' }).click();
+  await credentialRow.getByText('Verified', { exact: true }).waitFor();
+  // Let the verify toast dismiss so the capture is clean.
+  await page.locator('[data-sonner-toast]').first().waitFor({ state: 'detached', timeout: 10_000 });
+  // The vault card sits mid-page, so a viewport shot would clip it —
+  // capture the panel itself, like a manual documenting one control.
+  // Back off the sticky topbar so its blur never overlaps the card.
+  await credentials.evaluate((element) => {
+    element.scrollIntoView({ block: 'start' });
+    window.scrollBy(0, -88);
+  });
+  await page.waitForTimeout(900);
+  await credentials.screenshot({ path: path.join(SHOT_DIR, 'settings.png') });
+  console.log('captured settings');
+
+  await page.goto(`${BASE_URL}/admin/audit`);
+  await page.getByTestId('audit-view').waitFor();
+  await page.waitForTimeout(600);
+  await capture(page, 'admin-audit');
+
+  await page.goto(`${BASE_URL}/admin/health`);
+  await page.getByTestId('health-view').waitFor();
+  await page.waitForTimeout(800);
+  await capture(page, 'admin-health');
+
+  await page.goto(`${BASE_URL}/admin/database`);
+  await page.getByTestId('database-studio').waitFor();
+  await page.getByTestId('studio-row').first().waitFor();
+  await capture(page, 'database-studio');
+
+  await page.goto(`${BASE_URL}/companies`);
+  await page.getByTestId('companies-view').waitFor();
+  await capture(page, 'companies');
+
+  // A contact's detail page — first row of the table.
+  await page.goto(`${BASE_URL}/contacts`);
+  await page.getByRole('cell', { name: 'ada@example.com' }).waitFor();
+  await page.getByRole('link', { name: 'ada@example.com' }).click();
+  await page.getByTestId('contact-detail').waitFor();
+  await page.waitForTimeout(600);
+  await capture(page, 'contact-detail');
+
+  await page.goto(`${BASE_URL}/deals/reports`);
+  await page.getByTestId('sales-reports').waitFor();
+  await page.waitForTimeout(600);
+  await capture(page, 'sales-reports');
+
+  // The import wizard's mapping step, on a tiny in-memory CSV.
+  await page.goto(`${BASE_URL}/contacts`);
+  await page.getByRole('button', { name: 'Import CSV' }).click();
+  await page.getByLabel('CSV file').setInputFiles({
+    name: 'leads.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(
+      'Email,First Name,Company,Status\njordan@northwind.io,Jordan,Northwind,subscribed\n',
+    ),
+  });
+  await page.getByTestId('import-mapping').waitFor();
+  await capture(page, 'import-wizard');
+  await page.keyboard.press('Escape');
 }
 
 function img(name: string): string {
@@ -121,8 +208,8 @@ const SUN = (size: number, stroke = ACCENT) =>
   'stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/>' +
   '<path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
 
-function shotFigure(name: string, captionText: string): string {
-  return `<figure class="shot"><img src="${img(name)}" alt="" /><figcaption>${captionText}</figcaption></figure>`;
+function shotFigure(name: string, captionText: string, panel = false): string {
+  return `<figure class="shot${panel ? ' panel' : ''}"><img src="${img(name)}" alt="" /><figcaption>${captionText}</figcaption></figure>`;
 }
 
 function buildHtml(): string {
@@ -168,6 +255,9 @@ function buildHtml(): string {
   .flow .pagebreak { break-before: page; }
   .shot img { width: 100%; border: 1px solid #e7e0d4; border-radius: 10px;
               box-shadow: 0 2px 10px rgba(28,25,23,.07); }
+  /* Tall panel crops (a single settings card) stay reading-size. */
+  .shot.panel img { width: auto; max-width: 76%; max-height: 470px;
+                    display: block; margin: 0 auto; }
   /* In the picture tour, cap height so two blocks pack per page. */
   .flow .shot img { width: auto; max-width: 100%; max-height: 360px;
                     display: block; margin: 0 auto; }
@@ -201,7 +291,7 @@ function buildHtml(): string {
   <div class="tagline">The open-source growth platform — unify customer data, segment anyone,
   orchestrate journeys across every channel, and let AI do the heavy lifting.
   Self-hosted, on your own servers.</div>
-  <div class="meta">Product guide<span class="sep">•</span>v1.0.0<span class="sep">•</span>${date}</div>
+  <div class="meta">Product guide<span class="sep">•</span>${VERSION}<span class="sep">•</span>${date}</div>
   <div class="foot">Achref Soua · ${REPO.replace('https://', '')}</div>
 </div></div>
 
@@ -216,13 +306,15 @@ function buildHtml(): string {
     <div><b>01</b> Why Helio exists</div>
     <div><b>02</b> What Helio is — for every seat in the room</div>
     <div><b>03</b> The product, in pictures</div>
-    <div><b>04</b> Install it: one command to a full stack</div>
+    <div><b>04</b> Install it: one command, on anything</div>
     <div><b>05</b> Set up your organization, step by step</div>
     <div><b>06</b> Migrating from HubSpot, Mailchimp, or Klaviyo</div>
-    <div><b>07</b> The usage guide — how do I…?</div>
-    <div><b>08</b> Under the hood (kept light)</div>
-    <div><b>09</b> Contributing</div>
-    <div><b>10</b> Questions &amp; contact</div>
+    <div><b>07</b> A CRM that closes the loop</div>
+    <div><b>08</b> Admin: audit, reports, health, Database Studio</div>
+    <div><b>09</b> Your AI key, your churn model</div>
+    <div><b>10</b> The usage guide — how do I…?</div>
+    <div><b>11</b> Under the hood (kept light)</div>
+    <div><b>12</b> Contributing, questions &amp; contact</div>
   </div>
 </div>
 
@@ -350,7 +442,7 @@ function buildHtml(): string {
     <p>A lightweight CRM tracks deals through stages with tasks grouped by due date, and a
     booking page turns meetings into contacts automatically — double-booking is structurally
     impossible. Settings round it out: team roles, two-factor auth, SSO/SCIM, scoped API keys,
-    outbound webhooks, white-labeling, sending-domain authentication, billing, and a built-in
+    outbound webhooks, white-labeling, sending-domain authentication, and a built-in
     support inbox.</p>
     ${shotFigure('deals', 'CRM-lite: deals through pipeline stages, keyboard-accessible.')}
   </div>
@@ -367,11 +459,20 @@ function buildHtml(): string {
   <p class="lead">Helio ships as a Docker Compose stack with two profiles: <b>core</b> (app,
   PostgreSQL, Redis, Mailpit) for a quick start, and <b>full</b> (adds ClickHouse analytics,
   Redpanda event bus, Temporal workflows, MinIO storage) for everything in this guide.</p>
-  <pre>git clone ${REPO.replace('https://', 'https://')}.git
-cd helio
-cp .env.example .env        <span class="c"># every variable is documented inline</span>
-task up                     <span class="c"># or: docker compose --profile full up -d</span>
-<span class="c"># open http://localhost:3000 — a seeded demo workspace is ready to explore</span></pre>
+  <pre><span class="c"># macOS &amp; Linux</span>
+curl -fsSL ${REPO}/releases/latest/download/install.sh | bash
+<span class="c"># Windows (PowerShell)</span>
+irm ${REPO}/releases/latest/download/install.ps1 | iex</pre>
+  <p>That installs the <code>helio</code> command, which checks Docker, downloads the pinned
+  release bundle (checksum-verified), generates every secret, starts the stack, runs the
+  database migrations, and opens your browser on the first-run setup screen. One minute later
+  you are inside your own Helio.</p>
+  <pre>helio status      <span class="c"># every service, with versions</span>
+helio update      <span class="c"># new release — with an automatic pre-update backup</span>
+helio backup      <span class="c"># a checksummed local dump, on demand (nightly is automatic)</span>
+helio restore &lt;file&gt;   <span class="c"># typed confirmation; rolls schema forward after restore</span>
+helio doctor      <span class="c"># when something feels off</span>
+helio uninstall   <span class="c"># remove the stack, keep your data (--purge-data erases it all)</span></pre>
   <p>Development email is captured by Mailpit (no real mail leaves your machine), and the demo
   seed gives you contacts, segments, templates, journeys, deals, and analytics history to click
   through immediately.</p>
@@ -379,16 +480,17 @@ task up                     <span class="c"># or: docker compose --profile full 
   <ol class="steps">
     <li><b>Pick a home.</b> A single 4&nbsp;GB VM runs the core profile comfortably; the full
     profile is happy on 8&nbsp;GB. Kubernetes users deploy the included Helm chart instead.</li>
-    <li><b>Set the environment.</b> Copy <code>.env.example</code>, set <code>APP_URL</code> to
-    your domain, generate the secrets it marks as required, and point the database URLs at your
-    instances (or keep the bundled containers).</li>
+    <li><b>Set the environment.</b> The installer wrote <code>~/.helio/.env</code> with every
+    secret generated; set <code>APP_URL</code> to your domain and restart. (Building from
+    source? <code>cp .env.example .env</code> — every variable is documented inline.)</li>
     <li><b>Put TLS in front.</b> Any reverse proxy works — Caddy and Traefik are one-liners;
     the deployment guide in the docs walks through both, plus a managed-cloud setup.</li>
     <li><b>Connect a real mail relay.</b> SMTP works out of the box; first-class adapters exist
     for AWS SES, Postmark, Resend, and Mailgun. Transactional and marketing streams are kept
     separate, and bounce/complaint webhooks feed the suppression list automatically.</li>
-    <li><b>Back it up.</b> The ops runbook documents exactly what to back up (Postgres is the
-    system of record, ClickHouse holds source events) and how to restore it.</li>
+    <li><b>Back it up — already done.</b> Every install ships a backup service: nightly
+    checksummed dumps under <code>~/.helio/backups</code>, run-now from Settings → Backups,
+    optional passphrase encryption, and <code>helio restore</code> when you need it.</li>
   </ol>
   <div class="callout"><b>Where to go deeper:</b> the docs site that ships in the repo covers
   self-hosting, configuration reference, production hardening, Kubernetes, and a managed-cloud
@@ -400,15 +502,26 @@ task up                     <span class="c"># or: docker compose --profile full 
   <div class="kicker">05 · First day</div>
   <h2>Set up your organization, step by step</h2>
   <ol class="steps">
-    <li><b>Create your account.</b> Sign up with email and password; verification lands in your
-    inbox (or Mailpit in development). The first user becomes the organization owner.</li>
+    <li><b>Meet the setup screen.</b> A fresh install opens on one form: your name, email,
+    password (with a live strength meter), and the organization. One click creates everything
+    and signs you in — no email round-trip on first run. After that, the instance is
+    invite-only: teammates join through emailed invitations.</li>
     <li><b>Create the organization and workspace.</b> Name the org (this is what your team and
     your hosted pages show). A default workspace is created with it — use workspaces to separate
     brands or environments.</li>
     <li><b>Invite your team.</b> Settings → Members. Owners administer everything; members work
     day to day. Enterprise teams can wire SSO (OIDC) and SCIM provisioning in the same panel.</li>
-    <li><b>Secure it.</b> Enable two-factor authentication from Settings → Security — one scan
-    of a QR code; backup codes cover a lost device.</li>
+    <li><b>Secure it.</b> Enable two-factor from Settings → Security — <b>any authenticator
+    app works</b> (Google Authenticator, Authy, 1Password, Microsoft Authenticator…); backup
+    codes cover a lost phone. Admins can require 2FA for every member, and set a password
+    rotation policy (every N days, with a forced change at sign-in) in the same settings.</li>
+    <li><b>Connect your real providers.</b> Settings → Provider credentials: your SMTP/
+    Postmark/Resend/Mailgun email account, Twilio for SMS, WhatsApp Cloud — every secret is
+    sealed in an encrypted vault, shown only masked, and every send leaves through
+    <i>your</i> account with <i>your</i> From address. A test-send button proves each one.</li>
+    <li><b>Bring your own AI.</b> In the same panel, paste an OpenAI / Anthropic / Groq key —
+    or point Helio at a local model server (Ollama works). The copilot, predictions, and
+    generators run on <i>your</i> key, never a vendor lock-in.</li>
     <li><b>Authenticate your sending domain.</b> The deliverability wizard generates your SPF,
     DKIM, and DMARC records and verifies them live, so your mail lands in inboxes, not spam.</li>
     <li><b>Make it yours.</b> Settings → Branding: display name, accent color, and logo apply to
@@ -433,17 +546,27 @@ task up                     <span class="c"># or: docker compose --profile full 
   <p class="lead">Moving to Helio must not mean re-subscribing people who already opted out.
   The importer detects which tool a CSV came from and maps each vendor's consent fields to the
   right Helio status — suppression carries over from day one.</p>
+  <h3>The one-click way: connect the platform</h3>
   <ol class="steps">
-    <li><b>Export from your current tool.</b> HubSpot: Contacts → Export (include email, names,
-    and the opt-out columns). Mailchimp: Audience → Export Audience (it includes subscribe
-    status). Klaviyo: Lists &amp; Segments → Export (include consent fields).</li>
-    <li><b>Drop the CSV into Helio.</b> Contacts → Import. Helio detects the source vendor from
-    the file's columns and tells you what it found.</li>
-    <li><b>Review before committing.</b> The preview shows the detected vendor and exactly how
-    many contacts will be imported as unsubscribed. Nothing is written until you confirm.</li>
-    <li><b>Import.</b> Contacts upsert by email — re-importing the same file is safe and never
-    creates duplicates.</li>
+    <li><b>Paste a token.</b> Settings → Provider credentials → HubSpot (a private-app token),
+    Mailchimp (an API key), or Klaviyo (a private key). Vault-sealed, shown once.</li>
+    <li><b>Pull.</b> Contacts → Import CSV → <i>Or pull straight from a platform</i>. Helio
+    pages through the vendor's API — contacts, names, companies, and consent — and imports in
+    the background with live progress.</li>
   </ol>
+  <h3>The CSV way: a guided wizard</h3>
+  <ol class="steps">
+    <li><b>Export and drop the file.</b> Helio detects which tool it came from.</li>
+    <li><b>Map the columns.</b> Every column gets a destination — email, names, subscription
+    status, <b>company</b>, a kept attribute, or skip — pre-filled from the file's own headers
+    and fully overridable.</li>
+    <li><b>Preview.</b> The first rows exactly as they will land, with counts of valid, invalid,
+    and duplicate rows, and how many import as unsubscribed. Nothing is written yet.</li>
+    <li><b>Import in the background.</b> Live progress; existing contacts update (unsubscribes
+    always stick — an import can never re-subscribe anyone); rejected rows download as a CSV
+    with row numbers and reasons. Companies are matched by name or created on the spot.</li>
+  </ol>
+  ${shotFigure('import-wizard', 'The mapping step: every column, its example value, and where it lands.')}
   <h3>What carries over</h3>
   <table>
     <tr><th>In Helio</th><th>Set when the vendor marks a contact as…</th></tr>
@@ -461,9 +584,77 @@ task up                     <span class="c"># or: docker compose --profile full 
   <code>docs/migrate</code> — From HubSpot, From Mailchimp, From Klaviyo.</div>
 </div>
 
-<!-- ════════ 07 usage ════════ -->
+<!-- ════════ 07 crm v2 ════════ -->
 <div class="page">
-  <div class="kicker">07 · Day to day</div>
+  <div class="kicker">07 · Sales</div>
+  <h2>A CRM that closes the loop</h2>
+  <p class="lead">Every contact and every deal now opens a full page — and the pipeline turns
+  into numbers a sales lead can run a meeting on.</p>
+  ${shotFigure('contact-detail', 'A contact: traits, predictions, lists, notes, deals, tasks, and the unified activity timeline.')}
+  <div class="grid2">
+    <div class="card"><h4>Contact &amp; deal pages</h4><p>Team notes (pinned float up), owner
+    assignment, won/lost with a reason the history keeps, linked companies, and a merged
+    timeline of emails, behavioral events, and recorded changes.</p></div>
+    <div class="card"><h4>Companies</h4><p>The B2B account object: attach contacts and deals,
+    see live counts, and let imports create accounts from a company column automatically.</p></div>
+    <div class="card"><h4>A board that moves</h4><p>Drag deals between stages by the grip
+    handle, tick several and move them in one go — the per-card select stays for keyboard
+    users.</p></div>
+    <div class="card"><h4>Sales reports</h4><p>Pipeline value by stage, win rate, average
+    cycle, an honestly-labeled forecast, and the owner leaderboard — from Helio's own
+    database, no analytics store required.</p></div>
+  </div>
+  ${shotFigure('sales-reports', 'Deals → Reports: the board as numbers.')}
+</div>
+
+<!-- ════════ 08 admin ════════ -->
+<div class="page">
+  <div class="kicker">08 · Control room</div>
+  <h2>Admin: see everything, prove anything</h2>
+  <p class="lead">The Admin section (admins and owners) is the organization's control room:
+  who did what, how the system is doing, and a safe window onto your own data.</p>
+  ${shotFigure('admin-audit', 'The audit log: every security-relevant action, filterable, exportable.')}
+  <div class="grid2">
+    <div class="card"><h4>Audit log</h4><p>Sign-ins, 2FA changes, role changes, every settings
+    edit, campaign launches, imports, SQL runs — filter by action family, actor, or date, and
+    export the trail as CSV.</p></div>
+    <div class="card"><h4>Reports</h4><p>Messages sent per day, contact growth, top campaigns,
+    journey outcomes, member activity — with CSV downloads.</p></div>
+    <div class="card"><h4>System health</h4><p>Every service with its version, store
+    reachability, backup freshness, and the alert bell that send/backup/model failures
+    ring.</p></div>
+    <div class="card"><h4>Database Studio</h4><p>Browse and safely edit your own tables —
+    allow-listed models only (auth and secrets simply are not there), validated writes, full
+    audit, owner-only typed-confirmation deletes.</p></div>
+  </div>
+  ${shotFigure('database-studio', 'The Database Studio: transparent, validated, audited.')}
+  ${shotFigure('admin-health', 'System health: services, stores, backups, and alerts on one page.')}
+</div>
+
+<!-- ════════ 09 ai ════════ -->
+<div class="page">
+  <div class="kicker">09 · Intelligence</div>
+  <h2>Your AI key, your churn model</h2>
+  <p class="lead">Helio's intelligence runs on credentials you control — and if your data team
+  has its own churn model, Helio will happily use theirs instead of its own.</p>
+  ${shotFigure('settings', 'Provider credentials: email, SMS, WhatsApp, AI — sealed in the vault, shown only masked.', true)}
+  <ol class="steps">
+    <li><b>Paste your AI key.</b> OpenAI, Anthropic, Groq — or a local model server (Ollama).
+    The copilot badge always shows which provider answered.</li>
+    <li><b>Download training data.</b> Settings → Churn prediction model → Training CSV: the
+    exact feature columns Helio computes, plus the churn label, ready for a notebook.</li>
+    <li><b>Bring the model back.</b> Upload ONNX or XGBoost JSON (pickle is refused — it can
+    execute code), or point Helio at your own HTTPS model server. Validation runs in a
+    sandbox and explains any problem in plain words.</li>
+    <li><b>Activate, then relax.</b> One model is active per workspace. If it ever fails,
+    Helio marks it, raises an alert, and scores with the built-in model — predictions never
+    stop.</li>
+  </ol>
+</div>
+
+<!-- ════════ 10 usage ════════ -->
+<div class="page">
+  <div class="kicker">10 · Day to day</div>
   <h2>The usage guide — how do I…?</h2>
   ${shotFigure('help', 'The same guide lives in the product: Help → Usage guide, with deep links.')}
   <table>
@@ -503,7 +694,7 @@ task up                     <span class="c"># or: docker compose --profile full 
 
 <!-- ════════ 08 under the hood ════════ -->
 <div class="page">
-  <div class="kicker">08 · For the technically curious</div>
+  <div class="kicker">11 · For the technically curious</div>
   <h2>Under the hood, kept light</h2>
   <p class="lead">Two planes, deliberately: a TypeScript product plane and a Python intelligence
   plane, joined by typed APIs and one event stream.</p>
@@ -533,7 +724,7 @@ task up                     <span class="c"># or: docker compose --profile full 
 
 <!-- ════════ 09 contributing ════════ -->
 <div class="page">
-  <div class="kicker">09 · Join in</div>
+  <div class="kicker">12 · Join in</div>
   <h2>Contributing</h2>
   <p class="lead">Helio is AGPL-3.0 and built in the open. Contributions are welcome — the bar
   is "production-grade", and the repo is set up to help you clear it.</p>
@@ -561,7 +752,7 @@ task up                     <span class="c"># or: docker compose --profile full 
     <tr><td><b>Repository</b></td><td>${REPO}</td></tr>
     <tr><td><b>Issues &amp; ideas</b></td><td>${REPO}/issues</td></tr>
   </table>
-  <p style="margin-top:26px;color:#78716c">Helio v1.0.0 · AGPL-3.0 — every screenshot in this
+  <p style="margin-top:26px;color:#78716c">Helio ${VERSION} · AGPL-3.0 — every screenshot in this
   guide is the real product.</p>
 </div>
 

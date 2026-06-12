@@ -44,19 +44,46 @@ test('create a contact manually', async ({ page }) => {
   await expect(page.getByRole('cell', { name: 'manual@example.com' })).toBeVisible();
 });
 
-test('import a CSV with validation summary', async ({ page }) => {
+test('the import wizard maps columns, previews, and imports with companies', async ({ page }) => {
   await page.goto('/contacts');
   await page.getByRole('button', { name: 'Import CSV' }).click();
+  // Platform connectors sit beside the file upload; with nothing
+  // connected yet the section points at Settings instead of erroring.
+  await expect(page.getByTestId('connector-section')).toContainText('Connect HubSpot');
   await page
     .getByLabel('CSV file')
     .setInputFiles({ name: 'contacts.csv', mimeType: 'text/csv', buffer: CSV });
-  await expect(page.getByTestId('import-summary')).toHaveText(
+
+  // The mapping step pre-fills from the headers; override one column.
+  await expect(page.getByTestId('import-mapping')).toBeVisible();
+  await expect(page.getByLabel('Mapping for company')).toHaveValue('company');
+  await page.getByLabel('Mapping for Last Name').selectOption('attribute');
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  // Preview: counts + the company line + first rows.
+  await expect(page.getByTestId('import-preview')).toContainText(
     '2 valid · 1 invalid · 1 duplicates in file',
   );
+  await expect(page.getByTestId('import-preview')).toContainText(
+    '2 companies will be matched or created.',
+  );
   await page.getByRole('button', { name: 'Import', exact: true }).click();
-  await expect(page.getByText(/Imported 2 contacts/)).toBeVisible();
+
+  // Live progress lands on done with the counts.
+  await expect(page.getByTestId('import-counts')).toContainText('2 created', { timeout: 15_000 });
+  await expect(page.getByText('Import finished.')).toBeVisible();
+  await page.getByRole('button', { name: 'Download 2 rejected rows (CSV)' }).isVisible();
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
+
   await expect(page.getByRole('cell', { name: 'ada@example.com' })).toBeVisible();
   await expect(page.getByRole('cell', { name: 'grace@example.com' })).toBeVisible();
+
+  // The mapped companies were created for the workspace.
+  await page.goto('/companies');
+  await expect(
+    page.getByTestId('company-row').filter({ hasText: 'Analytical Engines' }),
+  ).toBeVisible();
+  await page.goto('/contacts');
 });
 
 test('migration: a Mailchimp export is detected and unsubscribers suppressed', async ({ page }) => {
@@ -71,11 +98,13 @@ test('migration: a Mailchimp export is detected and unsubscribers suppressed', a
     .getByLabel('CSV file')
     .setInputFiles({ name: 'mailchimp.csv', mimeType: 'text/csv', buffer: mailchimp });
   await expect(page.getByTestId('import-source')).toHaveText('Detected a Mailchimp export');
-  await expect(page.getByTestId('import-summary')).toContainText(
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByTestId('import-preview')).toContainText(
     '1 contact imported as unsubscribed',
   );
   await page.getByRole('button', { name: 'Import', exact: true }).click();
-  await expect(page.getByText(/Imported 2 contacts/)).toBeVisible();
+  await expect(page.getByTestId('import-counts')).toContainText('2 created', { timeout: 15_000 });
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
 
   // The unsubscribed contact landed suppressed, not active.
   const row = page.getByRole('row', { name: /gone@example\.com/ });
@@ -157,8 +186,10 @@ test('cursor pagination yields every row exactly once', async ({ page }) => {
   await page
     .getByLabel('CSV file')
     .setInputFiles({ name: 'bulk.csv', mimeType: 'text/csv', buffer: bulk });
+  await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: 'Import', exact: true }).click();
-  await expect(page.getByText(/Imported 60 contacts/)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('import-counts')).toContainText('60 created', { timeout: 15_000 });
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
 
   await page.getByRole('button', { name: 'Load more' }).click();
   await expect(page.getByRole('cell', { name: /bulk-\d\d@example\.com/ })).toHaveCount(60);

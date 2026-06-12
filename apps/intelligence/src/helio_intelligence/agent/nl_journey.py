@@ -73,7 +73,7 @@ class NlJourneyGenerator:
             ),
         ]
         last_error = ""
-        for _attempt in range(2):
+        for _attempt in range(3):
             response = await self._provider.complete(
                 messages, temperature=self._temperature, max_tokens=1200
             )

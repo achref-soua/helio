@@ -36,6 +36,29 @@ describe('renderEmail', () => {
     expect(result.text).toContain('https://app.example.com/welcome');
   });
 
+  it('applies image width, alignment, and rounding', async () => {
+    const result = await renderEmail({
+      document: {
+        blocks: [
+          {
+            id: 'b1',
+            type: 'image',
+            url: 'https://cdn.example.com/hero.png',
+            alt: 'Hero',
+            width: 60,
+            align: 'center',
+            radius: 16,
+          },
+        ],
+      },
+      subject: 'Hi',
+      contact: { email: 'x@example.com' },
+    });
+    expect(result.html).toContain('width:60%');
+    expect(result.html).toContain('text-align:center');
+    expect(result.html).toContain('border-radius:16px');
+  });
+
   it('uses fallbacks without a contact value and renders without one at all', async () => {
     const personalized = await renderEmail({
       document,

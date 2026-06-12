@@ -1,6 +1,6 @@
 /* eslint-disable no-console -- operator-facing script */
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, renameSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { loadEnvFile } from 'node:process';
 
@@ -41,7 +41,13 @@ const ACCENT = '#f59e0b';
 
 // ── cinematography ─────────────────────────────────────────────────────
 
-/** A soft cursor that follows the real mouse, with a click pulse. */
+/**
+ * A soft cursor that follows the real mouse, with a click pulse. It stays
+ * invisible until the first real movement on a page, so scenes that only
+ * present (title cards, the dashboard reveal) are never masked by a
+ * parked cursor — it fades in when the hand actually reaches for
+ * something.
+ */
 const CURSOR_SCRIPT = `(() => {
   if (window.__demoCursor) return;
   window.__demoCursor = true;
@@ -51,9 +57,10 @@ const CURSOR_SCRIPT = `(() => {
     cursor.style.cssText = 'position:fixed;left:0;top:0;width:26px;height:26px;margin:-13px 0 0 -13px;' +
       'border-radius:50%;background:rgba(245,158,11,.28);border:2px solid rgba(245,158,11,.85);' +
       'box-shadow:0 1px 6px rgba(0,0,0,.25);pointer-events:none;z-index:2147483647;' +
-      'transition:transform .06s linear;transform:translate(-100px,-100px)';
+      'opacity:0;transition:opacity .35s ease,transform .05s linear;transform:translate(-100px,-100px)';
     document.documentElement.appendChild(cursor);
     addEventListener('mousemove', (e) => {
+      cursor.style.opacity = '1';
       cursor.style.transform = 'translate(' + e.clientX + 'px,' + e.clientY + 'px)';
     }, true);
     addEventListener('mousedown', () => {
@@ -94,47 +101,152 @@ async function caption(page: Page, title: string, body: string): Promise<void> {
   );
 }
 
+// The product logo (apps/web/src/app/icon.svg) without its tile — the
+// card's night sky is the backdrop, and a warm glow does the rest.
 const SUN_SVG =
-  `<svg width="58" height="58" viewBox="0 0 24 24" fill="none" stroke="${ACCENT}" ` +
-  'stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/>' +
-  '<path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+  '<svg width="132" height="132" viewBox="0 0 96 96" ' +
+  'style="filter:drop-shadow(0 0 28px rgba(234,148,47,.55))">' +
+  '<g stroke="#ea942f" stroke-width="7" stroke-linecap="round" fill="none">' +
+  '<circle cx="48" cy="48" r="14" fill="#ea942f" stroke="none"/>' +
+  '<line x1="48" y1="14" x2="48" y2="22"/><line x1="48" y1="74" x2="48" y2="82"/>' +
+  '<line x1="14" y1="48" x2="22" y2="48"/><line x1="74" y1="48" x2="82" y2="48"/>' +
+  '<line x1="23.96" y1="23.96" x2="29.62" y2="29.62"/>' +
+  '<line x1="66.38" y1="66.38" x2="72.04" y2="72.04"/>' +
+  '<line x1="23.96" y1="72.04" x2="29.62" y2="66.38"/>' +
+  '<line x1="66.38" y1="29.62" x2="72.04" y2="23.96"/>' +
+  '</g></svg>';
 
-/** Full-frame title card on about:blank (no app CSP to fight). */
-async function titleCard(
-  page: Page,
-  opts: { heading: string; sub: string; lines: string[]; dwellMs: number },
-): Promise<void> {
-  await page.goto('about:blank');
-  await page.evaluate(
-    ([sun, heading, sub, lines, accent]) => {
-      document.body.style.cssText =
-        'margin:0;display:grid;place-items:center;height:100vh;background:#100d0a;' +
-        'font-family:ui-sans-serif,system-ui,sans-serif;color:#fff';
-      document.body.innerHTML =
-        '<div style="display:grid;justify-items:center;text-align:center;max-width:880px;' +
-        'padding:0 40px;opacity:0;animation:in .8s ease forwards">' +
-        `${sun}` +
-        `<div style="font-size:56px;font-weight:700;letter-spacing:-.02em;margin-top:18px">${heading}</div>` +
-        `<div style="font-size:23px;color:rgba(255,255,255,.85);margin-top:16px;max-width:760px">${sub}</div>` +
-        `<div style="font-size:16px;color:${accent};margin-top:30px;letter-spacing:.02em">` +
-        (lines as string[]).join(
-          '<span style="color:rgba(255,255,255,.35);margin:0 12px">•</span>',
-        ) +
-        '</div></div>' +
-        '<style>@keyframes in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}</style>';
-    },
-    [SUN_SVG, opts.heading, opts.sub, opts.lines, ACCENT] as const,
+// Fraunces, the product's display face. The dashboard self-hosts it via
+// next/font, so the exact latin woff2 the production build serves (the
+// preloaded `.p.` file in its @font-face) is lifted from disk and inlined
+// — the bookend cards match the product to the glyph, with no font CDN
+// to flake mid-shoot.
+let frauncesFace: string | null | undefined;
+function frauncesDataUri(): string | null {
+  if (frauncesFace !== undefined) return frauncesFace;
+  try {
+    const staticDir = path.resolve(import.meta.dirname, '../.next/static');
+    const chunksDir = path.join(staticDir, 'chunks');
+    for (const name of readdirSync(chunksDir)) {
+      if (!name.endsWith('.css')) continue;
+      const css = readFileSync(path.join(chunksDir, name), 'utf8');
+      const media = [
+        ...css.matchAll(
+          /@font-face\{[^}]*font-family:Fraunces;[^}]*url\(\.\.\/media\/([^)]+\.woff2)\)[^}]*\}/g,
+        ),
+      ]
+        .map((match) => match[1])
+        .find((file) => file.includes('-s.p.'));
+      if (!media) continue;
+      const buf = readFileSync(path.join(staticDir, 'media', media));
+      frauncesFace = `data:font/woff2;base64,${buf.toString('base64')}`;
+      return frauncesFace;
+    }
+    throw new Error('no Fraunces @font-face in the production build');
+  } catch {
+    frauncesFace = null; // Georgia stands in — still a film, never a stall.
+  }
+  return frauncesFace;
+}
+
+/**
+ * Bookend title card: the sun rises over a night sky, then the wordmark,
+ * version, and repo follow — logo, version, URL, nothing else.
+ */
+async function titleCard(page: Page, opts: { version: string; dwellMs: number }): Promise<void> {
+  const face = frauncesDataUri();
+  await page.setContent(
+    `<!doctype html><html><head>
+      <style>
+        ${face ? `@font-face { font-family: Fraunces; src: url(${face}) format('woff2'); font-weight: 100 900; font-style: normal; }` : ''}
+        html, body { margin: 0; height: 100%; }
+        body {
+          display: grid; place-items: center; overflow: hidden; color: #f5efe4;
+          background:
+            radial-gradient(1100px 700px at 50% 122%, rgba(234,148,47,.30), rgba(234,148,47,.08) 40%, transparent 64%),
+            linear-gradient(180deg, #0b0e15 0%, #121720 100%);
+          font-family: 'Fraunces', Georgia, serif;
+        }
+        .stage { display: grid; justify-items: center; }
+        .sun { animation: rise 1.3s cubic-bezier(.22,.8,.3,1) both; }
+        .word {
+          font-size: 92px; font-weight: 600; letter-spacing: -.015em; line-height: 1;
+          margin-top: 26px; animation: up .9s ease .5s both;
+        }
+        .pill {
+          margin-top: 22px; padding: 8px 22px; border: 1px solid rgba(234,148,47,.55);
+          border-radius: 999px; color: #e8b36a; font-size: 17px; letter-spacing: .18em;
+          font-family: ui-sans-serif, system-ui, sans-serif; animation: up .9s ease .85s both;
+        }
+        .thread {
+          height: 1px; margin-top: 34px;
+          background: linear-gradient(90deg, transparent, rgba(234,148,47,.8), transparent);
+          animation: grow 1.1s ease 1.05s both;
+        }
+        .url {
+          margin-top: 26px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          font-size: 16px; letter-spacing: .07em; color: rgba(245,239,228,.62);
+          animation: up .9s ease 1.25s both;
+        }
+        @keyframes rise { from { opacity: 0; transform: translateY(56px) scale(.9); } to { opacity: 1; transform: none; } }
+        @keyframes up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+        @keyframes grow { from { width: 0; } to { width: 280px; } }
+      </style></head><body>
+      <div class="stage">
+        <div class="sun">${SUN_SVG}</div>
+        <div class="word">Helio</div>
+        <div class="pill">${opts.version}</div>
+        <div class="thread"></div>
+        <div class="url">github.com/achref-soua/helio</div>
+      </div></body></html>`,
+    { waitUntil: 'load' },
+  );
+  // The face is inline, so this resolves immediately — kept as a guard.
+  await page.evaluate(() =>
+    Promise.race([document.fonts.ready, new Promise((resolve) => setTimeout(resolve, 1500))]),
   );
   await page.waitForTimeout(opts.dwellMs);
 }
 
 const dwell = (page: Page, ms: number) => page.waitForTimeout(ms);
 
-/** Move the cursor like a person, then click. */
+// Where the hand currently rests. Playwright fires `steps` moves as fast
+// as CDP accepts them (~150ms for any distance), which reads on film as a
+// teleport — so movement is spread over real time below instead.
+let cursorAt = { x: WIDTH - 90, y: HEIGHT - 90 };
+
+const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+
+/**
+ * Ease the cursor to a point over real time — one small move per video
+ * frame, duration scaled by distance — so the film shows a hand
+ * travelling, never a jump cut.
+ */
+async function glide(page: Page, x: number, y: number, ms?: number): Promise<void> {
+  const from = cursorAt;
+  const distance = Math.hypot(x - from.x, y - from.y);
+  const duration = ms ?? Math.min(1100, Math.max(450, distance * 1.1));
+  const frames = Math.max(12, Math.round(duration / 25));
+  for (let i = 1; i <= frames; i++) {
+    const t = easeInOutCubic(i / frames);
+    await page.mouse.move(from.x + (x - from.x) * t, from.y + (y - from.y) * t);
+    await page.waitForTimeout(25);
+  }
+  cursorAt = { x, y };
+}
+
+/** Move the cursor like a person, settle, then click. */
 async function click(page: Page, locator: Locator): Promise<void> {
   const box = await locator.boundingBox();
-  if (box) await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 22 });
+  if (box) await glide(page, box.x + box.width / 2, box.y + box.height / 2);
+  await dwell(page, 160);
   await locator.click();
+}
+
+/** Smooth-scroll an element into view so the camera glides, not jumps. */
+async function scrollTo(page: Page, locator: Locator): Promise<void> {
+  await locator.evaluate((el) => el.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+  await dwell(page, 1_100);
 }
 
 async function type(page: Page, locator: Locator, text: string): Promise<void> {
@@ -152,18 +264,13 @@ async function pick(page: Page, trigger: Locator, option: string): Promise<void>
 // ── the shoot ──────────────────────────────────────────────────────────
 
 async function shoot(page: Page, showroom: Showroom): Promise<void> {
-  const go = async (route: string) => {
-    await page.goto(`${BASE_URL}${route}`);
-    await page.mouse.move(WIDTH / 2, HEIGHT / 2, { steps: 5 });
-  };
+  // Navigation never moves the hand — the cursor stays out of frame until
+  // a scene actually reaches for something, so reveals (the dashboard
+  // sunrise, title cards) play unmasked.
+  const go = (route: string) => page.goto(`${BASE_URL}${route}`);
 
   // 00 — intro
-  await titleCard(page, {
-    heading: 'Helio',
-    sub: 'The open-source growth platform — CDP, journeys, every channel, and AI. Self-hosted.',
-    lines: ['v1.0.0', 'AGPL-3.0', 'github.com/achref-soua/helio'],
-    dwellMs: 5_000,
-  });
+  await titleCard(page, { version: 'v2.0.0', dwellMs: 6_200 });
 
   // 01 — dashboard
   await go('/');
@@ -253,9 +360,9 @@ async function shoot(page: Page, showroom: Showroom): Promise<void> {
   );
   // Slow pan down the flow — start on empty pane, well left of the nodes,
   // so the drag pans the canvas instead of moving a node.
-  await page.mouse.move(330, 460, { steps: 10 });
+  await glide(page, 330, 460);
   await page.mouse.down();
-  await page.mouse.move(410, 880, { steps: 40 });
+  await glide(page, 410, 880, 2_200);
   await page.mouse.up();
   await dwell(page, 4_500);
   await caption(
@@ -276,7 +383,8 @@ async function shoot(page: Page, showroom: Showroom): Promise<void> {
   await type(page, page.getByLabel('Ask the copilot…'), 'How many pro contacts do we have?');
   await click(page, page.getByTestId('copilot-chat').getByRole('button', { name: 'Send' }));
   await page.getByTestId('turn-assistant').waitFor({ timeout: 45_000 });
-  await dwell(page, 5_500);
+  // Let the streamed answer settle on screen before moving on.
+  await dwell(page, 6_500);
 
   await caption(
     page,
@@ -289,8 +397,9 @@ async function shoot(page: Page, showroom: Showroom): Promise<void> {
     'when someone signs up, send the welcome email, wait 2 days, then upsell pro users',
   );
   await click(page, page.getByTestId('copilot-journey').getByRole('button', { name: 'Draft' }));
-  await page.getByRole('button', { name: 'Create this journey' }).waitFor({ timeout: 60_000 });
-  await dwell(page, 3_500);
+  // Show the drafted step-by-step preview, then save the real journey.
+  await page.getByTestId('journey-draft-steps').waitFor({ timeout: 60_000 });
+  await dwell(page, 5_000);
   await click(page, page.getByRole('button', { name: 'Create this journey' }));
   await dwell(page, 3_500);
 
@@ -306,6 +415,11 @@ async function shoot(page: Page, showroom: Showroom): Promise<void> {
   );
   await click(page, page.getByTestId('copilot-email').getByRole('button', { name: 'Draft' }));
   await page.getByTestId('email-draft').waitFor({ timeout: 60_000 });
+  // The live email preview renders inside the draft card.
+  await page
+    .getByTestId('email-draft-preview')
+    .waitFor({ timeout: 15_000 })
+    .catch(() => {});
   await dwell(page, 6_500);
 
   // 09 — the AI journey, opened on the canvas
@@ -378,9 +492,9 @@ async function shoot(page: Page, showroom: Showroom): Promise<void> {
     'Cohort retention',
     'Weekly cohorts and how long they stay active — computed straight from the event stream.',
   );
-  await page.getByRole('heading', { name: 'Cohort retention' }).scrollIntoViewIfNeeded();
+  await scrollTo(page, page.getByRole('heading', { name: 'Cohort retention' }));
   await dwell(page, 6_000);
-  await page.getByRole('heading', { name: 'Multi-touch attribution' }).scrollIntoViewIfNeeded();
+  await scrollTo(page, page.getByRole('heading', { name: 'Multi-touch attribution' }));
   await caption(
     page,
     'Multi-touch attribution',
@@ -388,7 +502,7 @@ async function shoot(page: Page, showroom: Showroom): Promise<void> {
   );
   await click(page, page.getByTestId('attribution-run'));
   await dwell(page, 6_000);
-  await page.getByTestId('sql-input').scrollIntoViewIfNeeded();
+  await scrollTo(page, page.getByTestId('sql-input'));
   await caption(
     page,
     'A read-only SQL explorer',
@@ -452,11 +566,11 @@ async function shoot(page: Page, showroom: Showroom): Promise<void> {
     'Members and roles, two-factor auth, SSO and SCIM, scoped API keys, audit logs.',
   );
   await dwell(page, 6_500);
-  await page.getByText('Branding').first().scrollIntoViewIfNeeded();
+  await scrollTo(page, page.getByText('Branding').first());
   await caption(
     page,
     'White-label it',
-    'Your name, color, and logo on the dashboard and every hosted page. Plus webhooks, billing, and a support inbox.',
+    'Your name, color, and logo on the dashboard and every hosted page. Plus webhooks and a support inbox.',
   );
   await dwell(page, 6_500);
 
@@ -488,12 +602,7 @@ async function shoot(page: Page, showroom: Showroom): Promise<void> {
   await dwell(page, 6_500);
 
   // 16 — outro
-  await titleCard(page, {
-    heading: 'Helio v1.0.0',
-    sub: 'Own your growth stack. One command to self-host — your data never leaves your servers.',
-    lines: ['github.com/achref-soua/helio', 'docker compose up', 'AGPL-3.0'],
-    dwellMs: 5_500,
-  });
+  await titleCard(page, { version: 'v2.0.0', dwellMs: 6_800 });
 }
 
 // ── output ─────────────────────────────────────────────────────────────
@@ -501,9 +610,27 @@ async function shoot(page: Page, showroom: Showroom): Promise<void> {
 function convertToMp4(webm: string, mp4: string): boolean {
   const ffmpeg = process.env.FFMPEG ?? 'ffmpeg';
   try {
+    // Playwright's screencast webm is variable-frame-rate (frames only on
+    // paint); some players read that as stutter. Resample to constant
+    // 30fps and front-load the moov atom so the film scrubs smoothly.
     execFileSync(
       ffmpeg,
-      ['-y', '-i', webm, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '21', mp4],
+      [
+        '-y',
+        '-i',
+        webm,
+        '-vf',
+        'fps=30',
+        '-c:v',
+        'libx264',
+        '-pix_fmt',
+        'yuv420p',
+        '-crf',
+        '21',
+        '-movflags',
+        '+faststart',
+        mp4,
+      ],
       { stdio: 'pipe' },
     );
     return true;

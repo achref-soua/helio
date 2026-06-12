@@ -7,7 +7,7 @@ function Card({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="card"
       className={cn(
-        'flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground shadow-sm',
+        'surface-luxe flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground',
         className,
       )}
       {...props}
@@ -20,7 +20,9 @@ function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="card-header"
       className={cn(
-        '@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-2 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6',
+        // On narrow cards (container query) the action column collapses and
+        // the action stacks under the title instead of forcing overflow.
+        '@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-2 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] @max-sm/card-header:has-data-[slot=card-action]:grid-cols-1 [.border-b]:pb-6',
         className,
       )}
       {...props}
@@ -52,7 +54,10 @@ function CardAction({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="card-action"
-      className={cn('col-start-2 row-span-2 row-start-1 self-start justify-self-end', className)}
+      className={cn(
+        'col-start-2 row-span-2 row-start-1 self-start justify-self-end @max-sm/card-header:col-start-1 @max-sm/card-header:row-span-1 @max-sm/card-header:row-start-auto @max-sm/card-header:justify-self-start',
+        className,
+      )}
       {...props}
     />
   );

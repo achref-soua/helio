@@ -11,6 +11,8 @@ import type { PrismaClient } from './client';
  */
 
 export interface ShopifyWebhookConnection {
+  /** The integration row id — the AAD slot for the sealed signing secret. */
+  id: string;
   organizationId: string;
   workspaceId: string;
   secret: string | null;
@@ -22,20 +24,10 @@ export async function shopifyConnectionForWebhook(
   shopDomain: string,
 ): Promise<ShopifyWebhookConnection | null> {
   const rows = await prisma.$queryRaw<
-    Array<{ organizationId: string; workspaceId: string; secret: string | null }>
-  >`SELECT organization_id AS "organizationId", workspace_id AS "workspaceId", secret
+    Array<{ id: string; organizationId: string; workspaceId: string; secret: string | null }>
+  >`SELECT id, organization_id AS "organizationId", workspace_id AS "workspaceId", secret
     FROM webhook_shopify_connection(${shopDomain})`;
   return rows[0] ?? null;
-}
-
-/** Resolve the org owning a Stripe customer id, if any subscription has it. */
-export async function stripeOrganizationForWebhook(
-  prisma: PrismaClient,
-  customerId: string,
-): Promise<string | null> {
-  const rows = await prisma.$queryRaw<Array<{ organizationId: string | null }>>`
-    SELECT webhook_stripe_organization(${customerId}) AS "organizationId"`;
-  return rows[0]?.organizationId ?? null;
 }
 
 export interface SuppressibleContact {
@@ -56,4 +48,14 @@ export async function activeContactsByEmailForWebhook(
   return prisma.$queryRaw<SuppressibleContact[]>`
     SELECT id, organization_id AS "organizationId", workspace_id AS "workspaceId"
     FROM webhook_contacts_by_email(${email})`;
+}
+
+/** Every ACTIVE contact holding a phone number — Twilio status callbacks. */
+export async function activeContactsByPhoneForWebhook(
+  prisma: PrismaClient,
+  phone: string,
+): Promise<SuppressibleContact[]> {
+  return prisma.$queryRaw<SuppressibleContact[]>`
+    SELECT id, organization_id AS "organizationId", workspace_id AS "workspaceId"
+    FROM webhook_contacts_by_phone(${phone})`;
 }

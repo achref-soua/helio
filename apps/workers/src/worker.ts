@@ -7,9 +7,12 @@ import { NativeConnection, Worker } from '@temporalio/worker';
 import { pino } from 'pino';
 
 import { createActivities } from './activities';
+import type { CredentialReader } from './credential-store';
 import { SmtpEmailProvider } from './email-provider';
+import { createEmailSenderResolver } from './email-provider-factory';
 import { env } from './env';
 import { createJourneyActivities } from './journey-activities';
+import { createSmsResolver, createWhatsAppResolver } from './messaging-provider-factory';
 import { WebPushProvider } from './push-provider';
 import { TwilioSmsProvider } from './sms-provider';
 import { JourneyTriggerConsumer } from './trigger-consumer';
@@ -27,8 +30,14 @@ const provider = new SmtpEmailProvider({
   password: env.SMTP_PASSWORD,
 });
 
+// Structural cast at the composition root: the store reads one delegate
+// with a fixed query shape; tests stub that same narrow surface.
+const resolveEmailSender = createEmailSenderResolver(prisma as unknown as CredentialReader, {
+  provider,
+  from: env.MAIL_FROM,
+});
+
 const activityConfig = {
-  mailFrom: env.MAIL_FROM,
   appUrl: env.APP_URL,
   trackingUrl: env.PUBLIC_TRACKING_URL,
   trackingSecret: env.TRACKING_SECRET,
@@ -49,10 +58,10 @@ const worker = await Worker.create({
   taskQueue: SENDS_TASK_QUEUE,
   workflowsPath: new URL('./workflows.ts', import.meta.url).pathname,
   activities: {
-    ...createActivities(prisma, provider, activityConfig, clickhouse),
+    ...createActivities(prisma, resolveEmailSender, activityConfig, clickhouse),
     ...createJourneyActivities(
       prisma,
-      provider,
+      resolveEmailSender,
       activityConfig,
       env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY
         ? new WebPushProvider({
@@ -61,19 +70,25 @@ const worker = await Worker.create({
             subject: env.VAPID_SUBJECT,
           })
         : undefined,
-      env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM
-        ? new TwilioSmsProvider({
-            accountSid: env.TWILIO_ACCOUNT_SID,
-            authToken: env.TWILIO_AUTH_TOKEN,
-            from: env.TWILIO_FROM,
-          })
-        : undefined,
-      env.WHATSAPP_PHONE_NUMBER_ID && env.WHATSAPP_ACCESS_TOKEN
-        ? new CloudWhatsAppProvider({
-            phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID,
-            accessToken: env.WHATSAPP_ACCESS_TOKEN,
-          })
-        : undefined,
+      createSmsResolver(
+        prisma as unknown as CredentialReader,
+        env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM
+          ? new TwilioSmsProvider({
+              accountSid: env.TWILIO_ACCOUNT_SID,
+              authToken: env.TWILIO_AUTH_TOKEN,
+              from: env.TWILIO_FROM,
+            })
+          : undefined,
+      ),
+      createWhatsAppResolver(
+        prisma as unknown as CredentialReader,
+        env.WHATSAPP_PHONE_NUMBER_ID && env.WHATSAPP_ACCESS_TOKEN
+          ? new CloudWhatsAppProvider({
+              phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID,
+              accessToken: env.WHATSAPP_ACCESS_TOKEN,
+            })
+          : undefined,
+      ),
     ),
     ...createWebhookActivities(),
   },

@@ -5,6 +5,7 @@ import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -112,16 +113,14 @@ export function IntegrationsPanel({ canManage }: { canManage: boolean }) {
 
   return (
     <Card data-testid="integrations-panel">
-      <CardHeader className="flex-row items-start justify-between gap-4">
-        <div className="grid gap-1.5">
-          <CardTitle className="flex items-center gap-2">
-            <Plug className="size-4" aria-hidden />
-            {t('title')}
-          </CardTitle>
-          <CardDescription>{t('subtitle')}</CardDescription>
-        </div>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Plug className="size-4" aria-hidden />
+          {t('title')}
+        </CardTitle>
+        <CardDescription>{t('subtitle')}</CardDescription>
         {canManage && (
-          <div className="flex flex-wrap gap-2">
+          <CardAction className="flex flex-wrap gap-2">
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" data-testid="integration-connect">
@@ -211,7 +210,7 @@ export function IntegrationsPanel({ canManage }: { canManage: boolean }) {
                 </form>
               </DialogContent>
             </Dialog>
-          </div>
+          </CardAction>
         )}
       </CardHeader>
       <CardContent className="grid gap-4">

@@ -3,6 +3,7 @@ import { forTenant } from '@helio/db';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { HTTPException } from 'hono/http-exception';
 
+import { assertScope } from '../middleware/scopes';
 import type { GatewayDeps, GatewayEnv } from '../types';
 
 const ListSchema = z
@@ -237,6 +238,7 @@ export function listRoutes(deps: GatewayDeps) {
   const app = new OpenAPIHono<GatewayEnv>();
 
   app.openapi(listRoute, async (c) => {
+    assertScope(c, 'lists:read');
     const organizationId = c.get('organizationId');
     const { workspaceId, limit, cursor } = c.req.valid('query');
     const tenantDb = forTenant(deps.prisma, organizationId);
@@ -254,6 +256,7 @@ export function listRoutes(deps: GatewayDeps) {
   });
 
   app.openapi(getRoute, async (c) => {
+    assertScope(c, 'lists:read');
     const organizationId = c.get('organizationId');
     const { id } = c.req.valid('param');
     const tenantDb = forTenant(deps.prisma, organizationId);
@@ -266,6 +269,7 @@ export function listRoutes(deps: GatewayDeps) {
   });
 
   app.openapi(createListRoute, async (c) => {
+    assertScope(c, 'lists:write');
     const organizationId = c.get('organizationId');
     const input = c.req.valid('json');
     const tenantDb = forTenant(deps.prisma, organizationId);
@@ -301,6 +305,7 @@ export function listRoutes(deps: GatewayDeps) {
   });
 
   app.openapi(deleteListRoute, async (c) => {
+    assertScope(c, 'lists:write');
     const organizationId = c.get('organizationId');
     const { id } = c.req.valid('param');
     const tenantDb = forTenant(deps.prisma, organizationId);
@@ -323,6 +328,7 @@ export function listRoutes(deps: GatewayDeps) {
   });
 
   app.openapi(addMembersRoute, async (c) => {
+    assertScope(c, 'lists:write');
     const organizationId = c.get('organizationId');
     const { id } = c.req.valid('param');
     const { contactIds } = c.req.valid('json');
@@ -358,6 +364,7 @@ export function listRoutes(deps: GatewayDeps) {
   });
 
   app.openapi(removeMemberRoute, async (c) => {
+    assertScope(c, 'lists:write');
     const organizationId = c.get('organizationId');
     const { id, contactId } = c.req.valid('param');
     const tenantDb = forTenant(deps.prisma, organizationId);

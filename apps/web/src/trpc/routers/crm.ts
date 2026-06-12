@@ -1,10 +1,23 @@
-import { newId, taskPrioritySchema, taskStatusSchema, taskTypeSchema } from '@helio/core';
+import {
+  avgCycleDays,
+  newId,
+  ownerLeaderboard,
+  pipelineValueByStage,
+  type SalesDeal,
+  taskPrioritySchema,
+  taskStatusSchema,
+  taskTypeSchema,
+  weightedForecastCents,
+  winRate,
+} from '@helio/core';
+import { Prisma } from '@helio/db';
 import { type inferProcedureBuilderResolverOptions, TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { authDb } from '@/lib/auth';
 import { emitWebhookEvent } from '@/lib/webhooks';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 type OrgContext = inferProcedureBuilderResolverOptions<typeof orgProcedure>['ctx'];
 
@@ -71,7 +84,7 @@ export const crmRouter = router({
   createPipeline: orgProcedure
     .input(z.object({ workspaceId: z.string().min(1), name: z.string().trim().min(1).max(80) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const existing = await ctx.tenantDb.pipeline.findFirst({
         where: { workspaceId: input.workspaceId, name: input.name },
       });
@@ -117,7 +130,7 @@ export const crmRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const stage = await ctx.tenantDb.pipelineStage.findFirst({
         where: { id: input.stageId, pipelineId: input.pipelineId },
         select: { kind: true },
@@ -168,7 +181,7 @@ export const crmRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const deal = await ctx.tenantDb.deal.findUnique({
         where: { id: input.id },
         select: { pipelineId: true, workspaceId: true },
@@ -200,6 +213,41 @@ export const crmRouter = router({
       return { id: input.id };
     }),
 
+  /** Bulk stage move (H6): same semantics as moveDeal, one audit each. */
+  moveDeals: orgProcedure
+    .input(
+      z.object({
+        ids: z.array(z.string().min(1)).min(1).max(100),
+        stageId: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const stage = await ctx.tenantDb.pipelineStage.findUnique({
+        where: { id: input.stageId },
+        select: { id: true, kind: true, pipelineId: true },
+      });
+      if (!stage) throw new TRPCError({ code: 'NOT_FOUND', message: 'Stage not found' });
+      const deals = await ctx.tenantDb.deal.findMany({
+        where: { id: { in: input.ids }, pipelineId: stage.pipelineId },
+        select: { id: true, workspaceId: true },
+      });
+      for (const deal of deals) {
+        await ctx.tenantDb.deal.update({
+          where: { id: deal.id },
+          data: {
+            stageId: stage.id,
+            status: stage.kind,
+            closedAt: stage.kind === 'OPEN' ? null : new Date(),
+          },
+        });
+        await writeAudit(ctx, deal.workspaceId, 'deal.moved', 'deal', deal.id, {
+          bulk: true,
+        });
+      }
+      return { moved: deals.length };
+    }),
+
   updateDeal: orgProcedure
     .input(
       z.object({
@@ -211,7 +259,7 @@ export const crmRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const { id, ...rest } = input;
       const deal = await ctx.tenantDb.deal.update({
         where: { id },
@@ -229,10 +277,150 @@ export const crmRouter = router({
   deleteDeal: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const deal = await ctx.tenantDb.deal.delete({ where: { id: input.id } });
       await writeAudit(ctx, deal.workspaceId, 'deal.deleted', 'deal', input.id);
       return { id: input.id };
+    }),
+
+  /** Everything the deal detail page shows in one round-trip (H3). */
+  getDeal: orgProcedure.input(z.object({ id: z.string().min(1) })).query(async ({ ctx, input }) => {
+    const deal = await ctx.tenantDb.deal.findUnique({
+      where: { id: input.id },
+      include: {
+        stage: { select: { id: true, name: true } },
+        pipeline: { select: { id: true, name: true, stages: { orderBy: { position: 'asc' } } } },
+        contact: { select: { id: true, email: true, firstName: true, lastName: true } },
+        company: { select: { id: true, name: true } },
+        tasks: {
+          select: { id: true, title: true, status: true, dueAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        },
+        notes: { orderBy: [{ pinned: 'desc' }, { createdAt: 'desc' }], take: 50 },
+      },
+    });
+    if (!deal) throw new TRPCError({ code: 'NOT_FOUND', message: 'Deal not found' });
+    const userIds = [
+      ...new Set(
+        [...deal.notes.map((note) => note.authorId), deal.ownerId].filter(
+          (id): id is string => !!id,
+        ),
+      ),
+    ];
+    const users = userIds.length
+      ? await authDb.user
+          .findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, name: true, email: true },
+          })
+          .catch(() => [])
+      : [];
+    const names = new Map(users.map((user) => [user.id, user.name || user.email]));
+    return {
+      ...deal,
+      owner: deal.ownerId ? (names.get(deal.ownerId) ?? deal.ownerId) : null,
+      notes: deal.notes.map((note) => ({
+        ...note,
+        author: note.authorId ? (names.get(note.authorId) ?? null) : null,
+      })),
+    };
+  }),
+
+  /** Org members for the owner picker — names come from the auth kernel. */
+  members: orgProcedure.query(async ({ ctx }) => {
+    const members = await authDb.member.findMany({
+      where: { organizationId: ctx.organizationId },
+      select: { userId: true, user: { select: { name: true, email: true } } },
+    });
+    return members.map((member) => ({
+      userId: member.userId,
+      name: member.user.name || member.user.email,
+    }));
+  }),
+
+  setDealOwner: orgProcedure
+    .input(z.object({ id: z.string().min(1), ownerId: z.string().min(1).nullable() }))
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const deal = await ctx.tenantDb.deal.update({
+        where: { id: input.id },
+        data: { ownerId: input.ownerId },
+      });
+      await writeAudit(ctx, deal.workspaceId, 'deal.owner_changed', 'deal', deal.id, {
+        ownerId: input.ownerId,
+      });
+      return { id: deal.id };
+    }),
+
+  /** Close (or reopen) a deal; the loss reason lives in the audit trail. */
+  setDealStatus: orgProcedure
+    .input(
+      z.object({
+        id: z.string().min(1),
+        status: z.enum(['OPEN', 'WON', 'LOST']),
+        reason: z.string().trim().max(500).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const deal = await ctx.tenantDb.deal.update({
+        where: { id: input.id },
+        data: {
+          status: input.status,
+          closedAt: input.status === 'OPEN' ? null : new Date(),
+        },
+      });
+      await writeAudit(
+        ctx,
+        deal.workspaceId,
+        input.status === 'OPEN'
+          ? 'deal.reopened'
+          : input.status === 'WON'
+            ? 'deal.won'
+            : 'deal.lost',
+        'deal',
+        deal.id,
+        input.reason ? { reason: input.reason } : undefined,
+      );
+      if (input.status === 'WON' || input.status === 'LOST') {
+        await emitWebhookEvent(ctx, input.status === 'WON' ? 'deal.won' : 'deal.lost', {
+          id: deal.id,
+          status: deal.status,
+          workspaceId: deal.workspaceId,
+        });
+      }
+      return { id: deal.id, status: deal.status };
+    }),
+
+  /** The deal's recorded history: moves, edits, closes — actor-resolved. */
+  dealHistory: orgProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const rows = await ctx.tenantDb.auditLog.findMany({
+        where: { targetId: input.id, action: { startsWith: 'deal.' } },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      });
+      const actorIds = [
+        ...new Set(rows.map((row) => row.actorId).filter((id): id is string => !!id)),
+      ];
+      const users = actorIds.length
+        ? await authDb.user
+            .findMany({
+              where: { id: { in: actorIds } },
+              select: { id: true, name: true, email: true },
+            })
+            .catch(() => [])
+        : [];
+      const names = new Map(users.map((user) => [user.id, user.name || user.email]));
+      return rows.map((row) => ({
+        id: row.id,
+        action: row.action,
+        actor: row.actorId ? (names.get(row.actorId) ?? row.actorId) : null,
+        metadata: row.metadata as Record<string, unknown> | null,
+        createdAt: row.createdAt,
+      }));
     }),
 
   // ── Tasks: workspace-scoped to-dos, optionally tied to a contact/deal ──
@@ -281,7 +469,7 @@ export const crmRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const task = await ctx.tenantDb.task.create({
         data: {
           id: newId('task'),
@@ -314,7 +502,7 @@ export const crmRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const { id, ...rest } = input;
       const task = await ctx.tenantDb.task.update({
         where: { id },
@@ -334,7 +522,7 @@ export const crmRouter = router({
   setTaskStatus: orgProcedure
     .input(z.object({ id: z.string().min(1), status: taskStatusSchema }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const done = input.status === 'DONE';
       const task = await ctx.tenantDb.task.update({
         where: { id: input.id },
@@ -356,9 +544,222 @@ export const crmRouter = router({
   deleteTask: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'crm:write');
       const task = await ctx.tenantDb.task.delete({ where: { id: input.id } });
       await writeAudit(ctx, task.workspaceId, 'task.deleted', 'task', input.id);
+      return { id: input.id };
+    }),
+
+  /** Sales reports (H5): pure Postgres + pure math from @helio/core. */
+  salesReport: orgProcedure
+    .input(z.object({ workspaceId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const rows = await ctx.tenantDb.deal.findMany({
+        where: { workspaceId: input.workspaceId },
+        select: {
+          valueCents: true,
+          status: true,
+          ownerId: true,
+          createdAt: true,
+          closedAt: true,
+          currency: true,
+          stage: { select: { name: true } },
+        },
+        take: 20_000,
+      });
+      const deals: SalesDeal[] = rows.map((row) => ({
+        valueCents: row.valueCents,
+        status: row.status,
+        stageName: row.stage.name,
+        ownerId: row.ownerId,
+        createdAt: row.createdAt,
+        closedAt: row.closedAt,
+      }));
+      const leaderboard = ownerLeaderboard(deals);
+      const ownerIds = leaderboard
+        .map((row) => row.ownerId)
+        .filter((id): id is string => Boolean(id));
+      const users = ownerIds.length
+        ? await authDb.user.findMany({
+            where: { id: { in: ownerIds } },
+            select: { id: true, name: true, email: true },
+          })
+        : [];
+      const names = new Map(users.map((user) => [user.id, user.name || user.email]));
+      return {
+        currency: rows[0]?.currency ?? 'USD',
+        totalDeals: deals.length,
+        byStage: pipelineValueByStage(deals),
+        winRate: winRate(deals),
+        avgCycleDays: avgCycleDays(deals),
+        forecastCents: weightedForecastCents(deals),
+        leaderboard: leaderboard.map((row) => ({
+          owner: row.ownerId ? (names.get(row.ownerId) ?? row.ownerId) : null,
+          wonCents: row.wonCents,
+          wonCount: row.wonCount,
+        })),
+      };
+    }),
+
+  // ── Companies (H4): the B2B account object ─────────────────────────────
+
+  companies: orgProcedure
+    .input(
+      z.object({ workspaceId: z.string().min(1), search: z.string().trim().max(120).optional() }),
+    )
+    .query(({ ctx, input }) =>
+      ctx.tenantDb.company.findMany({
+        where: {
+          workspaceId: input.workspaceId,
+          ...(input.search
+            ? { name: { contains: input.search, mode: 'insensitive' as const } }
+            : {}),
+        },
+        orderBy: { name: 'asc' },
+        take: 200,
+        include: { _count: { select: { contacts: true, deals: true } } },
+      }),
+    ),
+
+  createCompany: orgProcedure
+    .input(
+      z.object({
+        workspaceId: z.string().min(1),
+        name: z.string().trim().min(1).max(160),
+        domain: z.string().trim().max(160).optional(),
+        industry: z.string().trim().max(120).optional(),
+        website: z.string().trim().url().max(300).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      try {
+        const company = await ctx.tenantDb.company.create({
+          data: {
+            id: newId('co'),
+            organizationId: ctx.organizationId,
+            workspaceId: input.workspaceId,
+            name: input.name,
+            domain: input.domain,
+            industry: input.industry,
+            website: input.website,
+          },
+        });
+        await writeAudit(ctx, input.workspaceId, 'company.created', 'company', company.id);
+        return { id: company.id };
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+          throw new TRPCError({ code: 'CONFLICT', message: 'A company with this name exists' });
+        }
+        throw error;
+      }
+    }),
+
+  updateCompany: orgProcedure
+    .input(
+      z.object({
+        id: z.string().min(1),
+        name: z.string().trim().min(1).max(160).optional(),
+        domain: z.string().trim().max(160).nullable().optional(),
+        industry: z.string().trim().max(120).nullable().optional(),
+        website: z.string().trim().url().max(300).nullable().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const { id, ...rest } = input;
+      const company = await ctx.tenantDb.company.update({ where: { id }, data: rest });
+      await writeAudit(ctx, company.workspaceId, 'company.updated', 'company', id);
+      return { id };
+    }),
+
+  deleteCompany: orgProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const company = await ctx.tenantDb.company.delete({ where: { id: input.id } });
+      await writeAudit(ctx, company.workspaceId, 'company.deleted', 'company', input.id);
+      return { id: input.id };
+    }),
+
+  setContactCompany: orgProcedure
+    .input(z.object({ contactId: z.string().min(1), companyId: z.string().min(1).nullable() }))
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const contact = await ctx.tenantDb.contact.update({
+        where: { id: input.contactId },
+        data: { companyId: input.companyId },
+      });
+      await writeAudit(ctx, contact.workspaceId, 'contact.company_changed', 'contact', contact.id, {
+        companyId: input.companyId,
+      });
+      return { id: contact.id };
+    }),
+
+  setDealCompany: orgProcedure
+    .input(z.object({ dealId: z.string().min(1), companyId: z.string().min(1).nullable() }))
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const deal = await ctx.tenantDb.deal.update({
+        where: { id: input.dealId },
+        data: { companyId: input.companyId },
+      });
+      await writeAudit(ctx, deal.workspaceId, 'deal.company_changed', 'deal', deal.id, {
+        companyId: input.companyId,
+      });
+      return { id: deal.id };
+    }),
+
+  // ── Notes (H2/H3): free text on a contact or a deal ────────────────────
+
+  createNote: orgProcedure
+    .input(
+      z
+        .object({
+          workspaceId: z.string().min(1),
+          contactId: z.string().min(1).optional(),
+          dealId: z.string().min(1).optional(),
+          body: z.string().trim().min(1).max(4000),
+        })
+        .refine((value) => value.contactId || value.dealId, {
+          message: 'A note needs a contact or a deal',
+        }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const note = await ctx.tenantDb.note.create({
+        data: {
+          id: newId('note'),
+          organizationId: ctx.organizationId,
+          workspaceId: input.workspaceId,
+          contactId: input.contactId,
+          dealId: input.dealId,
+          authorId: ctx.session.user.id,
+          body: input.body,
+        },
+      });
+      await writeAudit(ctx, input.workspaceId, 'note.created', 'note', note.id);
+      return { id: note.id };
+    }),
+
+  setNotePinned: orgProcedure
+    .input(z.object({ id: z.string().min(1), pinned: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const note = await ctx.tenantDb.note.update({
+        where: { id: input.id },
+        data: { pinned: input.pinned },
+      });
+      await writeAudit(ctx, note.workspaceId, 'note.pinned', 'note', note.id);
+      return { id: note.id, pinned: note.pinned };
+    }),
+
+  deleteNote: orgProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'crm:write');
+      const note = await ctx.tenantDb.note.delete({ where: { id: input.id } });
+      await writeAudit(ctx, note.workspaceId, 'note.deleted', 'note', input.id);
       return { id: input.id };
     }),
 });
@@ -369,6 +770,7 @@ async function writeAudit(
   action: string,
   targetType: string,
   targetId: string,
+  metadata?: Record<string, unknown>,
 ) {
   await ctx.tenantDb.auditLog.create({
     data: {
@@ -379,6 +781,7 @@ async function writeAudit(
       action,
       targetType,
       targetId,
+      metadata: metadata as never,
     },
   });
 }

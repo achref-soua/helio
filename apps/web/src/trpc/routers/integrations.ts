@@ -2,7 +2,10 @@ import { newId } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { writeAudit } from '@/lib/audit';
+import { sealRowSecret } from '@/lib/vault';
+
+import { orgProcedure, requirePermission, router } from '../init';
 
 const shopDomainSchema = z
   .string()
@@ -28,7 +31,7 @@ const instanceUrlSchema = z
  */
 export const integrationsRouter = router({
   list: orgProcedure.query(({ ctx }) => {
-    requireRole(ctx.memberRole, 'admin');
+    requirePermission(ctx.memberRole, 'settings:integrations');
     return ctx.tenantDb.integration.findMany({
       select: { id: true, provider: true, externalId: true, enabled: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
@@ -44,8 +47,18 @@ export const integrationsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:integrations');
       try {
+        // The envelope AAD binds the secret to its row id, so resolve the
+        // id before sealing (upsert would only reveal it afterwards).
+        const existing = await ctx.tenantDb.integration.findUnique({
+          where: {
+            organizationId_provider: { organizationId: ctx.organizationId, provider: 'SHOPIFY' },
+          },
+          select: { id: true },
+        });
+        const id = existing?.id ?? newId('intg');
+        const secret = await sealRowSecret(ctx.organizationId, id, 'secret', input.secret);
         const integration = await ctx.tenantDb.integration.upsert({
           where: {
             organizationId_provider: {
@@ -54,22 +67,41 @@ export const integrationsRouter = router({
             },
           },
           create: {
-            id: newId('intg'),
+            id,
             organizationId: ctx.organizationId,
             workspaceId: input.workspaceId,
             provider: 'SHOPIFY',
             externalId: input.shopDomain,
-            secret: input.secret,
+            secret,
           },
           update: {
             workspaceId: input.workspaceId,
             externalId: input.shopDomain,
-            secret: input.secret,
+            secret,
             enabled: true,
           },
         });
+        await writeAudit(ctx.tenantDb, {
+          organizationId: ctx.organizationId,
+          actorId: ctx.session.user.id,
+          action: 'integration.connected',
+          targetType: 'integration',
+          targetId: integration.id,
+          metadata: { kind: 'shopify' },
+        });
+        await writeAudit(ctx.tenantDb, {
+          organizationId: ctx.organizationId,
+          actorId: ctx.session.user.id,
+          action: 'integration.connected',
+          targetType: 'integration',
+          targetId: integration.id,
+          metadata: { kind: 'salesforce' },
+        });
         return { id: integration.id };
-      } catch {
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('HELIO_ENCRYPTION_KEY')) {
+          throw new TRPCError({ code: 'PRECONDITION_FAILED', message: error.message });
+        }
         // Unique (provider, externalId) — the shop is wired to another org.
         throw new TRPCError({
           code: 'CONFLICT',
@@ -87,22 +119,38 @@ export const integrationsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:integrations');
+      const existing = await ctx.tenantDb.integration.findUnique({
+        where: {
+          organizationId_provider: { organizationId: ctx.organizationId, provider: 'SALESFORCE' },
+        },
+        select: { id: true },
+      });
+      const id = existing?.id ?? newId('intg');
+      let secret: string;
+      try {
+        secret = await sealRowSecret(ctx.organizationId, id, 'secret', input.accessToken);
+      } catch (error) {
+        throw new TRPCError({
+          code: 'PRECONDITION_FAILED',
+          message: error instanceof Error ? error.message : 'encryption key missing',
+        });
+      }
       const integration = await ctx.tenantDb.integration.upsert({
         where: {
           organizationId_provider: { organizationId: ctx.organizationId, provider: 'SALESFORCE' },
         },
         create: {
-          id: newId('intg'),
+          id,
           organizationId: ctx.organizationId,
           workspaceId: input.workspaceId,
           provider: 'SALESFORCE',
-          secret: input.accessToken,
+          secret,
           config: { instanceUrl: input.instanceUrl },
         },
         update: {
           workspaceId: input.workspaceId,
-          secret: input.accessToken,
+          secret,
           config: { instanceUrl: input.instanceUrl },
           enabled: true,
         },
@@ -113,21 +161,36 @@ export const integrationsRouter = router({
   setEnabled: orgProcedure
     .input(z.object({ id: z.string().min(1), enabled: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:integrations');
       const { count } = await ctx.tenantDb.integration.updateMany({
         where: { id: input.id },
         data: { enabled: input.enabled },
       });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'integration.toggled',
+        targetType: 'integration',
+        targetId: input.id,
+        metadata: { enabled: input.enabled },
+      });
       return { id: input.id };
     }),
 
   disconnect: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:integrations');
       const { count } = await ctx.tenantDb.integration.deleteMany({ where: { id: input.id } });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'integration.disconnected',
+        targetType: 'integration',
+        targetId: input.id,
+      });
       return { ok: true };
     }),
 });

@@ -5,7 +5,10 @@ import { dkimPasses, dmarcPasses, isLikelyDomain, newId, spfPasses } from '@heli
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { writeAudit } from '@/lib/audit';
+import { sealRowSecret, vaultReady } from '@/lib/vault';
+
+import { orgProcedure, requirePermission, router } from '../init';
 
 /** An RSA-2048 DKIM key pair: a PEM private key and the base64 DER public key. */
 function generateDkimKeys() {
@@ -57,19 +60,32 @@ export const deliverabilityRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:deliverability');
       const keys = generateDkimKeys();
+      const id = newId('dom');
+      // Seal the private key at rest when the vault is configured; rows
+      // created before the vault existed stay readable via openRowSecret.
+      const dkimPrivateKey = vaultReady()
+        ? await sealRowSecret(ctx.organizationId, id, 'dkimPrivateKey', keys.privateKey)
+        : keys.privateKey;
       try {
         const created = await ctx.tenantDb.sendingDomain.create({
           data: {
-            id: newId('dom'),
+            id,
             organizationId: ctx.organizationId,
             workspaceId: input.workspaceId,
             domain: input.domain,
             dkimPublicKey: keys.publicKey,
-            dkimPrivateKey: keys.privateKey,
+            dkimPrivateKey,
             spfInclude: input.spfInclude || null,
           },
+        });
+        await writeAudit(ctx.tenantDb, {
+          organizationId: ctx.organizationId,
+          actorId: ctx.session.user.id,
+          action: 'sending_domain.added',
+          targetType: 'sending_domain',
+          targetId: created.id,
         });
         return { id: created.id };
       } catch {
@@ -80,7 +96,7 @@ export const deliverabilityRouter = router({
   verify: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:deliverability');
       const domain = await ctx.tenantDb.sendingDomain.findUnique({ where: { id: input.id } });
       if (!domain) throw new TRPCError({ code: 'NOT_FOUND' });
 
@@ -102,15 +118,30 @@ export const deliverabilityRouter = router({
           verifiedAt: verified ? new Date() : null,
         },
       });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'sending_domain.verified',
+        targetType: 'sending_domain',
+        targetId: input.id,
+        metadata: { verified },
+      });
       return { checks, verified };
     }),
 
   remove: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:deliverability');
       const { count } = await ctx.tenantDb.sendingDomain.deleteMany({ where: { id: input.id } });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'sending_domain.removed',
+        targetType: 'sending_domain',
+        targetId: input.id,
+      });
       return { ok: true };
     }),
 });

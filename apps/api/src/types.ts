@@ -1,16 +1,8 @@
-import type { Plan } from '@helio/core';
 import type { PrismaClient } from '@helio/db';
 import type { Redis } from 'ioredis';
 
 /** Minimal Redis surface the gateway needs — satisfied by ioredis and mocks. */
 export type RedisLike = Pick<Redis, 'incr' | 'expire' | 'get' | 'set' | 'ping' | 'ttl'>;
-
-/** Stripe billing config; absent on self-hosted/unbilled deployments. */
-export interface StripeConfig {
-  webhookSecret: string;
-  /** Stripe price id → Helio plan, for subscription events. */
-  priceToPlan: Record<string, Plan>;
-}
 
 /** Bounce/complaint webhook config; absent disables the endpoint (404). */
 export interface EmailWebhookConfig {
@@ -24,14 +16,19 @@ export interface GatewayDeps {
   prisma: PrismaClient;
   redis: RedisLike;
   rateLimit: { max: number; windowSeconds: number };
-  stripe?: StripeConfig;
   emailWebhook?: EmailWebhookConfig;
+  /** Twilio delivery-status callback config; absent disables it (404). */
+  smsWebhook?: { token: string };
+  /** Deployment encryption key(s) for sealed integration secrets. */
+  vault?: { key: string; previousKey?: string };
 }
 
 export interface GatewayVariables {
   requestId: string;
   /** The organization resolved from the API key; set by apiKeyAuth on /v1. */
   organizationId: string;
+  /** The presenting API key's grants (M2). */
+  scopes: string[];
 }
 
 export type GatewayEnv = { Variables: GatewayVariables };

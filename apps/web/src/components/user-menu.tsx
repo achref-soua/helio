@@ -14,6 +14,7 @@ import { LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
+import { playSunset } from '@/components/sun-splash';
 import { authClient, useSession } from '@/lib/auth-client';
 
 export function UserMenu() {
@@ -45,6 +46,9 @@ export function UserMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={async () => {
+            // The day ends before the session does: play the sunset, then
+            // sign out under its final frame so the dashboard never flashes.
+            await playSunset();
             await authClient.signOut();
             router.push('/login');
             router.refresh();

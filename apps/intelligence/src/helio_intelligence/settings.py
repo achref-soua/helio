@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import SecretStr
+from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     the INTEL_ prefix keeps them clearly owned by this service.
     """
 
-    model_config = SettingsConfigDict(env_prefix="INTEL_", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="INTEL_", extra="ignore", populate_by_name=True)
 
     port: int = 8000
     log_level: str = "info"
@@ -39,6 +39,28 @@ class Settings(BaseSettings):
     # non-local endpoint. Local hosts (localhost/127.0.0.1) are exempt so
     # self-hosted LLMs work out of the box.
     llm_require_tls: bool = True
+
+    # BYO churn models: where uploaded artifacts live, and whether HTTP
+    # model endpoints may resolve to private addresses (the self-host
+    # bundle enables this — LAN model servers are the normal case there).
+    models_path: str = "/var/lib/helio/models"
+    allow_private_model_endpoints: bool = False
+
+    # The deployment's credential-vault key (ADR-0019) — deliberately NOT
+    # INTEL_-prefixed: it is the same key every Helio service shares. When
+    # set (with the database), organizations that connected an AI provider
+    # in Settings use their own key/model; the INTEL_LLM_* values above
+    # become the deployment fallback.
+    encryption_key: SecretStr = Field(
+        SecretStr(""),
+        validation_alias=AliasChoices("HELIO_ENCRYPTION_KEY", "INTEL_ENCRYPTION_KEY"),
+    )
+    encryption_key_previous: SecretStr = Field(
+        SecretStr(""),
+        validation_alias=AliasChoices(
+            "HELIO_ENCRYPTION_KEY_PREVIOUS", "INTEL_ENCRYPTION_KEY_PREVIOUS"
+        ),
+    )
 
     # MCP server scope: the single workspace external agents may drive.
     # The server refuses to start without both (it would have no tenant).
@@ -75,4 +97,6 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    # The pydantic-mypy plugin treats alias-bearing fields as required init
+    # args even with defaults; they are env-sourced like everything else.
+    return Settings()  # type: ignore[call-arg]

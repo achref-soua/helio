@@ -18,6 +18,18 @@ export const env = createEnv({
   TEMPORAL_NAMESPACE: z.string().min(1).default('default'),
   // Verifies the stateless unsubscribe tokens minted by the senders.
   UNSUBSCRIBE_SECRET: z.string().min(24),
+  // Seals per-org provider credentials at rest (base64 of 32 bytes; the
+  // installer generates it). The vault is disabled until set. During a
+  // key rotation the previous key stays readable via _PREVIOUS.
+  HELIO_ENCRYPTION_KEY: z.string().optional(),
+  HELIO_ENCRYPTION_KEY_PREVIOUS: z.string().optional(),
+  // The backups panel (Settings) — enabled in the self-host bundle, where
+  // the sidecar's folder is mounted read-only at this path.
+  BACKUPS_PANEL_ENABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  HELIO_BACKUPS_PATH: z.string().default('/var/lib/helio/backups'),
   // Analytics reads (full profile); callers degrade gracefully without it.
   CLICKHOUSE_URL: z.string().min(1).default('http://localhost:8123'),
   CLICKHOUSE_USER: z.string().min(1).default('helio'),
@@ -26,6 +38,18 @@ export const env = createEnv({
   // The intelligence service (AI copilot). The BFF authenticates the user
   // and forwards the verified org/workspace; this is the only caller.
   INTELLIGENCE_URL: z.string().min(1).default('http://localhost:8000'),
+  // Sibling services + stores for the admin health page (G5). HTTP ones
+  // answer /healthz; Redis/Temporal get a TCP reachability probe.
+  API_URL: z.string().min(1).default('http://localhost:4000'),
+  INGEST_URL: z.string().min(1).default('http://localhost:4100'),
+  TRACKING_URL: z.string().min(1).default('http://localhost:4200'),
+  REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
+  // Self-hosted instances are invite-only once set up; flip to 'true' to
+  // accept stranger signups (the dev default keeps local flows easy).
+  ALLOW_PUBLIC_SIGNUP: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
   // Per-replica abuse damping on the public, unauthenticated endpoints
   // (forms, booking, widget/in-app delivery, SCIM). Disable for load tests.
   PUBLIC_RATE_LIMITS_ENABLED: z

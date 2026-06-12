@@ -1,6 +1,7 @@
 'use client';
 
 import type { EmailDocument, JourneyDefinition, SegmentRule } from '@helio/core';
+import { describeSegmentRule, summarizeJourney } from '@helio/core';
 import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
 import {
@@ -12,8 +13,22 @@ import {
 } from '@helio/ui/components/card';
 import { Input } from '@helio/ui/components/input';
 import { Skeleton } from '@helio/ui/components/skeleton';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bot, Mail, Send, Sparkles, User, Workflow } from 'lucide-react';
+import { cn } from '@helio/ui/lib/utils';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Bot,
+  Clock,
+  CornerDownRight,
+  Flag,
+  Mail,
+  Route,
+  Send,
+  Sparkles,
+  Split,
+  Workflow,
+  Zap,
+} from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -24,6 +39,49 @@ import { useTRPC } from '@/trpc/client';
 interface ChatTurn {
   role: 'user' | 'assistant';
   content: string;
+}
+
+const SUGGESTION_KEYS = ['contacts', 'journeys', 'engagement'] as const;
+
+/** The copilot's mark: a gold-lit avatar chip. */
+function CopilotMark({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        'bg-primary/12 text-primary ring-primary/20 inline-flex size-7 shrink-0 items-center justify-center rounded-full ring-1',
+        className,
+      )}
+      aria-hidden
+    >
+      <Bot className="size-4" />
+    </span>
+  );
+}
+
+function ProviderChip() {
+  const t = useTranslations('copilot');
+  const trpc = useTRPC();
+  const providerInfo = useQuery(trpc.copilot.providerInfo.queryOptions());
+  if (!providerInfo.data) return null;
+  // An unconfigured deployment must never advertise the env defaults as a
+  // working model — point at Settings instead.
+  if (!providerInfo.data.configured) {
+    return (
+      <Badge variant="outline" data-testid="copilot-provider" asChild>
+        <Link href="/settings">
+          {t('providerNotConfigured')} · {t('providerConnectCta')}
+        </Link>
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="secondary" data-testid="copilot-provider">
+      {t(
+        providerInfo.data.source === 'organization' ? 'providerOrganization' : 'providerDeployment',
+        { provider: providerInfo.data.provider, model: providerInfo.data.model },
+      )}
+    </Badge>
+  );
 }
 
 export function CopilotView() {
@@ -58,9 +116,10 @@ export function CopilotView() {
   const createJourney = useMutation(trpc.journey.create.mutationOptions());
   const createEmail = useMutation(trpc.emailTemplate.create.mutationOptions());
 
-  async function onSend() {
-    if (!workspaceId || !draft.trim()) return;
-    const next: ChatTurn[] = [...turns, { role: 'user', content: draft.trim() }];
+  async function onSend(text?: string) {
+    const content = (text ?? draft).trim();
+    if (!workspaceId || !content) return;
+    const next: ChatTurn[] = [...turns, { role: 'user', content }];
     setTurns(next);
     setDraft('');
     try {
@@ -159,48 +218,83 @@ export function CopilotView() {
   }
 
   return (
-    <div className="grid gap-4">
-      <div className="flex items-center gap-2">
-        <Sparkles className="text-primary size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
-        <Badge variant="outline">{t('beta')}</Badge>
+    <div className="bg-radiant -m-6 grid gap-6 p-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="grid gap-1">
+          <h1 className="font-display flex items-center gap-2.5 text-3xl font-semibold tracking-tight">
+            <span className="relative inline-flex" aria-hidden>
+              <Sparkles className="text-primary size-6" />
+              <span className="bg-primary/25 absolute inset-0 -z-10 rounded-full blur-md" />
+            </span>
+            {t('title')}
+          </h1>
+          <p className="text-muted-foreground max-w-2xl text-sm">{t('subtitle')}</p>
+        </div>
+        <ProviderChip />
       </div>
-      <p className="text-muted-foreground -mt-2 text-sm">{t('subtitle')}</p>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="lg:row-span-2" data-testid="copilot-chat">
+      <div className="grid gap-4 lg:grid-cols-5">
+        <Card className="lg:col-span-3" data-testid="copilot-chat">
           <CardHeader>
-            <CardTitle className="text-base">{t('chatTitle')}</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <CopilotMark />
+              {t('chatTitle')}
+            </CardTitle>
             <CardDescription>{t('chatSubtitle')}</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3">
-            <div className="grid max-h-[420px] gap-3 overflow-y-auto">
+          <CardContent className="grid flex-1 content-between gap-4">
+            <div className="grid max-h-[58svh] min-h-[38svh] content-start gap-3 overflow-y-auto">
               {turns.length === 0 ? (
-                <p className="text-muted-foreground py-8 text-center text-sm">{t('chatEmpty')}</p>
+                <div className="grid justify-items-center gap-3 py-10 text-center">
+                  <p className="text-muted-foreground text-sm">{t('chatEmpty')}</p>
+                  <p className="text-muted-foreground/70 text-[11px] font-medium tracking-wider uppercase">
+                    {t('suggestionsLabel')}
+                  </p>
+                  <div className="flex max-w-md flex-wrap justify-center gap-2">
+                    {SUGGESTION_KEYS.map((key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => void onSend(t(`suggestions.${key}`))}
+                        className="border-primary/25 text-foreground/80 hover:border-primary/50 hover:bg-primary/8 rounded-full border px-3 py-1.5 text-xs transition-colors"
+                      >
+                        {t(`suggestions.${key}`)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ) : (
                 turns.map((turn, index) => (
                   <div
                     key={index}
-                    className="flex items-start gap-2 text-sm"
+                    className={cn(
+                      'flex items-start gap-2.5 text-sm',
+                      turn.role === 'user' && 'flex-row-reverse',
+                    )}
                     data-testid={`turn-${turn.role}`}
                   >
-                    {turn.role === 'user' ? (
-                      <User className="mt-0.5 size-4 shrink-0" aria-hidden />
-                    ) : (
-                      <Bot className="text-primary mt-0.5 size-4 shrink-0" aria-hidden />
-                    )}
-                    <span className="whitespace-pre-wrap">{turn.content}</span>
+                    {turn.role === 'assistant' && <CopilotMark className="mt-0.5" />}
+                    <span
+                      className={cn(
+                        'max-w-[85%] rounded-2xl px-3.5 py-2 whitespace-pre-wrap',
+                        turn.role === 'user'
+                          ? 'bg-primary/12 rounded-tr-sm'
+                          : 'bg-muted/60 rounded-tl-sm border',
+                      )}
+                    >
+                      {turn.content}
+                    </span>
                   </div>
                 ))
               )}
               {chat.isPending && (
-                <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                  <Bot className="size-4 animate-pulse" aria-hidden /> {t('thinking')}
+                <div className="text-muted-foreground flex items-center gap-2.5 text-sm">
+                  <CopilotMark className="animate-pulse" /> {t('thinking')}
                 </div>
               )}
             </div>
             <form
-              className="flex gap-2"
+              className="bg-background/60 flex items-center gap-2 rounded-xl border p-1.5 pl-3"
               onSubmit={(event) => {
                 event.preventDefault();
                 void onSend();
@@ -211,10 +305,11 @@ export function CopilotView() {
                 placeholder={t('chatPlaceholder')}
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
+                className="h-8 border-0 bg-transparent! p-0 shadow-none focus-visible:ring-0"
               />
               <Button
                 type="submit"
-                size="icon"
+                size="icon-sm"
                 aria-label={t('send')}
                 disabled={chat.isPending || !draft.trim()}
               >
@@ -224,119 +319,235 @@ export function CopilotView() {
           </CardContent>
         </Card>
 
-        <Card data-testid="copilot-segment">
-          <CardHeader>
-            <CardTitle className="text-base">{t('segmentTitle')}</CardTitle>
-            <CardDescription>{t('segmentSubtitle')}</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-2">
-            <div className="flex gap-2">
-              <Input
-                aria-label={t('segmentPlaceholder')}
-                placeholder={t('segmentPlaceholder')}
-                value={segmentPrompt}
-                onChange={(event) => setSegmentPrompt(event.target.value)}
-              />
-              <Button
-                onClick={onDraftSegment}
-                disabled={draftSegment.isPending || !segmentPrompt.trim()}
-              >
-                <Sparkles aria-hidden /> {t('draft')}
-              </Button>
-            </div>
-            {segmentDraft && (
-              <div
-                className="bg-muted/40 grid gap-2 rounded-md border p-3"
-                data-testid="segment-draft"
-              >
-                <span className="text-sm font-medium">{segmentDraft.name}</span>
-                <pre className="text-muted-foreground max-h-40 overflow-auto text-xs">
-                  {JSON.stringify(segmentDraft.rule, null, 2)}
-                </pre>
-                <Button size="sm" onClick={onCreateSegment} disabled={createSegment.isPending}>
-                  {t('createSegment')}
+        <div className="grid content-start gap-4 lg:col-span-2">
+          <Card data-testid="copilot-segment">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <span className="bg-primary/12 text-primary inline-flex size-7 items-center justify-center rounded-md">
+                  <Route className="size-3.5" aria-hidden />
+                </span>
+                {t('segmentTitle')}
+              </CardTitle>
+              <CardDescription>{t('segmentSubtitle')}</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-2">
+              <div className="flex gap-2">
+                <Input
+                  aria-label={t('segmentPlaceholder')}
+                  placeholder={t('segmentPlaceholder')}
+                  value={segmentPrompt}
+                  onChange={(event) => setSegmentPrompt(event.target.value)}
+                />
+                <Button
+                  onClick={onDraftSegment}
+                  disabled={draftSegment.isPending || !segmentPrompt.trim()}
+                >
+                  <Sparkles aria-hidden /> {t('draft')}
                 </Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              {segmentDraft && (
+                <div
+                  className="bg-muted/40 grid gap-2 rounded-lg border p-3"
+                  data-testid="segment-draft"
+                >
+                  <Input
+                    aria-label={t('draftNameLabel')}
+                    className="h-8 max-w-60 text-sm font-medium"
+                    value={segmentDraft.name}
+                    maxLength={120}
+                    onChange={(event) =>
+                      setSegmentDraft((current) =>
+                        current ? { ...current, name: event.target.value } : current,
+                      )
+                    }
+                  />
+                  <p
+                    className="bg-background/60 rounded-md border p-2.5 text-sm leading-relaxed"
+                    data-testid="segment-draft-summary"
+                  >
+                    {describeSegmentRule(segmentDraft.rule)}
+                  </p>
+                  <Button size="sm" onClick={onCreateSegment} disabled={createSegment.isPending}>
+                    {t('createSegment')}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card data-testid="copilot-journey">
-          <CardHeader>
-            <CardTitle className="text-base">{t('journeyTitle')}</CardTitle>
-            <CardDescription>{t('journeySubtitle')}</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-2">
-            <div className="flex gap-2">
-              <Input
-                aria-label={t('journeyPlaceholder')}
-                placeholder={t('journeyPlaceholder')}
-                value={journeyPrompt}
-                onChange={(event) => setJourneyPrompt(event.target.value)}
-              />
-              <Button
-                onClick={onDraftJourney}
-                disabled={draftJourney.isPending || !journeyPrompt.trim()}
-              >
-                <Sparkles aria-hidden /> {t('draft')}
-              </Button>
-            </div>
-            {journeyDraft && (
-              <div
-                className="bg-muted/40 grid gap-2 rounded-md border p-3"
-                data-testid="journey-draft"
-              >
-                <span className="flex items-center gap-1 text-sm font-medium">
-                  <Workflow className="size-3.5" aria-hidden /> {journeyDraft.name}
+          <Card data-testid="copilot-journey">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <span className="bg-primary/12 text-primary inline-flex size-7 items-center justify-center rounded-md">
+                  <Workflow className="size-3.5" aria-hidden />
                 </span>
-                <span className="text-muted-foreground text-xs">
-                  {t('journeySteps', { count: journeyDraft.definition.nodes.length })}
-                </span>
-                <Button size="sm" onClick={onCreateJourney} disabled={createJourney.isPending}>
-                  {t('createJourney')}
+                {t('journeyTitle')}
+              </CardTitle>
+              <CardDescription>{t('journeySubtitle')}</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-2">
+              <div className="flex gap-2">
+                <Input
+                  aria-label={t('journeyPlaceholder')}
+                  placeholder={t('journeyPlaceholder')}
+                  value={journeyPrompt}
+                  onChange={(event) => setJourneyPrompt(event.target.value)}
+                />
+                <Button
+                  onClick={onDraftJourney}
+                  disabled={draftJourney.isPending || !journeyPrompt.trim()}
+                >
+                  <Sparkles aria-hidden /> {t('draft')}
                 </Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              {journeyDraft && (
+                <div
+                  className="bg-muted/40 grid gap-2 rounded-lg border p-3"
+                  data-testid="journey-draft"
+                >
+                  <span className="flex items-center gap-1 text-sm font-medium">
+                    <Workflow className="size-3.5" aria-hidden />
+                    <Input
+                      aria-label={t('draftNameLabel')}
+                      className="h-8 max-w-60 text-sm font-medium"
+                      value={journeyDraft.name}
+                      maxLength={120}
+                      onChange={(event) =>
+                        setJourneyDraft((current) =>
+                          current ? { ...current, name: event.target.value } : current,
+                        )
+                      }
+                    />
+                  </span>
+                  <span className="text-muted-foreground text-xs">
+                    {t('journeySteps', { count: journeyDraft.definition.nodes.length })}
+                  </span>
+                  <JourneyFlowPreview definition={journeyDraft.definition} />
+                  <Button size="sm" onClick={onCreateJourney} disabled={createJourney.isPending}>
+                    {t('createJourney')}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card data-testid="copilot-email">
-          <CardHeader>
-            <CardTitle className="text-base">{t('emailTitle')}</CardTitle>
-            <CardDescription>{t('emailSubtitle')}</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-2">
-            <div className="flex gap-2">
-              <Input
-                aria-label={t('emailPlaceholder')}
-                placeholder={t('emailPlaceholder')}
-                value={emailPrompt}
-                onChange={(event) => setEmailPrompt(event.target.value)}
-              />
-              <Button onClick={onDraftEmail} disabled={draftEmail.isPending || !emailPrompt.trim()}>
-                <Sparkles aria-hidden /> {t('draft')}
-              </Button>
-            </div>
-            {emailDraft && (
-              <div
-                className="bg-muted/40 grid gap-2 rounded-md border p-3"
-                data-testid="email-draft"
-              >
-                <span className="flex items-center gap-1 text-sm font-medium">
-                  <Mail className="size-3.5" aria-hidden /> {emailDraft.name}
+          <Card data-testid="copilot-email">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <span className="bg-primary/12 text-primary inline-flex size-7 items-center justify-center rounded-md">
+                  <Mail className="size-3.5" aria-hidden />
                 </span>
-                <span className="text-muted-foreground text-xs">{emailDraft.subject}</span>
-                <span className="text-muted-foreground text-xs">
-                  {t('emailBlocks', { count: emailDraft.document.blocks.length })}
-                </span>
-                <Button size="sm" onClick={onCreateEmail} disabled={createEmail.isPending}>
-                  {t('createEmail')}
+                {t('emailTitle')}
+              </CardTitle>
+              <CardDescription>{t('emailSubtitle')}</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-2">
+              <div className="flex gap-2">
+                <Input
+                  aria-label={t('emailPlaceholder')}
+                  placeholder={t('emailPlaceholder')}
+                  value={emailPrompt}
+                  onChange={(event) => setEmailPrompt(event.target.value)}
+                />
+                <Button
+                  onClick={onDraftEmail}
+                  disabled={draftEmail.isPending || !emailPrompt.trim()}
+                >
+                  <Sparkles aria-hidden /> {t('draft')}
                 </Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              {emailDraft && (
+                <div
+                  className="bg-muted/40 grid gap-2 rounded-lg border p-3"
+                  data-testid="email-draft"
+                >
+                  <span className="flex items-center gap-1 text-sm font-medium">
+                    <Mail className="size-3.5" aria-hidden />
+                    <Input
+                      aria-label={t('draftNameLabel')}
+                      className="h-8 max-w-60 text-sm font-medium"
+                      value={emailDraft.name}
+                      maxLength={120}
+                      onChange={(event) =>
+                        setEmailDraft((current) =>
+                          current ? { ...current, name: event.target.value } : current,
+                        )
+                      }
+                    />
+                  </span>
+                  <span className="text-muted-foreground text-xs">{emailDraft.subject}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {t('emailBlocks', { count: emailDraft.document.blocks.length })}
+                  </span>
+                  <EmailDraftPreview subject={emailDraft.subject} document={emailDraft.document} />
+                  <Button size="sm" onClick={onCreateEmail} disabled={createEmail.isPending}>
+                    {t('createEmail')}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
+  );
+}
+
+const STEP_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  send_email: Mail,
+  send_sms: Send,
+  send_whatsapp: Send,
+  send_push: Send,
+  send_in_app: Send,
+  wait: Clock,
+  branch: Split,
+  ab_split: Split,
+  update_trait: Zap,
+  webhook: Zap,
+  end: Flag,
+};
+
+/** The drafted journey as a readable flow — what each step does, in
+ *  order, with the branch labels that lead there. */
+function JourneyFlowPreview({ definition }: { definition: JourneyDefinition }) {
+  const steps = summarizeJourney(definition);
+  return (
+    <ol className="grid gap-1" data-testid="journey-draft-steps">
+      {steps.map((step, index) => {
+        const Icon = STEP_ICONS[step.type] ?? Zap;
+        return (
+          <li key={step.id} className="flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground w-4 text-right tabular-nums">{index + 1}</span>
+            <span className="bg-primary/12 text-primary inline-flex size-5 shrink-0 items-center justify-center rounded">
+              <Icon className="size-3" aria-hidden />
+            </span>
+            <span className="truncate">{step.summary}</span>
+            {step.via && (
+              <span className="text-muted-foreground inline-flex items-center gap-0.5 text-[10px] tracking-wide uppercase">
+                <CornerDownRight className="size-3" aria-hidden />
+                {step.via}
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** The drafted email through the real send-path renderer. */
+function EmailDraftPreview({ subject, document }: { subject: string; document: EmailDocument }) {
+  const t = useTranslations('copilot');
+  const trpc = useTRPC();
+  const preview = useQuery(trpc.emailTemplate.preview.queryOptions({ subject, document }));
+  if (!preview.data) return null;
+  return (
+    <iframe
+      title={t('emailPreviewTitle')}
+      sandbox=""
+      srcDoc={preview.data.html}
+      className="h-64 w-full rounded-md border bg-white"
+      data-testid="email-draft-preview"
+    />
   );
 }

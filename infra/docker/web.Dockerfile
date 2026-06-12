@@ -13,11 +13,17 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN BETTER_AUTH_SECRET=build-time-placeholder-secret-0000 \
     DATABASE_URL=postgresql://build:build@localhost:5432/build \
     DATABASE_ADMIN_URL=postgresql://build:build@localhost:5432/build \
+    UNSUBSCRIBE_SECRET=build-time-placeholder-secret-0000 \
     pnpm --filter @helio/web build
 
 FROM node:24-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# Release identity baked at build time; surfaced on /healthz and in the UI.
+ARG HELIO_VERSION
+ARG HELIO_COMMIT
+ENV HELIO_VERSION=$HELIO_VERSION \
+    HELIO_COMMIT=$HELIO_COMMIT
 RUN groupadd --system helio && useradd --system --gid helio helio \
     && apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*

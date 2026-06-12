@@ -21,6 +21,12 @@ const CONFIG = {
   webhookSecret: 'webhook-secret-for-tests-000001',
 };
 
+/** Static resolution: every org sends through the test double. */
+function senderFor(emailProvider: InMemoryEmailProvider) {
+  return () =>
+    Promise.resolve({ provider: emailProvider, from: CONFIG.mailFrom, viaOrgCredential: false });
+}
+
 describe('journey activities + trigger enrollment against Postgres', () => {
   let container: StartedPostgreSqlContainer;
   let prisma: PrismaClient;
@@ -46,7 +52,7 @@ describe('journey activities + trigger enrollment against Postgres', () => {
     });
     prisma = createPrismaClient(adminUrl);
     provider = new InMemoryEmailProvider();
-    activities = createJourneyActivities(prisma, provider, CONFIG);
+    activities = createJourneyActivities(prisma, senderFor(provider), CONFIG);
 
     await prisma.organization.create({ data: { id: orgId, name: 'J', slug: 'journeys' } });
     await prisma.workspace.create({
@@ -177,7 +183,7 @@ describe('journey activities + trigger enrollment against Postgres', () => {
   describe('sendJourneyPush', () => {
     it('delivers to live subscriptions, prunes dead ones, skips suppressed', async () => {
       const push = new InMemoryPushProvider();
-      const pushActivities = createJourneyActivities(prisma, provider, CONFIG, push);
+      const pushActivities = createJourneyActivities(prisma, senderFor(provider), CONFIG, push);
 
       // Two subscriptions for ada; one will be reported gone.
       await prisma.pushSubscription.createMany({

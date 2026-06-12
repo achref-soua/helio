@@ -13,7 +13,7 @@ import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
 import { Skeleton } from '@helio/ui/components/skeleton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClipboardCopy, FileText, Plus, Trash2 } from 'lucide-react';
+import { ClipboardCopy, Eye, FileText, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -30,6 +30,8 @@ export function FormsView() {
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState('');
   const [title, setTitle] = useState('');
+  // The hosted page itself, framed — zero drift from what visitors see.
+  const [previewId, setPreviewId] = useState<string | null>(null);
 
   const formsQuery = useQuery({
     ...trpc.form.list.queryOptions({ workspaceId: workspaceId ?? '' }),
@@ -78,7 +80,7 @@ export function FormsView() {
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight">{t('title')}</h1>
         <Badge variant="outline">{t('total', { count: forms.length })}</Badge>
         <div className="ml-auto">
           <Button size="sm" onClick={() => setCreateOpen(true)}>
@@ -157,17 +159,35 @@ export function FormsView() {
                   <FileText className="size-3.5" aria-hidden /> {form.title}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex items-center gap-2">
-                <code className="text-muted-foreground truncate text-xs">/f/{form.id}</code>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="ml-auto"
-                  onClick={() => copyLink(form.id)}
-                  aria-label={t('copyLink', { name: form.name })}
-                >
-                  <ClipboardCopy aria-hidden /> {t('copy')}
-                </Button>
+              <CardContent className="grid gap-3">
+                <div className="flex items-center gap-2">
+                  <code className="text-muted-foreground truncate text-xs">/f/{form.id}</code>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="ml-auto"
+                    onClick={() => setPreviewId(previewId === form.id ? null : form.id)}
+                    data-testid="form-preview-toggle"
+                  >
+                    <Eye aria-hidden /> {previewId === form.id ? t('hidePreview') : t('preview')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyLink(form.id)}
+                    aria-label={t('copyLink', { name: form.name })}
+                  >
+                    <ClipboardCopy aria-hidden /> {t('copy')}
+                  </Button>
+                </div>
+                {previewId === form.id && (
+                  <iframe
+                    title={t('preview')}
+                    src={`/f/${form.id}`}
+                    className="bg-background h-72 w-full rounded-md border"
+                    data-testid="form-preview"
+                  />
+                )}
               </CardContent>
             </Card>
           ))

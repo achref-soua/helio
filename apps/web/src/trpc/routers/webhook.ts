@@ -2,7 +2,9 @@ import { generateWebhookSecret, newId, signWebhookPayload, webhookEventSchema } 
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { writeAudit } from '@/lib/audit';
+
+import { orgProcedure, requirePermission, router } from '../init';
 
 /** A reachable http(s) endpoint, capped to keep stored rows sane. */
 const webhookUrlSchema = z
@@ -22,7 +24,7 @@ const eventsSchema = z.array(webhookEventSchema).min(1).max(20);
  */
 export const webhookRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
-    requireRole(ctx.memberRole, 'admin');
+    requirePermission(ctx.memberRole, 'settings:webhooks');
     return ctx.tenantDb.webhookEndpoint.findMany({
       select: {
         id: true,
@@ -45,7 +47,7 @@ export const webhookRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:webhooks');
       const secret = generateWebhookSecret();
       const endpoint = await ctx.tenantDb.webhookEndpoint.create({
         data: {
@@ -58,6 +60,13 @@ export const webhookRouter = router({
         },
       });
       // The plaintext secret is shown to the operator exactly once.
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'webhook.created',
+        targetType: 'webhook_endpoint',
+        targetId: endpoint.id,
+      });
       return { id: endpoint.id, secret };
     }),
 
@@ -72,7 +81,7 @@ export const webhookRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:webhooks');
       const { id, ...rest } = input;
       const { count } = await ctx.tenantDb.webhookEndpoint.updateMany({
         where: { id },
@@ -84,15 +93,29 @@ export const webhookRouter = router({
         },
       });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'webhook.updated',
+        targetType: 'webhook_endpoint',
+        targetId: id,
+      });
       return { id };
     }),
 
   remove: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:webhooks');
       const { count } = await ctx.tenantDb.webhookEndpoint.deleteMany({ where: { id: input.id } });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'webhook.deleted',
+        targetType: 'webhook_endpoint',
+        targetId: input.id,
+      });
       return { ok: true };
     }),
 
@@ -101,7 +124,7 @@ export const webhookRouter = router({
   sendTest: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:webhooks');
       const endpoint = await ctx.tenantDb.webhookEndpoint.findUnique({ where: { id: input.id } });
       if (!endpoint) throw new TRPCError({ code: 'NOT_FOUND' });
       const body = JSON.stringify({

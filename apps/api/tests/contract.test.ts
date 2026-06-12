@@ -24,6 +24,7 @@ describe('gateway contract', () => {
   // API keys minted for each org; the bearer carries the org, so requests
   // never name it. Assigned in beforeAll once the orgs exist.
   let auth: Record<string, string>;
+  let readOnlyAuth: Record<string, string>;
   let otherAuth: Record<string, string>;
   // A dedicated credential for the rate-limit test: ioredis-mock shares one
   // keyspace across instances, so a key used nowhere else gets its own bucket.
@@ -54,6 +55,7 @@ describe('gateway contract', () => {
     const orgKeyParts = await generateGatewayApiKey(orgId);
     const otherKeyParts = await generateGatewayApiKey(otherOrgId);
     const rateKeyParts = await generateGatewayApiKey(otherOrgId);
+    const readOnlyParts = await generateGatewayApiKey(orgId);
     await admin.gatewayApiKey.createMany({
       data: [orgKeyParts, otherKeyParts, rateKeyParts].map((parts, index) => ({
         id: newId('gwk'),
@@ -63,6 +65,18 @@ describe('gateway contract', () => {
         prefix: parts.prefix,
       })),
     });
+    // A scoped key (M2): contacts read-only — nothing else.
+    await admin.gatewayApiKey.create({
+      data: {
+        id: newId('gwk'),
+        organizationId: orgId,
+        name: 'scoped',
+        keyHash: readOnlyParts.keyHash,
+        prefix: readOnlyParts.prefix,
+        scopes: ['contacts:read'],
+      },
+    });
+    readOnlyAuth = { authorization: `Bearer ${readOnlyParts.key}` };
     auth = { authorization: `Bearer ${orgKeyParts.key}` };
     otherAuth = { authorization: `Bearer ${otherKeyParts.key}` };
     rateLimitAuth = { authorization: `Bearer ${rateKeyParts.key}` };
@@ -77,6 +91,27 @@ describe('gateway contract', () => {
     });
   });
 
+  it('scoped keys: read allowed, write refused with a named scope (M2)', async () => {
+    const list = await app.request('/v1/contacts?workspaceId=' + contactWsId, {
+      headers: readOnlyAuth,
+    });
+    expect(list.status).toBe(200);
+
+    const denied = await app.request('/v1/contacts', {
+      method: 'POST',
+      headers: { ...readOnlyAuth, 'content-type': 'application/json' },
+      body: JSON.stringify({ workspaceId: contactWsId, email: 'scoped@example.com' }),
+    });
+    expect(denied.status).toBe(403);
+    const body = (await denied.json()) as { detail?: string; title?: string };
+    expect(JSON.stringify(body)).toContain('contacts:write');
+
+    const wrongResource = await app.request('/v1/lists?workspaceId=' + contactWsId, {
+      headers: readOnlyAuth,
+    });
+    expect(wrongResource.status).toBe(403);
+  });
+
   afterAll(async () => {
     await admin?.$disconnect();
     await container?.stop();
@@ -86,6 +121,11 @@ describe('gateway contract', () => {
     const health = await app.request('/healthz');
     expect(health.status).toBe(200);
     expect(health.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(await health.json()).toMatchObject({
+      status: 'ok',
+      service: 'api',
+      version: expect.any(String),
+    });
     const ready = await app.request('/readyz');
     expect(ready.status).toBe(200);
     expect(await ready.json()).toMatchObject({
@@ -314,44 +354,6 @@ describe('gateway contract', () => {
       expect(secondBody.data).toHaveLength(1);
       expect(secondBody.nextCursor).toBeNull();
       expect(firstBody.data.map((contact) => contact.id)).not.toContain(secondBody.data[0]!.id);
-    });
-
-    it('enforces the plan contact cap on create', async () => {
-      const capOrgId = newId('org');
-      await admin.organization.create({ data: { id: capOrgId, name: 'Cap Org', slug: 'cap-org' } });
-      const wsId = newId('ws');
-      await admin.workspace.create({
-        data: { id: wsId, organizationId: capOrgId, name: 'Cap WS', slug: 'cap-ws' },
-      });
-      // FREE caps at 1,000 contacts; fill it so the next create is over.
-      await admin.subscription.create({
-        data: { id: newId('sub'), organizationId: capOrgId, plan: 'FREE' },
-      });
-      await admin.contact.createMany({
-        data: Array.from({ length: 1_000 }, (_, index) => ({
-          id: newId('contact'),
-          organizationId: capOrgId,
-          workspaceId: wsId,
-          email: `cap${index}@example.com`,
-        })),
-      });
-      const capKey = await generateGatewayApiKey(capOrgId);
-      await admin.gatewayApiKey.create({
-        data: {
-          id: newId('gwk'),
-          organizationId: capOrgId,
-          name: 'cap',
-          keyHash: capKey.keyHash,
-          prefix: capKey.prefix,
-        },
-      });
-      const res = await app.request('/v1/contacts', {
-        method: 'POST',
-        headers: { authorization: `Bearer ${capKey.key}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ workspaceId: wsId, email: 'one-too-many@example.com' }),
-      });
-      expect(res.status).toBe(403);
-      expect(((await res.json()) as { type: string }).type).toBe('urn:helio:problem:http_403');
     });
   });
 

@@ -40,13 +40,35 @@ RLS-bound application role — the model chooses which tools to call, but it can
 never widen its own scope to another tenant. Provider keys are read as secrets
 and never logged.
 
-## Bring your own model
+## Bring your own AI — per organization
 
-The LLM gateway is provider-agnostic: `groq`, `openai`, `anthropic`, `ollama`,
-or any OpenAI-compatible `local` server (vLLM, LM Studio, llama.cpp). For full
-data sovereignty, run a local model — nothing leaves your infrastructure. See
-the [configuration reference](/docs/configuration#intelligence--ai) for the
-environment variables.
+Each organization can connect its **own** AI provider under
+**Settings → Provider credentials → AI copilot**: pick `openai`,
+`anthropic`, `groq`, `ollama`, or any OpenAI-compatible `local` server
+(vLLM, LM Studio, llama.cpp — enter its base URL), set the model, and paste
+the key (local servers need none). The key is sealed with AES-256-GCM in
+the [credential vault](/docs/security/credential-vault), shown only as a
+mask, decrypted at call time, and never logged. **Verify** runs a read-only
+models-list probe so you know the key works before the copilot uses it.
+The copilot page shows which provider is serving your organization — and
+when no provider is configured anywhere (no org credential, no deployment
+key), it says so plainly and links to Settings instead of advertising a
+model it cannot reach.
+
+For full data sovereignty, point at a local model — nothing leaves your
+infrastructure; prompts are refused over plaintext HTTP to remote hosts
+either way.
+
+Deployments can still set `INTEL_LLM_*` environment variables as the
+fallback for organizations that haven't connected anything — see the
+[configuration reference](/docs/configuration#intelligence--ai).
+
+## Conversion events
+
+Predictive scoring's positive label — which event names count as a
+conversion — is configurable **per workspace** under
+**Settings → Workspace analytics** (for example `Order Completed,
+Signed Up`). Workspaces without their own list use the deployment default.
 
 ## For external agents
 

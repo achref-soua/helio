@@ -1,6 +1,6 @@
 {
   "name": "helio",
-  "version": "0.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "The open-source growth platform — AI-native marketing automation, self-hosted.",
   "license": "AGPL-3.0-only",
@@ -28,6 +28,7 @@
     "@helio/config": "workspace:*",
     "lefthook": "^2.1.9",
     "prettier": "^3.8.3",
+    "tsx": "^4.22.4",
     "turbo": "^2.9.16"
   }
 }

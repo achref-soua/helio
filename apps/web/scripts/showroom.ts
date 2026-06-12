@@ -17,7 +17,6 @@ const rootEnv = path.resolve(import.meta.dirname, '../../../.env');
 if (existsSync(rootEnv)) loadEnvFile(rootEnv);
 
 export const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3000';
-const MAILPIT = `http://localhost:${process.env.MAILPIT_UI_PORT ?? '8025'}`;
 export const ORG_NAME = 'Acme Inc.';
 
 export function adminPrisma() {
@@ -37,35 +36,21 @@ export async function cleanPreviousShowrooms(): Promise<void> {
 
 export async function signUpAndOnboard(page: Page): Promise<void> {
   const email = `demo-video-${Date.now()}@example.com`;
+  // On a wiped database /signup forwards to the first-run setup wizard,
+  // which creates the admin (auto-verified), organization, and workspace
+  // in one screen. The showroom data is seeded separately, so the
+  // wizard's own sample data is left off.
   await page.goto(`${BASE_URL}/signup`);
-  await page.getByLabel('Name').fill('Demo Operator');
+  await page.waitForURL(/\/setup/, { timeout: 15_000 });
+  await page.getByLabel('Your name').fill('Demo Operator');
   await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill('demo-video-password-1');
-  await page.getByRole('button', { name: 'Sign up' }).click();
-  await page.getByText('Check your email').waitFor();
-
-  let url: string | null = null;
-  for (let attempt = 0; attempt < 30 && !url; attempt++) {
-    await page.waitForTimeout(500);
-    const search = await fetch(
-      `${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`,
-    ).then((response) => response.json() as Promise<{ messages: Array<{ ID: string }> }>);
-    const id = search.messages[0]?.ID;
-    if (!id) continue;
-    const message = await fetch(`${MAILPIT}/api/v1/message/${id}`).then(
-      (response) => response.json() as Promise<{ Text: string }>,
-    );
-    url = message.Text.match(/https?:\/\/\S*verify-email\S*/)?.[0] ?? null;
-  }
-  if (!url) throw new Error('verification mail never arrived — is Mailpit up?');
-  await page.goto(url);
-
+  // A strong passphrase clears the wizard's strength gate.
+  await page.getByLabel('Password').fill('Acme-Growth-Engine-2026');
   await page.getByLabel('Organization name').fill(ORG_NAME);
-  await page.getByRole('button', { name: 'Create organization' }).click();
-  // The first-run tour greets the new operator and aria-hides everything
-  // behind its modal. It gets its own scene at the end — skip it here.
-  await page.getByTestId('tour-skip').click();
-  await page.getByRole('heading', { name: 'Overview' }).waitFor();
+  await page.getByTestId('setup-seed').uncheck();
+  await page.evaluate(() => localStorage.setItem('helio.tour.v1.done', '1'));
+  await page.getByRole('button', { name: 'Create & enter Helio' }).click();
+  await page.getByRole('heading', { name: 'Overview' }).waitFor({ timeout: 20_000 });
 }
 
 const EXTRA_PEOPLE: Array<[string, string, string, string, number]> = [

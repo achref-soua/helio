@@ -1,33 +1,23 @@
 ---
-title: From Klaviyo
-description: Export Klaviyo profiles and import them into Helio with consent state preserved.
+title: Migrate from Klaviyo
+description: Pull profiles straight from Klaviyo with a private API key — marketing consent honored.
 ---
 
-Helio detects Klaviyo profile exports and maps Klaviyo's email consent state to
-Helio's suppression list.
+## One-click: connect Klaviyo
 
-## Export from Klaviyo
+1. In Klaviyo, create a **private API key** (Settings → API keys) with
+   read access to profiles.
+2. In Helio, **Settings → Provider credentials → Add** → kind **Klaviyo**,
+   paste the key (vault-sealed, shown once).
+3. **Contacts → Import CSV → Or pull straight from a platform** — pick the
+   connection and **Pull contacts**.
 
-1. In Klaviyo, go to **Audience → Lists & Segments**.
-2. Open the list or segment you want to move and choose **Export** (or
-   **Manage → Export list to CSV**).
-3. Include the **email**, name, and **email consent / subscription** columns.
+Helio pages through your profiles with email, names, organization (which
+becomes a Helio **company**), and email marketing consent — a profile
+whose consent is `UNSUBSCRIBED` lands suppressed and is never mailed.
 
-## Import into Helio
+## CSV fallback
 
-1. Open **Contacts → Import** in Helio and drop the CSV.
-2. Helio detects the Klaviyo format and shows the count of contacts that will be
-   imported as **unsubscribed**.
-3. Review the validation summary and confirm.
-
-## What carries over
-
-- **Email** and name fields map to the built-in fields.
-- Profiles whose email consent is **unsubscribed / suppressed** import as
-  `UNSUBSCRIBED` and join the
-  [suppression list](/docs/guides/contacts#suppression--privacy).
-- Custom profile properties become [attributes](/docs/guides/contacts).
-
-Once imported, rebuild your Klaviyo flows as
-[journeys](/docs/guides/journeys) — they run durably on Temporal and survive
-worker restarts mid-wait without double-sending.
+Export profiles from any list or segment and drop the file on the import
+wizard — Klaviyo exports are detected automatically, and the mapping step
+shows exactly where each column lands before anything is written.

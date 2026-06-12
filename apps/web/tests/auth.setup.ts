@@ -11,7 +11,27 @@ export const STORAGE_STATE = 'test-results/.auth/user.json';
 setup('sign up and verify via Mailpit', async ({ page, request }) => {
   const email = `e2e-${Date.now()}@example.com`;
 
+  // The wiped database makes this a FRESH instance: /signup forwards to
+  // the first-run wizard (K1), which creates the admin auto-verified,
+  // the organization, and the workspace in one shot — so every suite run
+  // exercises the real first-install path.
   await page.goto('/signup');
+  if (page.url().includes('/setup')) {
+    await page.getByLabel('Your name').fill('E2E Operator');
+    await page.getByLabel('Email').fill(email);
+    await page.getByLabel('Password').fill('correct-horse-battery');
+    await page.getByLabel('Organization name').fill('E2E Org');
+    // The suite owns its data — no sample workspace.
+    await page.getByTestId('setup-seed').uncheck();
+    await page.evaluate(() => localStorage.setItem('helio.tour.v1.done', '1'));
+    await page.getByRole('button', { name: 'Create & enter Helio' }).click();
+    await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.context().storageState({ path: STORAGE_STATE });
+    return;
+  }
+
   await page.getByLabel('Name').fill('E2E Operator');
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password').fill('correct-horse-battery');

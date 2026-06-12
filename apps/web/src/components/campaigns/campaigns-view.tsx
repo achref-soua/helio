@@ -1,5 +1,6 @@
 'use client';
 
+import type { EmailDocument } from '@helio/core';
 import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
 import {
@@ -131,7 +132,7 @@ export function CampaignsView() {
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight">{t('title')}</h1>
         <Badge variant="outline">{t('total', { count: campaigns.length })}</Badge>
         <div className="ml-auto">
           <Button size="sm" onClick={() => setCreateOpen(true)}>
@@ -224,6 +225,7 @@ export function CampaignsView() {
                 </Button>
               </div>
             </form>
+            {templateId && <CampaignEmailPreview templateId={templateId} />}
           </CardContent>
         </Card>
       )}
@@ -320,6 +322,33 @@ export function CampaignsView() {
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+/** The selected template, rendered by the real send-path renderer. */
+function CampaignEmailPreview({ templateId }: { templateId: string }) {
+  const t = useTranslations('campaigns');
+  const trpc = useTRPC();
+  const template = useQuery(trpc.emailTemplate.get.queryOptions({ id: templateId }));
+  const document = template.data?.document as unknown as EmailDocument;
+  const preview = useQuery({
+    ...trpc.emailTemplate.preview.queryOptions(
+      { subject: template.data?.subject ?? '', document },
+      { placeholderData: (previous) => previous },
+    ),
+    enabled: Boolean(template.data),
+  });
+  if (!template.data) return null;
+  return (
+    <div className="mt-4 grid max-w-2xl gap-2" data-testid="campaign-preview">
+      <Label>{t('preview')}</Label>
+      <iframe
+        title={t('preview')}
+        sandbox=""
+        srcDoc={preview.data?.html ?? ''}
+        className="h-80 w-full rounded-md border bg-white"
+      />
     </div>
   );
 }

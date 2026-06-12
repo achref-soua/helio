@@ -1,12 +1,17 @@
+import { authDb } from '@/lib/auth';
+
 import { protectedProcedure, publicProcedure, router } from '../init';
+import { adminRouter } from './admin';
 import { analyticsRouter } from './analytics';
 import { apiKeyRouter } from './api-key';
-import { billingRouter } from './billing';
+import { backupsRouter } from './backups';
 import { brandingRouter } from './branding';
 import { campaignRouter } from './campaign';
+import { churnModelRouter } from './churn-model';
 import { contactRouter } from './contact';
 import { contactListRouter } from './contact-list';
 import { copilotRouter } from './copilot';
+import { credentialsRouter } from './credentials';
 import { crmRouter } from './crm';
 import { deliverabilityRouter } from './deliverability';
 import { emailTemplateRouter } from './email-template';
@@ -17,7 +22,9 @@ import { journeyRouter } from './journey';
 import { landingRouter } from './landing';
 import { schedulingRouter } from './scheduling';
 import { scoringRouter } from './scoring';
+import { securityRouter } from './security';
 import { segmentRouter } from './segment';
+import { setupRouter } from './setup';
 import { ssoRouter } from './sso';
 import { supportRouter } from './support';
 import { webhookRouter } from './webhook';
@@ -26,11 +33,27 @@ import { workspaceRouter } from './workspace';
 
 export const appRouter = router({
   health: publicProcedure.query(() => ({ ok: true })),
-  me: protectedProcedure.query(({ ctx }) => ({
-    user: ctx.session.user,
-    activeOrganizationId: ctx.session.session.activeOrganizationId ?? null,
-  })),
+  me: protectedProcedure.query(async ({ ctx }) => {
+    const organizationId = ctx.session.session.activeOrganizationId ?? null;
+    // The member role rides along so the client can hide what the server
+    // would refuse anyway (the server check stays authoritative).
+    const member = organizationId
+      ? await authDb.member.findUnique({
+          where: {
+            organizationId_userId: { organizationId, userId: ctx.session.user.id },
+          },
+          select: { role: true },
+        })
+      : null;
+    return {
+      user: ctx.session.user,
+      activeOrganizationId: organizationId,
+      memberRole: member?.role ?? null,
+    };
+  }),
   workspace: workspaceRouter,
+  setup: setupRouter,
+  security: securityRouter,
   contact: contactRouter,
   contactList: contactListRouter,
   segment: segmentRouter,
@@ -38,15 +61,18 @@ export const appRouter = router({
   campaign: campaignRouter,
   journey: journeyRouter,
   analytics: analyticsRouter,
+  admin: adminRouter,
   copilot: copilotRouter,
   form: formRouter,
   landing: landingRouter,
   scoring: scoringRouter,
+  churnModel: churnModelRouter,
   scheduling: schedulingRouter,
   crm: crmRouter,
-  billing: billingRouter,
+  credentials: credentialsRouter,
   sso: ssoRouter,
   apiKey: apiKeyRouter,
+  backups: backupsRouter,
   webhook: webhookRouter,
   branding: brandingRouter,
   integrations: integrationsRouter,

@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { intelligence } from '@/lib/intelligence';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 export const scoringRouter = router({
   // Train + write conversion-propensity and churn-risk for the workspace.
@@ -13,7 +13,7 @@ export const scoringRouter = router({
   recompute: orgProcedure
     .input(z.object({ workspaceId: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'scoring:manage');
       const result = await intelligence.recompute({
         organization_id: ctx.organizationId,
         workspace_id: input.workspaceId,
@@ -48,7 +48,7 @@ export const scoringRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'scoring:manage');
       const existing = await ctx.tenantDb.scoringRule.findFirst({
         where: { workspaceId: input.workspaceId, event: input.event },
       });
@@ -81,7 +81,7 @@ export const scoringRouter = router({
   delete: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'scoring:manage');
       const rule = await ctx.tenantDb.scoringRule.delete({ where: { id: input.id } });
       await ctx.tenantDb.auditLog.create({
         data: {

@@ -64,6 +64,9 @@ const embeddableHeaders = securityHeaders.map((header) =>
 const nextConfig: NextConfig = {
   // Self-contained server output for the Docker image.
   output: 'standalone',
+  // The dev-mode overlay badge is cosmetic tooling; hiding it keeps
+  // generated screenshots and the demo video clean. No production effect.
+  devIndicators: false,
   transpilePackages: ['@helio/ui', '@helio/core'],
   async headers() {
     // Later sources win on key collisions, so the embeddable routes only

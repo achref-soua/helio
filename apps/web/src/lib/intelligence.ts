@@ -82,12 +82,29 @@ export interface ScoringResult {
   churned: number;
 }
 
+export interface LlmInfo {
+  provider: string;
+  model: string;
+  configured: boolean;
+  source: 'organization' | 'deployment';
+}
+
+/** A model-validation verdict: `ok: false` is an answer, not an error. */
+export interface ModelVerdict {
+  ok: boolean;
+  error: string | null;
+  sha256?: string | null;
+  size_bytes?: number | null;
+}
+
 export const intelligence = {
   chat: (input: {
     organization_id: string;
     workspace_id: string;
     messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   }) => call<ChatReply>('/v1/copilot/chat', input),
+
+  llmInfo: (input: { organization_id: string }) => call<LlmInfo>('/v1/llm/config', input),
 
   draftSegment: (input: { organization_id: string; workspace_id: string; prompt: string }) =>
     call<DraftSegment>('/v1/copilot/segment', input),
@@ -100,4 +117,21 @@ export const intelligence = {
 
   recompute: (input: { organization_id: string; workspace_id: string }) =>
     call<ScoringResult>('/v1/scoring/recompute', input),
+
+  validateModelEndpoint: (input: {
+    organization_id: string;
+    url: string;
+    auth_header?: string;
+    inputs: string[];
+  }) => call<ModelVerdict>('/v1/models/churn/validate-endpoint', input),
+
+  validateModelArtifact: (input: {
+    organization_id: string;
+    model_id: string;
+    format: string;
+    n_inputs: number;
+  }) => call<ModelVerdict>('/v1/models/churn/validate-artifact', input),
+
+  deleteModelArtifact: (input: { organization_id: string; model_id: string }) =>
+    call<ModelVerdict>('/v1/models/churn/delete-artifact', input),
 };

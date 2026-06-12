@@ -10,12 +10,16 @@
     "analytics",
     "forms",
     "ai-copilot",
+    "byo-churn-model",
     "landing-pages",
     "widgets",
     "in-app-messages",
     "crm",
     "scheduling",
     "integrations",
-    "white-labeling"
+    "white-labeling",
+    "admin-area",
+    "database-studio",
+    "backup-restore"
   ]
 }

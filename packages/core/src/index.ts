@@ -26,29 +26,77 @@ export {
   type AttributionModel,
   type AttributionRow,
 } from './attribution';
-export {
-  contactLimitFor,
-  isValidPlan,
-  type Plan,
-  PLAN_CATALOG,
-  PLANS,
-  type PlanSpec,
-  planSpec,
-  signStripePayload,
-  verifyStripeSignature,
-  wouldExceedContactLimit,
-} from './billing';
 export { isHexColor, readableTextColor } from './branding';
 export {
+  CHURN_FEATURE_NAMES,
+  CHURN_MODEL_FORMATS,
+  CHURN_UPLOAD_EXTENSIONS,
+  type ChurnFeatureMapping,
+  churnFeatureMappingSchema,
+  type ChurnFeatureName,
+  type ChurnModelFormat,
+  defaultChurnFeatureMapping,
+} from './churn-model';
+export {
+  type ColumnMapping,
   contactEmailSchema,
   detectImportSource,
   type ImportSource,
   type ImportStatus,
+  type MappedNormalizeResult,
+  MAPPING_TARGETS,
+  type MappingTarget,
   normalizeContactRows,
   type NormalizedContactRow,
+  normalizeMappedRows,
   type NormalizeResult,
+  suggestColumnMapping,
 } from './contacts';
+export { probeOutcome, type ProbeRequest, probeRequestFor } from './credential-probes';
+export {
+  type ConfigFieldSpec,
+  CREDENTIAL_KINDS,
+  type CredentialChannel,
+  type CredentialKind,
+  credentialKindSchema,
+  credentialKindsForChannel,
+  type CredentialKindSpec,
+  credentialSpec,
+  LLM_PROVIDERS,
+  type LlmProvider,
+  type MaskedCredential,
+  maskSecret,
+  type SecretFieldSpec,
+  secretLast4,
+  type SecretMetaEntry,
+  type SecretsMeta,
+  toMaskedCredential,
+  validateCredentialInput,
+  type ValidatedCredentialInput,
+} from './credentials';
+export {
+  decryptField,
+  encryptField,
+  generateEncryptionKey,
+  isEnvelope,
+  keyFingerprint,
+  type ParsedEnvelope,
+  parseEnvelope,
+  VaultDecryptError,
+  VaultFormatError,
+  VaultKeyUnknownError,
+  type VaultScope,
+} from './crypto-envelope';
 export { CONTACT_CSV_HEADER, type ContactCsvRow, contactsToCsv, csvCell, csvDocument } from './csv';
+export {
+  STUDIO_MODELS,
+  type StudioField,
+  type StudioFieldType,
+  studioGroupableFields,
+  type StudioModel,
+  studioModel,
+  validateStudioWrite,
+} from './db-studio';
 export {
   deliverabilityRecords,
   dkimPasses,
@@ -57,7 +105,14 @@ export {
   isLikelyDomain,
   type RecordOptions,
   spfPasses,
+  suggestedSpfInclude,
 } from './deliverability';
+export {
+  describeSegmentCondition,
+  describeSegmentRule,
+  type JourneyStepSummary,
+  summarizeJourney,
+} from './describe';
 export {
   type EmailBlock,
   emailBlockSchema,
@@ -67,6 +122,13 @@ export {
   type PersonalizationContact,
   renderTokens,
 } from './email-doc';
+export {
+  type EmailProvider,
+  MailgunEmailProvider,
+  type OutgoingEmail,
+  PostmarkEmailProvider,
+  ResendEmailProvider,
+} from './email-providers';
 export { createEnv } from './env';
 export {
   HelioError,
@@ -89,12 +151,23 @@ export {
   trackEventSchema,
 } from './events';
 export {
+  API_SCOPES,
+  type ApiScope,
   type GeneratedApiKey,
   generateGatewayApiKey,
   hashGatewayApiKey,
   parseGatewayApiKey,
+  scopeAllows,
 } from './gateway-keys';
 export { type Id, idTimestamp, isId, newId } from './id';
+export {
+  CONNECTOR_MAPPING,
+  ConnectorError,
+  fetchHubSpotRows,
+  fetchKlaviyoRows,
+  fetchMailchimpRows,
+  type ImportConnector,
+} from './import-connectors';
 export {
   type FrequencyCap,
   frequencyCapSchema,
@@ -121,6 +194,14 @@ export {
   type LandingDocument,
   landingDocumentSchema,
 } from './landing';
+export {
+  can,
+  minimumRoleFor,
+  type Permission,
+  permissionMatrix,
+  PERMISSIONS,
+  permissionsForRole,
+} from './permissions';
 export { type PushNotification, type PushSubscriptionInput, pushSubscriptionSchema } from './push';
 export {
   FixedWindowRateLimiter,
@@ -128,6 +209,7 @@ export {
   type RateLimitOptions,
 } from './rate-limit';
 export { hasRole, INVITABLE_ROLES, isRole, type Role, ROLES } from './rbac';
+export { countByDay, dayKey, dayKeys, fillDailySeries, mergeDailySeries } from './reports';
 export {
   type Err,
   err,
@@ -143,6 +225,14 @@ export {
   unwrap,
   unwrapOr,
 } from './result';
+export {
+  avgCycleDays,
+  ownerLeaderboard,
+  pipelineValueByStage,
+  type SalesDeal,
+  weightedForecastCents,
+  winRate,
+} from './sales';
 export {
   pushSalesforceLead,
   SALESFORCE_API_VERSION,
@@ -257,6 +347,7 @@ export {
   unsubscribeUrl,
   verifyUnsubscribeToken,
 } from './unsubscribe';
+export { healthPayload, helioCommit, helioVersion, isNewerHelioVersion } from './version';
 export {
   endpointsForEvent,
   generateWebhookSecret,

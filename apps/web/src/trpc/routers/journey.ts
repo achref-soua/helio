@@ -3,7 +3,7 @@ import type { Prisma } from '@helio/db';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 export const journeyRouter = router({
   list: orgProcedure
@@ -45,7 +45,7 @@ export const journeyRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'journeys:manage');
       const existing = await ctx.tenantDb.journey.findFirst({
         where: { workspaceId: input.workspaceId, name: input.name },
       });
@@ -84,7 +84,7 @@ export const journeyRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'journeys:manage');
       const journey = await ctx.tenantDb.journey.update({
         where: { id: input.id },
         data: {
@@ -112,7 +112,7 @@ export const journeyRouter = router({
   setStatus: orgProcedure
     .input(z.object({ id: z.string().min(1), status: z.enum(['ACTIVE', 'PAUSED']) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'journeys:manage');
       const existing = await ctx.tenantDb.journey.findUnique({ where: { id: input.id } });
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'Journey not found' });
       // Refuse to activate a definition the engine would reject.
@@ -146,7 +146,7 @@ export const journeyRouter = router({
   delete: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'journeys:manage');
       const journey = await ctx.tenantDb.journey.findUnique({ where: { id: input.id } });
       if (!journey) throw new TRPCError({ code: 'NOT_FOUND', message: 'Journey not found' });
       if (journey.status === 'ACTIVE') {

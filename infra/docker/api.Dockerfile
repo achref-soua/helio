@@ -12,6 +12,11 @@ RUN pnpm --filter @helio/api build
 FROM node:24-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# Release identity baked at build time; surfaced on /healthz and in the UI.
+ARG HELIO_VERSION
+ARG HELIO_COMMIT
+ENV HELIO_VERSION=$HELIO_VERSION \
+    HELIO_COMMIT=$HELIO_COMMIT
 RUN groupadd --system helio && useradd --system --gid helio helio \
     && apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*

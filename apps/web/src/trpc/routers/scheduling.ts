@@ -2,7 +2,9 @@ import { availabilitySchema, isValidTimeZone, newId } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { writeAudit } from '@/lib/audit';
+
+import { orgProcedure, requirePermission, router } from '../init';
 
 const timeZoneSchema = z.string().trim().refine(isValidTimeZone, 'Unknown timezone');
 
@@ -37,7 +39,7 @@ export const schedulingRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'scheduling:write');
       const data = {
         title: input.title,
         description: input.description ?? null,
@@ -53,6 +55,13 @@ export const schedulingRouter = router({
           data,
         });
         if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+        await writeAudit(ctx.tenantDb, {
+          organizationId: ctx.organizationId,
+          actorId: ctx.session.user.id,
+          action: 'booking_page.updated',
+          targetType: 'booking_page',
+          targetId: input.id,
+        });
         return { id: input.id };
       }
       const page = await ctx.tenantDb.bookingPage.create({
@@ -63,6 +72,13 @@ export const schedulingRouter = router({
           ownerId: ctx.session.user.id,
           ...data,
         },
+      });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'booking_page.created',
+        targetType: 'booking_page',
+        targetId: page.id,
       });
       return { id: page.id };
     }),
@@ -87,12 +103,19 @@ export const schedulingRouter = router({
   cancelMeeting: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'scheduling:write');
       const { count } = await ctx.tenantDb.meeting.updateMany({
         where: { id: input.id },
         data: { status: 'CANCELED' },
       });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'meeting.canceled',
+        targetType: 'meeting',
+        targetId: input.id,
+      });
       return { ok: true };
     }),
 });

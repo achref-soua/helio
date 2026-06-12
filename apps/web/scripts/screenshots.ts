@@ -21,7 +21,6 @@ const rootEnv = path.resolve(import.meta.dirname, '../../../.env');
 if (existsSync(rootEnv)) loadEnvFile(rootEnv);
 
 const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3000';
-const MAILPIT = `http://localhost:${process.env.MAILPIT_UI_PORT ?? '8025'}`;
 const OUT_DIR = path.resolve(import.meta.dirname, '../../../docs/assets');
 
 async function cleanPreviousShowrooms(): Promise<void> {
@@ -36,33 +35,20 @@ async function cleanPreviousShowrooms(): Promise<void> {
 
 async function signUpAndOnboard(page: Page): Promise<void> {
   const email = `screenshots-${Date.now()}@example.com`;
+  // A wiped database makes /signup forward to the first-run setup wizard,
+  // which creates the admin (auto-verified), organization, and workspace
+  // in one step. The showroom data is seeded separately, so the wizard's
+  // own sample data is left off.
   await page.goto(`${BASE_URL}/signup`);
-  await page.getByLabel('Name').fill('Avery Operator');
+  await page.waitForURL(/\/setup/, { timeout: 15_000 });
+  await page.getByLabel('Your name').fill('Avery Operator');
   await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill('screenshots-password-1');
-  await page.getByRole('button', { name: 'Sign up' }).click();
-  await page.getByText('Check your email').waitFor();
-
-  // Pull the verification link out of Mailpit.
-  let url: string | null = null;
-  for (let attempt = 0; attempt < 30 && !url; attempt++) {
-    await page.waitForTimeout(500);
-    const search = await fetch(
-      `${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`,
-    ).then((response) => response.json() as Promise<{ messages: Array<{ ID: string }> }>);
-    const id = search.messages[0]?.ID;
-    if (!id) continue;
-    const message = await fetch(`${MAILPIT}/api/v1/message/${id}`).then(
-      (response) => response.json() as Promise<{ Text: string }>,
-    );
-    url = message.Text.match(/https?:\/\/\S*verify-email\S*/)?.[0] ?? null;
-  }
-  if (!url) throw new Error('verification mail never arrived — is Mailpit up?');
-  await page.goto(url);
-
+  await page.getByLabel('Password').fill('Lumen-Coffee-Roastery-2026');
   await page.getByLabel('Organization name').fill('Lumen Coffee Co.');
-  await page.getByRole('button', { name: 'Create organization' }).click();
-  await page.getByRole('heading', { name: 'Overview' }).waitFor();
+  await page.getByTestId('setup-seed').uncheck();
+  await page.evaluate(() => localStorage.setItem('helio.tour.v1.done', '1'));
+  await page.getByRole('button', { name: 'Create & enter Helio' }).click();
+  await page.getByRole('heading', { name: 'Overview' }).waitFor({ timeout: 20_000 });
 }
 
 async function seedShowroom(): Promise<void> {

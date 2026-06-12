@@ -19,10 +19,10 @@ import { compileSegmentRule, type Prisma, type PrismaClient } from '@helio/db';
 import { renderEmail } from '@helio/emails';
 
 import type { ActivityConfig } from './activities';
-import type { EmailProvider } from './email-provider';
+import { raiseOrgAlert } from './alerts';
+import type { EmailSenderResolver } from './email-provider-factory';
+import type { SmsResolver, WhatsAppResolver } from './messaging-provider-factory';
 import type { PushProvider } from './push-provider';
-import type { SmsProvider } from './sms-provider';
-import type { WhatsAppProvider } from './whatsapp-provider';
 
 export interface LoadedJourney {
   organizationId: string;
@@ -37,11 +37,11 @@ export interface LoadedJourney {
  */
 export function createJourneyActivities(
   prisma: PrismaClient,
-  provider: EmailProvider,
+  resolveSender: EmailSenderResolver,
   config: ActivityConfig,
   pushProvider?: PushProvider,
-  smsProvider?: SmsProvider,
-  whatsappProvider?: WhatsAppProvider,
+  resolveSms?: SmsResolver,
+  resolveWhatsApp?: WhatsAppResolver,
 ) {
   return {
     async loadJourney(journeyId: string): Promise<LoadedJourney> {
@@ -91,8 +91,9 @@ export function createJourneyActivities(
           wrapLink: (url) =>
             clickRedirectUrl(config.trackingUrl, config.trackingSecret, send.id, url),
         });
-        await provider.send({
-          from: config.mailFrom,
+        const sender = await resolveSender(contact.organizationId);
+        await sender.provider.send({
+          from: sender.from,
           to: contact.email,
           subject: rendered.subject,
           html: rendered.html,
@@ -108,10 +109,19 @@ export function createJourneyActivities(
         });
         return { sent: true };
       } catch (error) {
+        const reason = error instanceof Error ? error.message : 'unknown';
         await prisma.emailSend.update({
           where: { id: send.id },
-          data: { status: 'FAILED', error: error instanceof Error ? error.message : 'unknown' },
+          data: { status: 'FAILED', error: reason },
         });
+        await raiseOrgAlert(
+          prisma,
+          contact.organizationId,
+          'journey_send_failed',
+          `A journey email to ${contact.email} failed: ${reason.slice(0, 140)}`,
+          { journeyId, sendId: send.id, contactId },
+          { path: ['sendId'], equals: send.id },
+        );
         throw error;
       }
     },
@@ -244,9 +254,11 @@ export function createJourneyActivities(
      */
     async sendJourneySms(contactId: string, body: string): Promise<{ sent: number }> {
       const contact = await prisma.contact.findUnique({ where: { id: contactId } });
-      if (!contact || contact.status !== 'ACTIVE' || !contact.phone || !smsProvider) {
+      if (!contact || contact.status !== 'ACTIVE' || !contact.phone || !resolveSms) {
         return { sent: 0 };
       }
+      const smsProvider = await resolveSms(contact.organizationId);
+      if (!smsProvider) return { sent: 0 };
       const rendered = renderTokens(body, {
         email: contact.email,
         firstName: contact.firstName,
@@ -263,9 +275,11 @@ export function createJourneyActivities(
      */
     async sendJourneyWhatsApp(contactId: string, body: string): Promise<{ sent: number }> {
       const contact = await prisma.contact.findUnique({ where: { id: contactId } });
-      if (!contact || contact.status !== 'ACTIVE' || !contact.phone || !whatsappProvider) {
+      if (!contact || contact.status !== 'ACTIVE' || !contact.phone || !resolveWhatsApp) {
         return { sent: 0 };
       }
+      const whatsappProvider = await resolveWhatsApp(contact.organizationId);
+      if (!whatsappProvider) return { sent: 0 };
       const rendered = renderTokens(body, {
         email: contact.email,
         firstName: contact.firstName,

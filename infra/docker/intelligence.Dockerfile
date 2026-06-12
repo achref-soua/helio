@@ -11,12 +11,21 @@ COPY apps/intelligence/README.md ./
 RUN uv sync --frozen --no-dev
 
 FROM python:3.12-slim-bookworm AS runner
+# xgboost needs the GNU OpenMP runtime; the models volume holds BYO artifacts.
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /var/lib/helio/models
 WORKDIR /app
 RUN groupadd --system helio && useradd --system --gid helio helio \
     && apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=builder --chown=helio:helio /app /app
 ENV PATH="/app/.venv/bin:$PATH"
+# Release identity baked at build time; surfaced on /healthz and in the UI.
+ARG HELIO_VERSION
+ARG HELIO_COMMIT
+ENV HELIO_VERSION=$HELIO_VERSION \
+    HELIO_COMMIT=$HELIO_COMMIT
 USER helio
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=5s --retries=5 \

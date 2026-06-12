@@ -241,6 +241,9 @@ function Editor({ initialName, initialDefinition, saving, onSave, onCancel }: Jo
           onConnect={onConnect}
           nodeTypes={nodeTypes}
           fitView
+          panOnDrag
+          zoomOnPinch
+          minZoom={0.25}
           proOptions={{ hideAttribution: true }}
         >
           <Background gap={16} />

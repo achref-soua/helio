@@ -2,10 +2,11 @@ import { generateScimToken, newId } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { writeAudit } from '@/lib/audit';
 import { auth, authDb } from '@/lib/auth';
 import { env } from '@/lib/env';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 /** Base URL an IdP points SCIM at, e.g. https://app/scim/v2. */
 function scimBaseUrl(): string {
@@ -65,7 +66,7 @@ function callbackUrl(providerId: string): string {
  */
 export const ssoRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
-    requireRole(ctx.memberRole, 'admin');
+    requirePermission(ctx.memberRole, 'settings:sso');
     const providers = await authDb.ssoProvider.findMany({
       where: { organizationId: ctx.organizationId },
       select: { id: true, providerId: true, issuer: true, domain: true },
@@ -75,7 +76,7 @@ export const ssoRouter = router({
   }),
 
   register: orgProcedure.input(registerInput).mutation(async ({ ctx, input }) => {
-    requireRole(ctx.memberRole, 'admin');
+    requirePermission(ctx.memberRole, 'settings:sso');
     const manual = Boolean(input.authorizationEndpoint);
     try {
       await auth.api.registerSSOProvider({
@@ -107,25 +108,40 @@ export const ssoRouter = router({
         message: error instanceof Error ? error.message : 'Could not register the SSO provider.',
       });
     }
+    await writeAudit(ctx.tenantDb, {
+      organizationId: ctx.organizationId,
+      actorId: ctx.session.user.id,
+      action: 'sso.provider_registered',
+      targetType: 'sso_provider',
+      targetId: input.providerId,
+      metadata: { domain: input.domain },
+    });
     return { providerId: input.providerId, callbackUrl: callbackUrl(input.providerId) };
   }),
 
   remove: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'admin');
+      requirePermission(ctx.memberRole, 'settings:sso');
       // Scope the delete to the active org: a foreign id removes nothing.
       const { count } = await authDb.ssoProvider.deleteMany({
         where: { id: input.id, organizationId: ctx.organizationId },
       });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'sso.provider_removed',
+        targetType: 'sso_provider',
+        targetId: input.id,
+      });
       return { ok: true };
     }),
 
   // ── SCIM provisioning token (one per org) ──────────────────────────────
 
   scimStatus: orgProcedure.query(async ({ ctx }) => {
-    requireRole(ctx.memberRole, 'admin');
+    requirePermission(ctx.memberRole, 'settings:sso');
     const token = await authDb.scimToken.findUnique({
       where: { organizationId: ctx.organizationId },
       select: { createdAt: true, lastUsedAt: true },
@@ -139,7 +155,7 @@ export const ssoRouter = router({
   }),
 
   generateScimToken: orgProcedure.mutation(async ({ ctx }) => {
-    requireRole(ctx.memberRole, 'admin');
+    requirePermission(ctx.memberRole, 'settings:sso');
     const { token, hash } = await generateScimToken();
     // One token per org: regenerating replaces (and invalidates) the old one.
     await authDb.scimToken.upsert({
@@ -147,13 +163,25 @@ export const ssoRouter = router({
       create: { id: newId('scim'), organizationId: ctx.organizationId, tokenHash: hash },
       update: { tokenHash: hash, lastUsedAt: null },
     });
+    await writeAudit(ctx.tenantDb, {
+      organizationId: ctx.organizationId,
+      actorId: ctx.session.user.id,
+      action: 'scim.token_generated',
+      targetType: 'scim_token',
+    });
     // The plaintext is returned exactly once; only its hash is stored.
     return { token, baseUrl: scimBaseUrl() };
   }),
 
   revokeScimToken: orgProcedure.mutation(async ({ ctx }) => {
-    requireRole(ctx.memberRole, 'admin');
+    requirePermission(ctx.memberRole, 'settings:sso');
     await authDb.scimToken.deleteMany({ where: { organizationId: ctx.organizationId } });
+    await writeAudit(ctx.tenantDb, {
+      organizationId: ctx.organizationId,
+      actorId: ctx.session.user.id,
+      action: 'scim.token_revoked',
+      targetType: 'scim_token',
+    });
     return { ok: true };
   }),
 });

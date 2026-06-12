@@ -24,6 +24,12 @@ export const emailBlockSchema = z.discriminatedUnion('type', [
     type: z.literal('image'),
     url: urlValue,
     alt: z.string().max(300).default(''),
+    /** Display width as a percentage of the email body (default: natural
+     *  size capped at 100%). */
+    width: z.number().int().min(10).max(100).optional(),
+    align: z.enum(['left', 'center', 'right']).optional(),
+    /** Corner rounding in pixels. */
+    radius: z.number().int().min(0).max(32).optional(),
   }),
   z.object({ id: z.string().min(1).max(64), type: z.literal('divider') }),
   z.object({ id: z.string().min(1).max(64), type: z.literal('spacer') }),

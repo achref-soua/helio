@@ -1,0 +1,45 @@
+---
+title: Database Studio
+description: Browse, chart, and safely edit your own data — allow-listed tables, validated writes, full audit, re-authenticated deletes.
+---
+
+**Admin → Database** is a window onto your organization's own data —
+transparent without being dangerous. It is not a SQL console; it is a
+curated browser with guard rails:
+
+- **Allow-listed tables only.** Contacts, lists, segments, templates,
+  campaigns, journeys, forms, landing pages, companies, deals, tasks,
+  notes, scoring rules, widgets, in-app messages, booking pages, meetings.
+  Auth tables, credentials, API keys, and anything secret-bearing are not
+  browsable **by construction** — they are simply not in the registry.
+- **Tenant-scoped by the database itself.** Every query runs through the
+  same row-level-security connection as the rest of Helio; the studio
+  physically cannot reach another organization's rows.
+- **Validated writes.** Editable fields are declared per table; unknown or
+  read-only fields are rejected loudly, values are validated server-side
+  (types, lengths, required), and JSON fields are checked before save.
+- **Everything audited.** Every edit, create, and delete lands in the
+  [audit log](/docs/guides/admin-area) as a `dbstudio.*` action with the
+  changed field names.
+- **Deletes re-authenticate.** Removing a row asks for your password
+  (verified server-side), your authenticator code when two-factor is on,
+  and the typed phrase `I understand` — a live session alone can never
+  destroy data. Related
+  data may cascade, which the dialog says before you do it.
+
+Who can see it? `admin:database` — admins and owners (deletes included, behind the re-authentication above).
+The full matrix lives in [Roles & permissions](/docs/security/permissions).
+
+<Callout type="info">
+  Need raw SQL over events? That lives in the [Insights SQL explorer](/docs/guides/analytics) —
+  read-only, events-table-only, capped. The studio and the explorer deliberately cover different
+  ground.
+</Callout>
+
+## At a glance
+
+Tables with a category-shaped column (status, type, priority, …) open with
+a small chart: row counts per category, colored by the dashboard palette,
+with a group-by picker when the table offers more than one. The table
+picker itself shows live row counts, so you can see the shape of your
+data before you open anything.

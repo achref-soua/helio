@@ -14,7 +14,7 @@ const active = {
 
 function activitiesFor(contact: unknown, sms?: SmsProvider) {
   const prisma = { contact: { findUnique: vi.fn(async () => contact) } } as never;
-  return createJourneyActivities(prisma, {} as never, {} as never, undefined, sms);
+  return createJourneyActivities(prisma, {} as never, {} as never, undefined, async () => sms);
 }
 
 describe('sendJourneySms', () => {

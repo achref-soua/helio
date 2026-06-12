@@ -27,13 +27,14 @@ export function apiKeyAuth(deps: GatewayDeps) {
     const keyHash = await hashGatewayApiKey(token);
     const key = await tenantDb.gatewayApiKey.findUnique({
       where: { keyHash },
-      select: { id: true },
+      select: { id: true, scopes: true },
     });
     if (!key) {
       throw new HTTPException(401, { message: 'invalid or missing API key' });
     }
 
     c.set('organizationId', parsed.organizationId);
+    c.set('scopes', key.scopes);
     // Best-effort last-used stamp; never block the request on it.
     void tenantDb.gatewayApiKey
       .update({ where: { id: key.id }, data: { lastUsedAt: new Date() } })

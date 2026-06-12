@@ -1,18 +1,16 @@
+import type { EmailProvider, OutgoingEmail } from '@helio/core';
 import nodemailer, { type Transporter } from 'nodemailer';
 
-export interface OutgoingEmail {
-  from: string;
-  to: string;
-  subject: string;
-  html: string;
-  text: string;
-  headers?: Record<string, string>;
-}
-
-/** Delivery adapter boundary — SMTP today, SES/Postmark/Resend later. */
-export interface EmailProvider {
-  send(message: OutgoingEmail): Promise<{ providerMessageId: string }>;
-}
+// The adapter boundary and the fetch-based providers live in @helio/core
+// (shared with the dashboard's system mail); SMTP is nodemailer, so it
+// stays here. Re-exported to keep the app-local import path stable.
+export {
+  type EmailProvider,
+  MailgunEmailProvider,
+  type OutgoingEmail,
+  PostmarkEmailProvider,
+  ResendEmailProvider,
+} from '@helio/core';
 
 export interface SmtpConfig {
   host: string;

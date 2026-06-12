@@ -2,7 +2,9 @@ import { newId, widgetTypeSchema } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { writeAudit } from '@/lib/audit';
+
+import { orgProcedure, requirePermission, router } from '../init';
 
 const ctaUrlSchema = z.string().trim().url().max(2000);
 
@@ -32,7 +34,7 @@ export const widgetRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'widgets:write');
       const widget = await ctx.tenantDb.widget.create({
         data: {
           id: newId('wgt'),
@@ -45,6 +47,13 @@ export const widgetRouter = router({
           ctaLabel: input.ctaLabel || null,
           ctaUrl: input.ctaUrl || null,
         },
+      });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'widget.created',
+        targetType: 'widget',
+        targetId: widget.id,
       });
       return { id: widget.id };
     }),
@@ -63,7 +72,7 @@ export const widgetRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'widgets:write');
       const { id, ...rest } = input;
       const { count } = await ctx.tenantDb.widget.updateMany({
         where: { id },
@@ -78,15 +87,29 @@ export const widgetRouter = router({
         },
       });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'widget.updated',
+        targetType: 'widget',
+        targetId: id,
+      });
       return { id };
     }),
 
   remove: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'widgets:write');
       const { count } = await ctx.tenantDb.widget.deleteMany({ where: { id: input.id } });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'widget.deleted',
+        targetType: 'widget',
+        targetId: input.id,
+      });
       return { ok: true };
     }),
 });

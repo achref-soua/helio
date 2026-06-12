@@ -3,9 +3,108 @@ title: Self-hosting
 description: Bring the whole Helio platform up locally with one command, then deploy it however you like.
 ---
 
-Helio is built to be self-hosted. A reviewer cloning the repository should have
-the platform live locally in minutes, with seeded demo data. This page is the
-shortest path there, plus the full build-and-run reference.
+Helio is built to be self-hosted — by anyone, not just engineers. The
+supported path is one command; cloning the repository is only for people
+hacking on Helio itself.
+
+## Install in one command
+
+The one-time prerequisite is Docker — a normal, free app install
+([Docker Desktop](https://docs.docker.com/desktop/) on Windows and macOS,
+[Docker Engine](https://docs.docker.com/engine/install/) on Linux servers
+and VMs). Its installer sets up everything it needs; on Windows the Helio
+installer below even offers to install it for you. Helio handles
+absolutely everything else.
+
+**Linux / macOS / servers**
+
+```bash
+curl -fsSL https://github.com/achref-soua/helio/releases/latest/download/install.sh | sh
+```
+
+**Windows (PowerShell)**
+
+```powershell
+irm https://github.com/achref-soua/helio/releases/latest/download/install.ps1 | iex
+```
+
+The installer fetches the `helio` CLI for your platform, verifies Docker (and
+tells you exactly what to fix if it isn't ready), generates this
+installation's secrets into `~/.helio/.env`, downloads the release-pinned
+compose bundle, pulls images, runs migrations, starts everything, and opens
+the dashboard. The first account you create becomes the administrator.
+
+Pick the **core** profile (default, ~2.5 GB RAM: dashboard, REST API, AI
+copilot) or **full** (adds campaign sending, event ingestion, tracking, and
+analytics — recommended on ≥ 8 GB hosts; switch later with `helio up --full`).
+
+### Operating it
+
+| Command             | What it does                                                             |
+| ------------------- | ------------------------------------------------------------------------ |
+| `helio status`      | Services, installed version, and a dashboard health probe.               |
+| `helio logs [svc]`  | Tail logs (all services or one).                                         |
+| `helio update`      | Move to a newer release — takes a safety backup first, then migrates.    |
+| `helio backup`      | Local database backups (see the backup & restore guide).                 |
+| `helio rotate-key`  | Rotate the credential-vault encryption key with zero downtime.           |
+| `helio doctor`      | Check Docker, ports, disk, and the installation when something is off.   |
+| `helio down` / `up` | Stop / start without losing anything.                                    |
+| `helio uninstall`   | Remove Helio (`--purge-data` erases volumes and config — it asks twice). |
+
+Everything lives in `~/.helio`: the pinned compose file, your `.env`
+(secrets — keep a copy with your backups), downloaded releases, and local
+backups. Pin a version with `HELIO_VERSION=vX.Y.Z` before the install
+one-liner, or `helio install --version vX.Y.Z`.
+
+### Serving a whole team from one machine
+
+Helio is a multi-user web app: install it **once** on a shared machine or
+server and everyone uses it at the same time from their own browser, with
+their own account, role, and sessions — organizations are isolated down to
+the database row. Don't run one install per OS user on the same box: they
+would fight over the same ports and Docker resources, and there's no need.
+
+For teammates to reach it from other machines, point Helio at the address
+they will actually use, then restart:
+
+```bash
+# in ~/.helio/.env — the address your team types in their browser
+APP_URL=http://your-server-name:3000
+
+helio down && helio up
+```
+
+Sign-in, email links, and the API all derive from `APP_URL`, so it must
+match what the browser shows. For a public domain with HTTPS, see the
+[production guide](/docs/production).
+
+### Uninstalling
+
+Leaving is as boring as arriving. Both commands ask you to type
+`uninstall` before touching anything:
+
+```bash
+# Stop Helio and remove its containers — data and config are KEPT,
+# so `helio up` later brings everything back exactly as it was.
+helio uninstall
+
+# Remove Helio completely: containers, database, volumes, and ~/.helio
+# (config, secrets, local backups). Take a `helio backup` first if you
+# might ever want the data again.
+helio uninstall --purge-data
+```
+
+To also remove the `helio` command itself: on Linux/macOS it lives inside
+`~/.helio/bin`, so `--purge-data` already removed it; on Windows delete
+`%LOCALAPPDATA%\Helio` and remove that folder from your user PATH
+(Settings → search "environment variables"). The downloaded images can be
+reclaimed with `docker image prune -a`, and Docker Desktop itself is a
+normal app — keep it for other things or uninstall it from your OS like
+any other program.
+
+## Developing from source
+
+Everything below is for working on Helio itself.
 
 ## Prerequisites
 
@@ -79,8 +178,8 @@ stream into the dashboard.
 ## Deployment
 
 Multi-stage, non-root, healthchecked images for every service live in
-`infra/docker/` and publish to GHCR on every `main` push (Trivy-gated, with an
-SBOM attached):
+`infra/docker/` and publish to GHCR **on release tags** (Trivy-gated) — the
+repository's single workflow; `task release:images` reproduces it locally:
 
 ```bash
 for service in web api ingest tracking workers intelligence; do
@@ -116,3 +215,21 @@ documents every value; a managed-cloud walkthrough ships with the v1 milestone.
 
 See the [configuration reference](/docs/configuration) for every environment
 variable each service reads.
+
+## Install Helio as an app
+
+Helio is a PWA: open your instance in Chrome/Edge and use the install icon
+in the address bar (or **Help → Install the app** inside the dashboard) to
+get Helio in its own window with its own icon — desktop and mobile. There
+is deliberately no offline mode: Helio is a live data dashboard, and stale
+numbers presented as current would mislead.
+
+## First run & signups
+
+A fresh install greets you with a one-minute setup screen: your admin
+account (verified automatically — no mail provider exists yet), your
+organization, and your first workspace. After that the instance is
+**invite-only by default** (`ALLOW_PUBLIC_SIGNUP=false` in the bundle):
+new teammates join through emailed invitations from **Settings →
+Members**. Flip the variable to `true` only if you really want strangers
+signing up.

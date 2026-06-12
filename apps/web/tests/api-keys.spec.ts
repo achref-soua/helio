@@ -29,3 +29,15 @@ test('create an API key, see it listed, then revoke it', async ({ page }) => {
   await row.getByTestId('api-key-revoke').click();
   await expect(page.getByTestId('api-key-row').filter({ hasText: name })).toHaveCount(0);
 });
+
+test('a scoped key shows its grants in the list', async ({ page }) => {
+  await page.goto('/settings');
+  await page.getByRole('button', { name: 'Create key' }).click();
+  await page.getByTestId('api-key-name').fill('Read-only reporting');
+  await page.getByRole('checkbox', { name: /contacts:read/ }).check();
+  await page.getByTestId('api-key-submit').click();
+  await expect(page.getByText(/^hk_/).first()).toBeVisible();
+  await page.keyboard.press('Escape');
+  const row = page.getByRole('row', { name: /Read-only reporting/ });
+  await expect(row).toContainText('contacts:read');
+});

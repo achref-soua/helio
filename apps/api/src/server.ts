@@ -17,17 +17,15 @@ const app = createApp({
   prisma,
   redis,
   rateLimit: { max: env.RATE_LIMIT_MAX, windowSeconds: env.RATE_LIMIT_WINDOW_S },
-  stripe: env.STRIPE_WEBHOOK_SECRET
-    ? {
-        webhookSecret: env.STRIPE_WEBHOOK_SECRET,
-        priceToPlan: {
-          ...(env.STRIPE_PRICE_PRO ? { [env.STRIPE_PRICE_PRO]: 'PRO' as const } : {}),
-          ...(env.STRIPE_PRICE_SCALE ? { [env.STRIPE_PRICE_SCALE]: 'SCALE' as const } : {}),
-        },
-      }
-    : undefined,
   emailWebhook: env.EMAIL_WEBHOOK_TOKEN
     ? { token: env.EMAIL_WEBHOOK_TOKEN, fetch: (url) => fetch(url) }
+    : undefined,
+  smsWebhook: env.SMS_WEBHOOK_TOKEN ? { token: env.SMS_WEBHOOK_TOKEN } : undefined,
+  vault: env.HELIO_ENCRYPTION_KEY
+    ? {
+        key: env.HELIO_ENCRYPTION_KEY,
+        previousKey: env.HELIO_ENCRYPTION_KEY_PREVIOUS || undefined,
+      }
     : undefined,
 });
 

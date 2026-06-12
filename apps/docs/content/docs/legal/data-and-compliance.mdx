@@ -1,0 +1,91 @@
+---
+title: Data & Compliance
+description: Where a Helio deployment's data lives, the security architecture protecting it, the GDPR and email-compliance tooling built in, and the operator's checklist.
+---
+
+_Effective 12 June 2026 · not legal advice — a map of what the product does so you and your counsel can decide what you must do._
+
+## Where your data lives
+
+Everything a Helio deployment processes stays in infrastructure the operator
+runs:
+
+| Store                  | What it holds                                                            |
+| ---------------------- | ------------------------------------------------------------------------ |
+| PostgreSQL             | Contacts, companies, segments, journeys, templates, configuration, audit |
+| ClickHouse             | Behavioral events, opens, clicks (full profile)                          |
+| Redis                  | Cache, sessions, rate limits                                             |
+| Your object storage    | Assets and exports                                                       |
+| Your backups directory | Database dumps you schedule and control                                  |
+
+No copy of any of it reaches the Helio project. Data leaves your deployment
+only through providers **you** connect (email relay, SMS, WhatsApp, AI) and
+through messages you choose to send.
+
+## Security architecture
+
+The [Enterprise & security](/docs/security/permissions) section covers each
+in depth; the compliance-relevant spine:
+
+- **Tenant isolation enforced by the database**: every tenant table carries
+  PostgreSQL row-level security, so cross-organization reads are impossible
+  even for buggy queries.
+- **Secrets sealed at rest**: provider credentials, DKIM keys, and signing
+  secrets are encrypted with AES-256-GCM under a deployment key
+  ([credential vault](/docs/security/credential-vault)), bound to their row,
+  never logged, with zero-downtime rotation.
+- **Account security**: TOTP two-factor (org-enforceable), password policy
+  with forced rotation, OIDC SSO, SCIM provisioning, scoped API keys.
+- **Accountability**: an append-only audit log of security-relevant actions;
+  outbound webhooks are HMAC-signed; public endpoints are rate-limited.
+- **Transport**: AI prompts are refused over plaintext HTTP to remote hosts;
+  put TLS in front of every public surface (see
+  [self-hosting](/docs/self-hosting)).
+
+## GDPR tooling for operators
+
+Helio ships the mechanics; the legal obligations are yours as controller:
+
+- **Data-subject export** — a contact's row menu produces a JSON export of
+  everything held about them ([contacts guide](/docs/guides/contacts)).
+- **Erasure** — deleting a contact removes the profile and cascades through
+  the tenant's data.
+- **Consent and suppression** — unsubscribes, bounces, and complaints land
+  on a suppression list that every send path honors, automatically.
+- **Minimization by architecture** — there is no third-party processor in a
+  default install; each one you add is an explicit, auditable choice.
+
+## Email & messaging compliance
+
+- **One-click unsubscribe** (RFC 8058) header and link on every marketing
+  email, plus a hosted preference center — the CAN-SPAM/GDPR baseline.
+- **Transactional and marketing streams are separate**, so receipts and
+  resets never carry marketing obligations.
+- **Deliverability hygiene** — the [deliverability wizard](/docs/guides/deliverability)
+  sets up SPF, DKIM, and DMARC per sending domain; authenticated mail is
+  both a compliance and an inbox-placement requirement.
+- Quiet hours and frequency caps in journeys help honor jurisdictional
+  contact-time rules.
+
+## AI and data sovereignty
+
+Bring your own provider — including a fully local OpenAI-compatible server —
+and the copilot's context never leaves your network. Keys are sealed in the
+credential vault; each organization can use its own
+([AI copilot guide](/docs/guides/ai-copilot)).
+
+## Operator checklist
+
+1. Publish a privacy policy for your audience; you are the controller.
+2. Sign DPAs with the providers you connect (email relay, SMS, AI).
+3. Put TLS in front of the stack and set strong `HELIO_ENCRYPTION_KEY`
+   custody.
+4. Schedule [backups](/docs/guides/backup-restore) and rehearse a restore.
+5. Decide retention: events and exports accumulate until you prune them.
+6. Use double opt-in where your jurisdictions expect it, and import only
+   lists with provenance you can defend.
+
+<Callout type="info">
+  Compliance is a property of an operation, not of software alone. Helio gives you the controls;
+  using them correctly for your jurisdictions is a conversation to have with your counsel.
+</Callout>

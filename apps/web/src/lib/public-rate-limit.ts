@@ -23,6 +23,16 @@ const BUDGETS = {
   form: { max: 30, windowSeconds: 60 },
   /** Public meeting booking — writes meetings, contacts, and tasks. */
   booking: { max: 30, windowSeconds: 60 },
+  /** Backup downloads — authenticated owners pulling dump files. */
+  backupDownload: { max: 20, windowSeconds: 60 },
+  /** Churn-model artifact uploads — admin-only, large bodies. */
+  modelUpload: { max: 10, windowSeconds: 60 },
+  /** Churn training-data CSV exports — admin-only, heavy reads. */
+  modelExport: { max: 10, windowSeconds: 60 },
+  /** Email-builder image uploads — editors, 2 MiB bodies. */
+  assetUpload: { max: 30, windowSeconds: 60 },
+  /** First-run bootstrap — one instance, no reason for bursts. */
+  setup: { max: 5, windowSeconds: 60 },
   /** SCIM provisioning — sized for an IdP sync burst. */
   scim: { max: 240, windowSeconds: 60 },
 } as const;

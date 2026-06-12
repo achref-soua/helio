@@ -1,6 +1,7 @@
 import { type LandingBlock } from '@helio/core';
 import { Button } from '@helio/ui/components/button';
 import { Input } from '@helio/ui/components/input';
+import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
 import { BrandStyle } from '@/components/brand-style';
@@ -38,13 +39,8 @@ export default async function PublicLandingPage({
   });
   const brand = page?.workspace.organization;
 
-  if (!page || !page.published) {
-    return (
-      <main className="bg-muted/30 grid min-h-svh place-items-center p-6">
-        <p className="text-muted-foreground text-sm">{t('notFound')}</p>
-      </main>
-    );
-  }
+  // A real 404, not a 200 with sad text — crawlers and uptime checks care.
+  if (!page || !page.published) notFound();
 
   const blocks = (page.blocks as unknown as LandingBlock[]) ?? [];
   const firstHeading = blocks.findIndex((block) => block.type === 'heading');
@@ -83,7 +79,10 @@ export default async function PublicLandingPage({
                     {block.text}
                   </h1>
                 ) : (
-                  <h2 key={index} className="text-2xl font-semibold tracking-tight text-balance">
+                  <h2
+                    key={index}
+                    className="font-display text-3xl font-semibold tracking-tight text-balance"
+                  >
                     {block.text}
                   </h2>
                 );

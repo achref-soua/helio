@@ -8,14 +8,15 @@ export const env = createEnv({
   REDIS_URL: z.string().min(1),
   RATE_LIMIT_MAX: z.coerce.number().int().default(100),
   RATE_LIMIT_WINDOW_S: z.coerce.number().int().default(60),
-  // Stripe billing (optional — hosted deployments only). The webhook is
-  // disabled (404) until the signing secret is set.
-  STRIPE_WEBHOOK_SECRET: z.string().default(''),
-  STRIPE_PRICE_PRO: z.string().default(''),
-  STRIPE_PRICE_SCALE: z.string().default(''),
   // Shared secret on the bounce/complaint webhook URL (?token=…). The
   // endpoint is disabled (404) until set.
   EMAIL_WEBHOOK_TOKEN: z.string().default(''),
+  // Shared secret on the Twilio status callback URL; disabled (404) until set.
+  SMS_WEBHOOK_TOKEN: z.string().default(''),
+  // Opens sealed integration secrets (ADR-0019); same key the dashboard
+  // seals with. Legacy plaintext rows still verify without it.
+  HELIO_ENCRYPTION_KEY: z.string().default(''),
+  HELIO_ENCRYPTION_KEY_PREVIOUS: z.string().default(''),
 });
 
 export type Env = typeof env;

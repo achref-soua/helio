@@ -128,6 +128,10 @@ describe('tracking app', () => {
     expect(health.headers.get('x-content-type-options')).toBe('nosniff');
     // The pixel is embedded cross-origin by mail clients — CORP must stay off.
     expect(health.headers.get('cross-origin-resource-policy')).toBeNull();
+    expect(await health.json()).toMatchObject({
+      service: 'tracking',
+      version: expect.any(String),
+    });
     expect((await app.request('/readyz')).status).toBe(200);
   });
 

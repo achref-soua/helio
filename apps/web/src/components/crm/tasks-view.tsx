@@ -32,6 +32,7 @@ import {
   Handshake,
   ListTodo,
   Mail,
+  Pencil,
   Phone,
   Plus,
   Trash2,
@@ -69,6 +70,7 @@ export function TasksView() {
   const workspaceId = useActiveWorkspaceId();
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [type, setType] = useState<TaskType>('TODO');
   const [priority, setPriority] = useState<TaskPriority>('MEDIUM');
@@ -81,6 +83,7 @@ export function TasksView() {
   });
 
   const createTask = useMutation(trpc.crm.createTask.mutationOptions());
+  const updateTask = useMutation(trpc.crm.updateTask.mutationOptions());
   const setTaskStatus = useMutation(trpc.crm.setTaskStatus.mutationOptions());
   const deleteTask = useMutation(trpc.crm.deleteTask.mutationOptions());
 
@@ -98,18 +101,30 @@ export function TasksView() {
     event.preventDefault();
     if (!workspaceId || !title.trim()) return;
     try {
-      await createTask.mutateAsync({
-        workspaceId,
-        title: title.trim(),
-        type,
-        priority,
-        // A date input yields YYYY-MM-DD; treat it as that day's due date.
-        dueAt: due ? new Date(due) : null,
-        notes: notes.trim() ? notes.trim() : null,
-      });
+      if (editingId) {
+        await updateTask.mutateAsync({
+          id: editingId,
+          title: title.trim(),
+          type,
+          priority,
+          dueAt: due ? new Date(due) : null,
+          notes: notes.trim() ? notes.trim() : null,
+        });
+      } else {
+        await createTask.mutateAsync({
+          workspaceId,
+          title: title.trim(),
+          type,
+          priority,
+          // A date input yields YYYY-MM-DD; treat it as that day's due date.
+          dueAt: due ? new Date(due) : null,
+          notes: notes.trim() ? notes.trim() : null,
+        });
+      }
       await invalidate();
-      toast.success(t('taskCreated'));
+      toast.success(editingId ? t('taskUpdated') : t('taskCreated'));
       setCreateOpen(false);
+      setEditingId(null);
       resetForm();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('genericError'));
@@ -146,7 +161,7 @@ export function TasksView() {
     <div className="grid gap-4">
       <div className="flex items-center gap-2">
         <ListTodo className="text-primary size-5" aria-hidden />
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight">{t('title')}</h1>
         <div className="ml-auto">
           <Button size="sm" onClick={() => setCreateOpen(true)} data-testid="new-task">
             <Plus aria-hidden /> {t('newTask')}
@@ -253,6 +268,23 @@ export function TasksView() {
                       variant="ghost"
                       size="icon"
                       className="size-8 shrink-0"
+                      aria-label={t('editTask', { title: task.title })}
+                      onClick={() => {
+                        setEditingId(task.id);
+                        setTitle(task.title);
+                        setType(task.type);
+                        setPriority(task.priority);
+                        setDue(task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 10) : '');
+                        setNotes(task.notes ?? '');
+                        setCreateOpen(true);
+                      }}
+                    >
+                      <Pencil className="size-4" aria-hidden />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 shrink-0"
                       aria-label={t('deleteTask', { title: task.title })}
                       onClick={() => onDelete(task.id)}
                     >
@@ -266,10 +298,19 @@ export function TasksView() {
         </div>
       )}
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog
+        open={createOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open);
+          if (!open) {
+            setEditingId(null);
+            resetForm();
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('newTask')}</DialogTitle>
+            <DialogTitle>{editingId ? t('editTaskTitle') : t('newTask')}</DialogTitle>
             <DialogDescription>{t('newTaskSubtitle')}</DialogDescription>
           </DialogHeader>
           <form className="grid gap-4" onSubmit={onCreate}>
@@ -336,7 +377,7 @@ export function TasksView() {
             </div>
             <DialogFooter>
               <Button type="submit" disabled={createTask.isPending || !title.trim()}>
-                {t('createTask')}
+                {editingId ? t('saveTask') : t('createTask')}
               </Button>
               <Button type="button" variant="ghost" onClick={() => setCreateOpen(false)}>
                 {t('cancel')}

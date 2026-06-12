@@ -1,21 +1,21 @@
 import { type APIRequestContext, expect, type Page, test } from '@playwright/test';
 
-const MAILPIT = `http://localhost:${process.env.MAILPIT_UI_PORT ?? '8025'}`;
+import { mailpitUrl } from './mailpit';
 
 async function mailLink(request: APIRequestContext, to: string, pattern: RegExp) {
   let link: string | undefined;
   await expect
     .poll(
       async () => {
-        const list = await request.get(`${MAILPIT}/api/v1/search?query=to:${to}`);
+        const list = await request.get(`${mailpitUrl()}/api/v1/search?query=to:${to}`);
         const { messages } = (await list.json()) as { messages: Array<{ ID: string }> };
         if (!messages?.length) return false;
-        const message = await request.get(`${MAILPIT}/api/v1/message/${messages[0]!.ID}`);
+        const message = await request.get(`${mailpitUrl()}/api/v1/message/${messages[0]!.ID}`);
         const { Text } = (await message.json()) as { Text: string };
         link = Text.match(pattern)?.[0];
         return Boolean(link);
       },
-      { timeout: 15_000 },
+      { timeout: 30_000 },
     )
     .toBe(true);
   return link!;
@@ -44,7 +44,9 @@ test('owner invites a teammate who joins as viewer', async ({ page, browser, req
   await page.goto('/settings');
   await expect(page.getByText('Members', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Invite' }).click();
-  await page.getByLabel('Email').fill(memberEmail);
+  // exact: the credentials empty-state on this page exposes a select
+  // labeled "Add a Email sending credential", which substring-matches.
+  await page.getByLabel('Email', { exact: true }).fill(memberEmail);
   await page.getByRole('button', { name: 'Editor' }).click();
   await page.getByRole('menuitem', { name: 'Viewer' }).click();
   await page.getByRole('button', { name: 'Send invitation' }).click();
@@ -77,6 +79,14 @@ test('owner invites a teammate who joins as viewer', async ({ page, browser, req
   });
   const payload = JSON.stringify(await denied.json());
   expect(payload).toContain('FORBIDDEN');
+
+  // The admin area is hidden from viewers — and the server gate holds even
+  // when the URL is typed by hand.
+  await expect(
+    memberPage.getByRole('navigation', { name: 'Primary' }).getByText('Admin'),
+  ).toHaveCount(0);
+  await memberPage.goto('/admin/audit');
+  await expect(memberPage.getByRole('heading', { name: 'Overview' })).toBeVisible();
 
   await memberContext.close();
 });

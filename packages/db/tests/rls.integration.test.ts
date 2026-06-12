@@ -200,6 +200,45 @@ describe('row-level security tenant isolation', () => {
     expect(await tenantA.task.count()).toBe(1);
   });
 
+  it('CRM notes and companies are tenant-isolated', async () => {
+    const tenantA = forTenant(app, orgA.id);
+    const companyId = newId('co');
+    await tenantA.company.create({
+      data: {
+        id: companyId,
+        organizationId: orgA.id,
+        workspaceId: workspaceA,
+        name: 'Acme Industries',
+      },
+    });
+    await tenantA.note.create({
+      data: {
+        id: newId('note'),
+        organizationId: orgA.id,
+        workspaceId: workspaceA,
+        body: 'Spoke with procurement — renewal looks good.',
+      },
+    });
+
+    const tenantB = forTenant(app, orgB.id);
+    expect(await tenantB.company.count()).toBe(0);
+    expect(await tenantB.note.count()).toBe(0);
+    expect(await tenantB.company.findUnique({ where: { id: companyId } })).toBeNull();
+    await expect(
+      tenantB.note.create({
+        data: {
+          id: newId('note'),
+          organizationId: orgA.id,
+          workspaceId: workspaceA,
+          body: 'Smuggled note',
+        },
+      }),
+    ).rejects.toThrowError(/row-level security|denied/i);
+
+    expect(await tenantA.company.count()).toBe(1);
+    expect(await tenantA.note.count()).toBe(1);
+  });
+
   it('webhook endpoints (and their secrets) are tenant-isolated', async () => {
     const tenantA = forTenant(app, orgA.id);
     const endpointId = newId('whe');
@@ -439,15 +478,23 @@ describe('row-level security tenant isolation', () => {
     expect(await tenantA.inAppMessage.count()).toBe(1);
   });
 
-  it('subscriptions are tenant-isolated', async () => {
-    await forTenant(app, orgA.id).subscription.create({
-      data: { id: newId('sub'), organizationId: orgA.id, plan: 'PRO' },
+  it('provider credentials are tenant-isolated', async () => {
+    await forTenant(app, orgA.id).providerCredential.create({
+      data: {
+        id: newId('cred'),
+        organizationId: orgA.id,
+        kind: 'EMAIL_POSTMARK',
+        name: 'Production',
+        config: { fromEmail: 'hello@orga.test' },
+        secrets: { serverToken: 'enc:v1:aabbccdd:stub:stub:stub' },
+        secretsMeta: { serverToken: { last4: '1234', setAt: new Date().toISOString() } },
+      },
     });
-    expect(await forTenant(app, orgB.id).subscription.count()).toBe(0);
-    const mine = await forTenant(app, orgA.id).subscription.findUnique({
-      where: { organizationId: orgA.id },
+    expect(await forTenant(app, orgB.id).providerCredential.count()).toBe(0);
+    const mine = await forTenant(app, orgA.id).providerCredential.findFirst({
+      where: { kind: 'EMAIL_POSTMARK' },
     });
-    expect(mine?.plan).toBe('PRO');
+    expect(mine?.name).toBe('Production');
   });
 
   it('the SSO provider table is walled off from the RLS app role entirely', async () => {

@@ -12,9 +12,10 @@ import {
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { writeAudit } from '@/lib/audit';
 import { getClickHouse } from '@/lib/clickhouse';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 interface DailyRow {
   day: string;
@@ -326,7 +327,7 @@ export const analyticsRouter = router({
   runSql: orgProcedure
     .input(z.object({ workspaceId: z.string().min(1), sql: z.string().min(1).max(5000) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'analytics:sql');
       const workspace = await ctx.tenantDb.workspace.findUnique({
         where: { id: input.workspaceId },
         select: { id: true },
@@ -336,6 +337,15 @@ export const analyticsRouter = router({
       const guard = guardAnalyticsQuery(input.sql);
       if (!guard.ok) return { ok: false as const, error: guard.error, columns: [], rows: [] };
 
+      await writeAudit(ctx.tenantDb, {
+        organizationId: ctx.organizationId,
+        actorId: ctx.session.user.id,
+        action: 'analytics.sql_executed',
+        targetType: 'workspace',
+        targetId: input.workspaceId,
+        workspaceId: input.workspaceId,
+        metadata: { chars: input.sql.length },
+      });
       try {
         const result = await getClickHouse().query({
           query: guard.sql,

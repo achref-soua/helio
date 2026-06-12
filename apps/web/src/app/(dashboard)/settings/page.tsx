@@ -4,19 +4,29 @@ import { getTranslations } from 'next-intl/server';
 
 import { auth } from '@/lib/auth';
 
+import { AboutPanel } from './about-panel';
+import { AnalyticsPanel } from './analytics-panel';
 import { ApiKeysPanel } from './api-keys-panel';
-import { BillingPanel } from './billing-panel';
+import { BackupsPanel } from './backups-panel';
 import { BrandingPanel } from './branding-panel';
+import { ChurnModelPanel } from './churn-model-panel';
+import { CredentialsPanel } from './credentials-panel';
 import { DeliverabilityPanel } from './deliverability-panel';
 import { IntegrationsPanel } from './integrations-panel';
 import { MembersPanel } from './members-panel';
+import { PasswordPolicyPanel } from './password-policy-panel';
 import { ScimPanel } from './scim-panel';
 import { SecurityPanel } from './security-panel';
 import { SsoPanel } from './sso-panel';
 import { SupportPanel } from './support-panel';
 import { WebhooksPanel } from './webhooks-panel';
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ enroll2fa?: string }>;
+}) {
+  const { enroll2fa } = await searchParams;
   const requestHeaders = await headers();
   const [t, organization, session] = await Promise.all([
     getTranslations('members'),
@@ -33,9 +43,11 @@ export default async function SettingsPage() {
     // grid-cols-1 pins the track to minmax(0,1fr): without it the track
     // sizes to the widest card's min-content and narrow phones scroll
     // sideways.
-    <div className="grid max-w-3xl grid-cols-1 gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+    // Two columns on wide screens: settings panels are self-contained
+    // cards, and a single half-width column wasted the rest of the page.
+    <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
+      <div className="xl:col-span-2">
+        <h1 className="font-display text-3xl font-semibold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground text-sm">{t('subtitle', { org: organization.name })}</p>
       </div>
       <MembersPanel
@@ -54,10 +66,11 @@ export default async function SettingsPage() {
           }))}
         canManage={me?.role === 'owner' || me?.role === 'admin'}
       />
-      <SecurityPanel />
-      <BillingPanel />
+      <SecurityPanel autoEnroll={enroll2fa === '1'} />
+      {(me?.role === 'owner' || me?.role === 'admin') && <PasswordPolicyPanel canManage />}
       {(me?.role === 'owner' || me?.role === 'admin') && (
         <>
+          <CredentialsPanel canManage />
           <SsoPanel canManage />
           <ScimPanel canManage />
           <ApiKeysPanel canManage />
@@ -65,9 +78,13 @@ export default async function SettingsPage() {
           <IntegrationsPanel canManage />
           <BrandingPanel canManage />
           <DeliverabilityPanel canManage />
+          <AnalyticsPanel canManage />
+          <ChurnModelPanel canManage />
+          <BackupsPanel isOwner={me?.role === 'owner'} />
           <SupportPanel canManage />
         </>
       )}
+      <AboutPanel />
     </div>
   );
 }

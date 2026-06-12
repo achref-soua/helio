@@ -1,0 +1,147 @@
+---
+title: Bring your own churn model
+description: Upload an ONNX or XGBoost churn model — or connect a model server — and Helio scores every contact with it, falling back to the built-in model if yours ever fails.
+---
+
+Helio ships with a built-in churn model (gradient boosting over each
+contact's engagement history). If your team has its own model — trained on
+richer data, tuned to your business — plug it in under **Settings → Churn
+prediction model** and the next recompute scores every contact with it.
+
+Three ways to connect one:
+
+| Format           | What it is                                       | How                                  |
+| ---------------- | ------------------------------------------------ | ------------------------------------ |
+| **ONNX**         | The portable format every ML framework exports   | Upload the `.onnx` file (≤ 50 MiB)   |
+| **XGBoost JSON** | `booster.save_model("churn.json")`               | Upload the `.json` file (≤ 50 MiB)   |
+| **HTTP**         | Your own model server (any language, any LAN/VM) | Register the HTTPS URL + auth header |
+
+<Callout type="warn">
+  **Pickle files are refused by design** — loading a pickle executes arbitrary code. Export
+  scikit-learn models to ONNX instead: `pip install skl2onnx`, then `to_onnx(model, X[:1])`. Helio
+  detects pickle bytes regardless of the file extension.
+</Callout>
+
+## The feature contract
+
+The mapping is **automatic**: your model always receives a matrix built
+from every contact feature Helio computes, in exactly this order — the
+same columns, in the same order, as the training-data export. Train on
+that export and your model plugs straight in, no configuration:
+
+| Column            | Meaning                                       |
+| ----------------- | --------------------------------------------- |
+| `total_events`    | All tracked events for the contact            |
+| `distinct_events` | Distinct event names                          |
+| `events_7d`       | Events in the last 7 days                     |
+| `events_30d`      | Events in the last 30 days                    |
+| `opens`           | Email opens                                   |
+| `clicks`          | Email clicks                                  |
+| `pageviews`       | Page views                                    |
+| `recency_days`    | Days since the last event (3650 = never seen) |
+| `tenure_days`     | Days since the contact was created            |
+| `rule_score`      | The contact's rule-based lead score           |
+
+The model must return **one churn probability per row, in [0, 1]** —
+either a flat array, the positive column of an `(n, 2)` matrix, or
+scikit-learn's ZipMap output (all handled automatically for uploads).
+
+### Training data, one click
+
+**Settings → Churn prediction model → Training CSV** downloads this
+workspace's contacts as exactly those columns plus a `churned_label`
+column (1 = no events in 30 days), restricted to contacts old enough for
+the label to mean something. Train on it offline:
+
+```python
+import pandas as pd
+import xgboost as xgb
+
+frame = pd.read_csv("churn-training-data.csv")
+features = frame.drop(columns=["churned_label"])
+booster = xgb.train(
+    {"objective": "binary:logistic"},
+    xgb.DMatrix(features, label=frame["churned_label"]),
+)
+booster.save_model("churn.json")  # upload this file
+```
+
+Emails are excluded from the export unless you add `includeEmail=1` to the
+download URL — they are PII and models don't need them.
+
+### scikit-learn → ONNX
+
+```python
+from skl2onnx import to_onnx
+from sklearn.ensemble import HistGradientBoostingClassifier
+
+model = HistGradientBoostingClassifier().fit(features, labels)
+onnx_model = to_onnx(model, features[:1].to_numpy().astype("float32"))
+with open("churn.onnx", "wb") as handle:
+    handle.write(onnx_model.SerializeToString())
+```
+
+PyTorch exports via `torch.onnx.export`, TensorFlow via `tf2onnx` — any
+model that lands in ONNX with a single float input works.
+
+## The HTTP endpoint contract
+
+For models too large to upload, in another language, or already served:
+register the URL. Helio POSTs JSON in chunks of 5,000 rows:
+
+```json
+{ "feature_names": ["opens", "clicks", "tenure_days"], "inputs": [[12, 3, 90.5]] }
+```
+
+and expects:
+
+```json
+{ "predictions": [0.27] }
+```
+
+one value per input row, within 10 seconds per chunk. The optional
+**Authorization header** is stored in the encrypted credential vault and
+sent on every call — it never appears in the UI or API again.
+
+<Callout type="info">
+  Endpoints must be HTTPS, and private/LAN addresses are refused unless the deployment sets
+  `INTEL_ALLOW_PRIVATE_MODEL_ENDPOINTS=true`. The self-host bundle ships with it enabled — pointing
+  Helio at a model server on your own network is the normal case there.
+</Callout>
+
+## Validate → Activate → relax
+
+Every model is **validated** before it can be used: Helio runs a small
+sample frame through it (uploads execute in a locked-down sandbox process
+with memory and CPU limits) and checks the output shape and range. The
+verdict lands on the model row in plain words — for example:
+
+- _the model expects 4 input features but Helio provides 10_ — retrain
+  the model on the training-data export, which has every column Helio
+  sends, in order
+- _pickle files are not accepted…_ — export to ONNX (recipe above)
+- _the endpoint answered HTTP 401_ — fix the Authorization header
+- _the model file is missing — upload it again_ — the artifact volume was
+  recreated; re-upload
+
+A validated model shows **Ready**; click **Activate** to make it live —
+exactly one model is active per workspace. The next **Recompute
+predictions** (Contacts page) scores with it, and `prediction_model` on
+each contact records that the custom model ran.
+
+### The fallback chain
+
+A custom model can never break scoring. If it fails at recompute time —
+file gone, endpoint down, garbage output — Helio marks the model
+**Failed** with the reason, raises one system alert, scores everyone with
+the **built-in model** in the same run, and reports
+`churn_method: custom_failed_fallback` so the downgrade is visible. Fix
+the cause, **Re-validate**, and **Activate** again.
+
+## Where the bytes live
+
+Uploaded artifacts are stored on the intelligence service's volume
+(`/var/lib/helio/models`, the `models-data` volume in the self-host
+bundle), namespaced per organization. Deleting a model deletes its file.
+Artifacts are not part of database backups — keep your training pipeline
+able to regenerate them.

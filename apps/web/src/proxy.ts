@@ -22,10 +22,11 @@ export const config = {
     // cookie), auth/trpc APIs, health, static assets (including the
     // metadata icon routes — browsers fetch favicons without credentials),
     // and the public surfaces: u/* (unsubscribe), f/* (hosted forms),
-    // m/* (booking pages), p/* (landing pages), scim/* (bearer-
+    // m/* (booking pages), p/* (landing pages), a/* (email image
+    // assets — inbox clients fetch them anonymously), scim/* (bearer-
     // authenticated provisioning), and the write-key-scoped embed
     // endpoints api/widgets and api/inapp — these callers are not
     // session-cookie holders by definition.
-    '/((?!login|signup|two-factor|accept-invitation|api/auth|api/trpc|api/healthz|api/widgets|api/inapp|u/|f/|m/|p/|scim/|_next|favicon.ico|icon.svg|apple-icon.png).*)',
+    '/((?!login|signup|setup|forgot-password|reset-password|change-password|two-factor|accept-invitation|api/auth|api/trpc|api/healthz|api/widgets|api/inapp|u/|f/|m/|p/|a/|scim/|_next|favicon.ico|icon.svg|apple-icon.png|manifest.webmanifest).*)',
   ],
 };

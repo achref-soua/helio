@@ -1,41 +1,34 @@
 import {
+  type ColumnMapping,
+  CONNECTOR_MAPPING,
+  ConnectorError,
   contactEmailSchema,
-  contactLimitFor,
   contactsToCsv,
+  type CredentialKind,
+  fetchHubSpotRows,
+  fetchKlaviyoRows,
+  fetchMailchimpRows,
+  MAPPING_TARGETS,
   newId,
   normalizeContactRows,
-  wouldExceedContactLimit,
+  normalizeMappedRows,
 } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { authDb } from '@/lib/auth';
 import { getClickHouse } from '@/lib/clickhouse';
+import { decryptCredentialField } from '@/lib/credential-secrets';
+import { runImportJob } from '@/lib/import-runner';
 import { pushContactToSalesforce } from '@/lib/salesforce';
 import { emitWebhookEvent } from '@/lib/webhooks';
 
-import { orgProcedure, requireRole, router } from '../init';
-import { resolvePlan, type TenantDb } from './billing';
+import { orgProcedure, requirePermission, router } from '../init';
 
 const attributesSchema = z.record(z.string(), z.string()).default({});
 
 /** One CSV export tops out here; the audit row records any truncation. */
 const EXPORT_CAP = 10_000;
-
-/**
- * Enforce the org's plan contact cap before adding `adding` contacts.
- * UNLIMITED (the self-hosted default) never blocks. Counts are org-wide.
- */
-async function assertContactCapacity(tenantDb: TenantDb, organizationId: string, adding: number) {
-  const plan = await resolvePlan(tenantDb, organizationId);
-  if (contactLimitFor(plan) === null) return;
-  const current = await tenantDb.contact.count();
-  if (wouldExceedContactLimit(plan, current, adding)) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: `Contact limit reached for the ${plan} plan (${contactLimitFor(plan)}). Upgrade to add more.`,
-    });
-  }
-}
 
 /** Resolve and authorize the workspace inside the tenant scope. */
 async function assertWorkspace(
@@ -49,6 +42,126 @@ async function assertWorkspace(
 }
 
 export const contactRouter = router({
+  /** Everything the detail page shows in one round-trip (H2). */
+  get: orgProcedure.input(z.object({ id: z.string().min(1) })).query(async ({ ctx, input }) => {
+    const contact = await ctx.tenantDb.contact.findUnique({
+      where: { id: input.id },
+      include: {
+        company: { select: { id: true, name: true } },
+        listMembers: { include: { list: { select: { id: true, name: true } } } },
+        deals: {
+          select: { id: true, title: true, status: true, valueCents: true, currency: true },
+          orderBy: { createdAt: 'desc' },
+        },
+        tasks: {
+          select: { id: true, title: true, status: true, dueAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        },
+        notes: { orderBy: [{ pinned: 'desc' }, { createdAt: 'desc' }], take: 50 },
+      },
+    });
+    if (!contact) throw new TRPCError({ code: 'NOT_FOUND', message: 'Contact not found' });
+    const authorIds = [
+      ...new Set(contact.notes.map((note) => note.authorId).filter((id): id is string => !!id)),
+    ];
+    const authors = authorIds.length
+      ? await authDb.user
+          .findMany({
+            where: { id: { in: authorIds } },
+            select: { id: true, name: true, email: true },
+          })
+          .catch(() => [])
+      : [];
+    const names = new Map(authors.map((user) => [user.id, user.name || user.email]));
+    return {
+      ...contact,
+      notes: contact.notes.map((note) => ({
+        ...note,
+        author: note.authorId ? (names.get(note.authorId) ?? null) : null,
+      })),
+    };
+  }),
+
+  /**
+   * The unified activity feed: email sends and audit entries from
+   * Postgres, behavioral events from ClickHouse when it is up — merged
+   * newest-first. The page stays useful on the core profile.
+   */
+  timeline: orgProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const contact = await ctx.tenantDb.contact.findUnique({
+        where: { id: input.id },
+        select: { id: true, email: true, workspaceId: true },
+      });
+      if (!contact) throw new TRPCError({ code: 'NOT_FOUND', message: 'Contact not found' });
+
+      const [sends, audits] = await Promise.all([
+        ctx.tenantDb.emailSend.findMany({
+          where: { contactId: contact.id },
+          select: { id: true, subject: true, status: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 25,
+        }),
+        ctx.tenantDb.auditLog.findMany({
+          where: { targetId: contact.id },
+          select: { id: true, action: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 25,
+        }),
+      ]);
+
+      let clickhouseUp = true;
+      let events: Array<{ id: string; label: string; at: Date }> = [];
+      try {
+        const result = await getClickHouse().query({
+          query: `
+            SELECT event, timestamp FROM events
+            WHERE workspace_id = {workspaceId:String} AND user_id = {email:String}
+            ORDER BY timestamp DESC LIMIT 25`,
+          query_params: { workspaceId: contact.workspaceId, email: contact.email },
+          format: 'JSON',
+        });
+        const body = (await result.json()) as { data: Array<{ event: string; timestamp: string }> };
+        events = body.data.map((row, index) => ({
+          id: `evt_${index}`,
+          label: row.event,
+          at: new Date(`${row.timestamp.replace(' ', 'T')}Z`),
+        }));
+      } catch {
+        clickhouseUp = false;
+      }
+
+      const entries = [
+        ...sends.map((send) => ({
+          id: send.id,
+          type: 'email' as const,
+          label: send.subject,
+          detail: send.status,
+          at: send.createdAt,
+        })),
+        ...audits.map((audit) => ({
+          id: audit.id,
+          type: 'audit' as const,
+          label: audit.action,
+          detail: null,
+          at: audit.createdAt,
+        })),
+        ...events.map((event) => ({
+          id: event.id,
+          type: 'event' as const,
+          label: event.label,
+          detail: null,
+          at: event.at,
+        })),
+      ]
+        .sort((a, b) => b.at.getTime() - a.at.getTime())
+        .slice(0, 50);
+
+      return { clickhouseUp, entries };
+    }),
+
   list: orgProcedure
     .input(
       z.object({
@@ -102,9 +215,8 @@ export const contactRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'contacts:write');
       await assertWorkspace(ctx.tenantDb, input.workspaceId);
-      await assertContactCapacity(ctx.tenantDb, ctx.organizationId, 1);
       const existing = await ctx.tenantDb.contact.findFirst({
         where: { workspaceId: input.workspaceId, email: input.email },
       });
@@ -154,7 +266,7 @@ export const contactRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'contacts:write');
       const contact = await ctx.tenantDb.contact.update({
         where: { id: input.id },
         data: {
@@ -180,7 +292,7 @@ export const contactRouter = router({
   delete: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'contacts:write');
       // Hard delete by design: GDPR erasure, cascades list memberships.
       const contact = await ctx.tenantDb.contact.delete({ where: { id: input.id } });
       await ctx.tenantDb.auditLog.create({
@@ -197,6 +309,176 @@ export const contactRouter = router({
       return { id: contact.id };
     }),
 
+  /**
+   * The wizard's import (I1): explicit column mapping, company
+   * create-or-match, update-vs-skip for existing emails, and a job row
+   * the client polls for live progress. Processing runs detached.
+   */
+  importStart: orgProcedure
+    .input(
+      z.object({
+        workspaceId: z.string().min(1),
+        rows: z.array(z.record(z.string(), z.unknown())).min(1).max(10_000),
+        mapping: z.record(z.string(), z.enum(MAPPING_TARGETS)),
+        updateExisting: z.boolean().default(true),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'contacts:write');
+      await assertWorkspace(ctx.tenantDb, input.workspaceId);
+      const normalized = normalizeMappedRows(input.rows, input.mapping as ColumnMapping);
+      if (normalized.valid.length === 0) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'No importable rows — check the email column mapping',
+        });
+      }
+      const job = await ctx.tenantDb.importJob.create({
+        data: {
+          id: newId('imp'),
+          organizationId: ctx.organizationId,
+          workspaceId: input.workspaceId,
+          source: normalized.source,
+          totalRows: input.rows.length,
+          suppressed: normalized.suppressed,
+          errorRows: normalized.errors,
+        },
+      });
+      await ctx.tenantDb.auditLog.create({
+        data: {
+          id: newId('audit'),
+          organizationId: ctx.organizationId,
+          workspaceId: input.workspaceId,
+          actorId: ctx.session.user.id,
+          action: 'contacts.import_started',
+          targetType: 'import_job',
+          targetId: job.id,
+          metadata: { received: input.rows.length, source: normalized.source },
+        },
+      });
+      // Detached on purpose: the poll endpoint reports progress.
+      void runImportJob({
+        organizationId: ctx.organizationId,
+        workspaceId: input.workspaceId,
+        jobId: job.id,
+        normalized,
+        updateExisting: input.updateExisting,
+      });
+      return { jobId: job.id };
+    }),
+
+  /**
+   * Pull contacts straight from a connected platform (I2/I3): the vendor
+   * token comes from the vault, the rows ride the exact same pipeline as
+   * the CSV wizard, and progress is the same job poll.
+   */
+  importFromConnector: orgProcedure
+    .input(
+      z.object({
+        workspaceId: z.string().min(1),
+        credentialId: z.string().min(1),
+        updateExisting: z.boolean().default(true),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requirePermission(ctx.memberRole, 'contacts:write');
+      await assertWorkspace(ctx.tenantDb, input.workspaceId);
+      const credential = await ctx.tenantDb.providerCredential.findUnique({
+        where: { id: input.credentialId },
+        select: { id: true, kind: true, name: true },
+      });
+      if (!credential) throw new TRPCError({ code: 'NOT_FOUND', message: 'Credential not found' });
+      const kind = credential.kind as CredentialKind;
+      const secretField = kind === 'IMPORT_HUBSPOT' ? 'accessToken' : 'apiKey';
+      const token = await decryptCredentialField(ctx, credential.id, secretField);
+      if (!token) {
+        throw new TRPCError({
+          code: 'PRECONDITION_FAILED',
+          message: 'The credential has no stored token — re-enter it in Settings',
+        });
+      }
+
+      let rows: Array<Record<string, string>>;
+      let source: 'hubspot' | 'mailchimp' | 'klaviyo';
+      try {
+        if (kind === 'IMPORT_HUBSPOT') {
+          rows = await fetchHubSpotRows(token);
+          source = 'hubspot';
+        } else if (kind === 'IMPORT_MAILCHIMP') {
+          rows = await fetchMailchimpRows(token);
+          source = 'mailchimp';
+        } else if (kind === 'IMPORT_KLAVIYO') {
+          rows = await fetchKlaviyoRows(token);
+          source = 'klaviyo';
+        } else {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'That credential is not an import connector',
+          });
+        }
+      } catch (error) {
+        if (error instanceof ConnectorError) {
+          throw new TRPCError({ code: 'PRECONDITION_FAILED', message: error.message });
+        }
+        throw error;
+      }
+      if (rows.length === 0) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'The platform returned no contacts' });
+      }
+
+      const normalized = normalizeMappedRows(rows, CONNECTOR_MAPPING);
+      normalized.source = source;
+      const job = await ctx.tenantDb.importJob.create({
+        data: {
+          id: newId('imp'),
+          organizationId: ctx.organizationId,
+          workspaceId: input.workspaceId,
+          source,
+          totalRows: rows.length,
+          suppressed: normalized.suppressed,
+          errorRows: normalized.errors,
+        },
+      });
+      await ctx.tenantDb.auditLog.create({
+        data: {
+          id: newId('audit'),
+          organizationId: ctx.organizationId,
+          workspaceId: input.workspaceId,
+          actorId: ctx.session.user.id,
+          action: 'contacts.import_started',
+          targetType: 'import_job',
+          targetId: job.id,
+          metadata: { received: rows.length, source, credential: credential.name },
+        },
+      });
+      void runImportJob({
+        organizationId: ctx.organizationId,
+        workspaceId: input.workspaceId,
+        jobId: job.id,
+        normalized,
+        updateExisting: input.updateExisting,
+      });
+      return { jobId: job.id };
+    }),
+
+  importJob: orgProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const job = await ctx.tenantDb.importJob.findUnique({ where: { id: input.id } });
+      if (!job) throw new TRPCError({ code: 'NOT_FOUND', message: 'Import not found' });
+      return {
+        id: job.id,
+        status: job.status,
+        totalRows: job.totalRows,
+        created: job.created,
+        updated: job.updated,
+        skipped: job.skipped,
+        suppressed: job.suppressed,
+        errorRows: job.errorRows as Array<{ row: number; reason: string }>,
+        error: job.error,
+      };
+    }),
+
   import: orgProcedure
     .input(
       z.object({
@@ -205,12 +487,9 @@ export const contactRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'contacts:write');
       await assertWorkspace(ctx.tenantDb, input.workspaceId);
       const { valid, invalid, duplicates, source, suppressed } = normalizeContactRows(input.rows);
-      // Bound the import to the plan's remaining headroom (new emails only;
-      // existing ones are skipped, but this is a safe upper bound).
-      await assertContactCapacity(ctx.tenantDb, ctx.organizationId, valid.length);
       const result = await ctx.tenantDb.contact.createMany({
         data: valid.map((row) => ({
           id: newId('contact'),
@@ -264,7 +543,7 @@ export const contactRouter = router({
     )
     .query(async ({ ctx, input }) => {
       // Bulk PII egress — held to the same role bar as bulk imports.
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'contacts:export');
       await assertWorkspace(ctx.tenantDb, input.workspaceId);
       const contacts = await ctx.tenantDb.contact.findMany({
         where: {
@@ -306,7 +585,7 @@ export const contactRouter = router({
   dataExport: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'contacts:export');
       const contact = await ctx.tenantDb.contact.findUnique({
         where: { id: input.id },
         include: {

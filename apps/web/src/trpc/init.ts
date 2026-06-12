@@ -1,4 +1,4 @@
-import { hasRole, type Role } from '@helio/core';
+import { can, hasRole, type Permission, type Role } from '@helio/core';
 import { forTenant } from '@helio/db';
 import { initTRPC, TRPCError } from '@trpc/server';
 import superjson from 'superjson';
@@ -63,5 +63,19 @@ export const orgProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 export function requireRole(role: string, required: Role) {
   if (!hasRole(role, required)) {
     throw new TRPCError({ code: 'FORBIDDEN', message: `Requires ${required} access` });
+  }
+}
+
+/**
+ * Gate an org procedure behind a named permission (the catalog in
+ * @helio/core). Prefer this over requireRole: the name documents the
+ * action, and the admin area can answer "who can do what" from it.
+ */
+export function requirePermission(role: string, permission: Permission) {
+  if (!can(role, permission)) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: `Your role does not include the ${permission} permission`,
+    });
   }
 }

@@ -2,3 +2,127 @@
 
 /* The design system lives outside this app's auto-detected content roots. */
 @source '../../../../packages/ui/src';
+
+/* --- Sun splash (components/sun-splash.tsx) ------------------------------
+   The sunrise/sunset brand moment. The sky is the dark theme's own
+   backdrop (per the owner's eye) so the moment feels native to the app;
+   the glow takes the org's accent so white-labeled installs rise in
+   their own color. */
+
+.splash-sky {
+  background: linear-gradient(to top, oklch(0.13 0.022 265) 0%, oklch(0.17 0.02 265) 100%);
+}
+
+.splash-glow {
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--primary) 55%, #fbbf24) 0%,
+    transparent 72%
+  );
+  filter: blur(18px);
+}
+
+.splash-horizon {
+  background: linear-gradient(to right, transparent, rgb(254 243 199 / 0.65), transparent);
+}
+
+/* Sunrise: the sun climbs, the glow blooms, the name settles in, and the
+   whole scene exhales out of the way. */
+.splash-sunrise {
+  animation: splash-fade-out 0.4s ease-in 1.7s forwards;
+}
+.splash-sunrise .splash-sun {
+  animation: splash-rise 1.15s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+.splash-sunrise .splash-glow {
+  animation: splash-glow-in 1.5s ease-out both;
+}
+.splash-sunrise .splash-name {
+  animation: splash-settle-in 0.6s ease-out 0.95s both;
+}
+
+/* Sunset: dusk slides over, the sun dips behind the horizon and the glow
+   dims. The final frame stays up until navigation tears the shell down. */
+.splash-sunset {
+  animation: splash-fade-in 0.25s ease-out both;
+}
+.splash-sunset .splash-sun {
+  animation: splash-set 1.05s cubic-bezier(0.55, 0, 0.85, 0.4) 0.2s both;
+}
+.splash-sunset .splash-glow {
+  animation: splash-glow-out 1.2s ease-in both;
+}
+.splash-sunset .splash-name {
+  animation: splash-settle-out 0.5s ease-in 0.45s both;
+}
+
+@keyframes splash-rise {
+  from {
+    transform: translateY(76px) scale(0.88);
+  }
+  to {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes splash-set {
+  from {
+    transform: translateY(0) scale(1);
+  }
+  to {
+    transform: translateY(88px) scale(0.9);
+  }
+}
+
+@keyframes splash-glow-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.85;
+  }
+}
+
+@keyframes splash-glow-out {
+  from {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 0.1;
+  }
+}
+
+@keyframes splash-settle-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes splash-settle-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes splash-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes splash-fade-out {
+  to {
+    opacity: 0;
+  }
+}

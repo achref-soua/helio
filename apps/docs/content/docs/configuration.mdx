@@ -33,6 +33,7 @@ and `DATABASE_ADMIN_URL` (schema owner) is a core part of the
 | `RATE_LIMIT_MAX`      | `100`   | Requests per window per API key.                                                            |
 | `RATE_LIMIT_WINDOW_S` | `60`    | Rate-limit window, seconds.                                                                 |
 | `EMAIL_WEBHOOK_TOKEN` | —       | Enables `/webhooks/email/*` [suppression](/docs/guides/deliverability#bounces--complaints). |
+| `SMS_WEBHOOK_TOKEN`   | —       | Enables the Twilio delivery-status callback at `/webhooks/sms/twilio`.                      |
 
 The gateway authenticates with [per-organization API keys](/docs/api/rest)
 minted in the dashboard — there is no gateway-wide secret.
@@ -104,16 +105,17 @@ runs over the RLS-bound application role, never the admin connection — so the
 model can never reach another tenant's data. For full data sovereignty, point
 `INTEL_LLM_PROVIDER` at `ollama` or `local`.
 
-## Billing (hosted only, optional)
+## Release identity & updates
 
-Self-hosted Helio is unlimited and unmetered — leave these blank. When set, the
-gateway accepts signature-verified Stripe webhooks and maps a subscription's
-price to a plan.
+Release images bake the version and commit in at build time; every service
+reports them on `/healthz`, and the dashboard shows them in the sidebar and
+under **Settings → About**. Source checkouts report `dev`.
 
-| Variable                                  | Purpose                                     |
-| ----------------------------------------- | ------------------------------------------- |
-| `STRIPE_WEBHOOK_SECRET`                   | Verifies inbound Stripe webhook signatures. |
-| `STRIPE_PRICE_PRO` / `STRIPE_PRICE_SCALE` | Map Stripe prices to Helio plans.           |
+| Variable             | Required | Purpose                                                                                                                            |
+| -------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `HELIO_VERSION`      | —        | Release version (set by image build args; leave unset in dev).                                                                     |
+| `HELIO_COMMIT`       | —        | Build commit hash (set by image build args).                                                                                       |
+| `HELIO_UPDATE_CHECK` | —        | The dashboard polls GitHub's public releases feed (cached, anonymous, sends nothing) and shows an update notice. `false` disables. |
 
 ## Auth & email
 

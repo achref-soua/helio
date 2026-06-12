@@ -28,10 +28,26 @@ test('theme toggle switches color scheme class', async ({ page }) => {
   await expect(page.locator('html')).toHaveClass(/dark/);
 });
 
-test('healthz reports ok', async ({ request }) => {
+test('healthz reports ok with the release identity', async ({ request }) => {
   const response = await request.get('/api/healthz');
   expect(response.status()).toBe(200);
-  expect(await response.json()).toMatchObject({ status: 'ok' });
+  // Source checkouts report "dev"; release images bake HELIO_VERSION.
+  expect(await response.json()).toMatchObject({
+    status: 'ok',
+    service: 'web',
+    version: 'dev',
+    commit: null,
+  });
+});
+
+test('the sidebar and settings expose the running version', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByText('Helio dev', { exact: true })).toBeVisible();
+
+  await page.goto('/settings');
+  await expect(page.getByText('About', { exact: true })).toBeVisible();
+  await expect(page.getByText('dev build')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Releases & changelog' })).toBeVisible();
 });
 
 test('site icons are served without a session', async ({ browser }) => {

@@ -10,7 +10,9 @@ import { BarChart3, Target, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { MeterBar } from '@/components/charts';
 import { SqlExplorer } from '@/components/insights/sql-explorer';
+import { PageHeader } from '@/components/page-header';
 import { ThemedSelect } from '@/components/themed-select';
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
 import { useTRPC } from '@/trpc/client';
@@ -101,13 +103,7 @@ function FunnelReport({ workspaceId }: { workspaceId: string }) {
                     {index > 0 && step.dropoff > 0 ? ` · −${pct(step.dropoff)}` : ''}
                   </span>
                 </div>
-                <div className="bg-muted h-3 overflow-hidden rounded">
-                  <div
-                    className="bg-primary h-full rounded"
-                    style={{ width: pct(step.rate) }}
-                    aria-hidden
-                  />
-                </div>
+                <MeterBar ratio={step.rate} />
               </li>
             ))}
           </ul>
@@ -304,13 +300,7 @@ function AttributionReport({ workspaceId }: { workspaceId: string }) {
                       {row.credit.toFixed(1)}
                     </span>
                   </div>
-                  <div className="bg-muted h-3 overflow-hidden rounded">
-                    <div
-                      className="bg-primary h-full rounded"
-                      style={{ width: max > 0 ? `${(row.credit / max) * 100}%` : '0%' }}
-                      aria-hidden
-                    />
-                  </div>
+                  <MeterBar ratio={max > 0 ? row.credit / max : 0} />
                 </li>
               ))}
             </ul>
@@ -329,10 +319,7 @@ export function InsightsView() {
 
   return (
     <div className="grid max-w-4xl gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
-        <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
-      </div>
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
       <FunnelReport workspaceId={workspaceId} />
       <RetentionReport workspaceId={workspaceId} />
       <AttributionReport workspaceId={workspaceId} />

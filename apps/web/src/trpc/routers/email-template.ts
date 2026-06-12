@@ -4,7 +4,7 @@ import { renderEmail } from '@helio/emails';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { orgProcedure, requireRole, router } from '../init';
+import { orgProcedure, requirePermission, router } from '../init';
 
 /** Sample contact used by builder previews. */
 const PREVIEW_CONTACT = {
@@ -52,7 +52,7 @@ export const emailTemplateRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'templates:write');
       const existing = await ctx.tenantDb.emailTemplate.findFirst({
         where: { workspaceId: input.workspaceId, name: input.name },
       });
@@ -93,7 +93,7 @@ export const emailTemplateRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'templates:write');
       const template = await ctx.tenantDb.emailTemplate.update({
         where: { id: input.id },
         data: {
@@ -119,7 +119,7 @@ export const emailTemplateRouter = router({
   delete: orgProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      requireRole(ctx.memberRole, 'editor');
+      requirePermission(ctx.memberRole, 'templates:write');
       const template = await ctx.tenantDb.emailTemplate.delete({ where: { id: input.id } });
       await ctx.tenantDb.auditLog.create({
         data: {

@@ -5,4 +5,8 @@ useDefault = true
 
 [[allowlists]]
 description = "Documented example configuration and lockfiles contain no real secrets"
-paths = ['''\.env\.example$''', '''pnpm-lock\.yaml$''']
+paths = ['''\.env\.example$''', '''pnpm-lock\.yaml$''', '''selfhost\.env\.template$''']
+
+[[allowlists]]
+description = "Vault envelope test vectors: deterministic keys derived from public labels plus the ciphertexts they seal — committed on purpose as the cross-language (Node/Python) format contract"
+paths = ['''packages/core/tests/fixtures/crypto-envelope-vectors\.json$''']
