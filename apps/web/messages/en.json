@@ -881,7 +881,9 @@
     "save": "Save branding",
     "saving": "Saving…",
     "saved": "Branding updated",
-    "genericError": "Something went wrong. Please try again."
+    "genericError": "Something went wrong. Please try again.",
+    "uploadLogo": "Upload from device",
+    "uploading": "Uploading…"
   },
   "scheduling": {
     "title": "Scheduling",
