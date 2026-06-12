@@ -1,6 +1,6 @@
 import { newId } from '@helio/core';
-import { forTenant, seedDemoWorkspace } from '@helio/db';
 import type { PrismaClient } from '@helio/db';
+import { forTenant, seedDemoWorkspace } from '@helio/db';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
