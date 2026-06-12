@@ -62,6 +62,8 @@ async function signUpAndOnboard(page: Page): Promise<void> {
 
   await page.getByLabel('Organization name').fill('Lumen Coffee Co.');
   await page.getByRole('button', { name: 'Create organization' }).click();
+  // The first-run tour aria-hides the page behind its modal — skip it.
+  await page.getByTestId('tour-skip').click();
   await page.getByRole('heading', { name: 'Overview' }).waitFor();
 }
 
