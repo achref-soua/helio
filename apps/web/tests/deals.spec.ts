@@ -52,3 +52,33 @@ test('create a pipeline, add a deal, move it to Won, then delete it', async ({ p
   await expect(page.getByText('Deal deleted')).toBeVisible();
   await expect(page.getByTestId('deal-card').filter({ hasText: 'Acme renewal' })).toHaveCount(0);
 });
+
+test('the pipeline shows as a table and the choice survives a reload', async ({ page }) => {
+  const title = `Table deal ${Date.now()}`;
+  await page.goto('/deals');
+  // Self-sufficient: earlier tests clean up their deals, so make one.
+  await page.getByTestId('new-deal').click();
+  await page.getByLabel('Title').fill(title);
+  await page.getByRole('button', { name: 'Create deal' }).click();
+  await expect(page.getByTestId('deal-card').filter({ hasText: title })).toBeVisible();
+
+  await page.getByTestId('deals-view-table').click();
+  await expect(page.getByTestId('deal-table')).toBeVisible();
+  await expect(page.getByTestId('deal-row').first()).toBeVisible();
+  await expect(page.getByTestId('deal-board')).toBeHidden();
+
+  await page.reload();
+  await expect(page.getByTestId('deal-table')).toBeVisible({ timeout: 15_000 });
+
+  // Inline stage move works from the table too.
+  const firstRow = page.getByTestId('deal-row').first();
+  await expect(firstRow.getByRole('combobox')).toBeVisible();
+
+  await page.getByTestId('deals-view-board').click();
+  await expect(page.getByTestId('deal-board')).toBeVisible();
+
+  // Leave the board as found.
+  const card = page.getByTestId('deal-card').filter({ hasText: title });
+  await card.getByRole('button', { name: `Delete ${title}` }).click();
+  await expect(card).toHaveCount(0);
+});
