@@ -1,7 +1,7 @@
 import type { APIRequestContext, Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 
-const MAILPIT = `http://localhost:${process.env.MAILPIT_UI_PORT ?? '8025'}`;
+import { mailpitUrl } from './mailpit';
 
 /**
  * The sunrise/sunset brand moment: a fresh browser session gets one
@@ -28,10 +28,10 @@ async function signUpFreshUser(page: Page, request: APIRequestContext): Promise<
   await expect
     .poll(
       async () => {
-        const list = await request.get(`${MAILPIT}/api/v1/search?query=to:${email}`);
+        const list = await request.get(`${mailpitUrl()}/api/v1/search?query=to:${email}`);
         const { messages } = (await list.json()) as { messages: Array<{ ID: string }> };
         if (!messages?.length) return false;
-        const message = await request.get(`${MAILPIT}/api/v1/message/${messages[0]!.ID}`);
+        const message = await request.get(`${mailpitUrl()}/api/v1/message/${messages[0]!.ID}`);
         const { Text } = (await message.json()) as { Text: string };
         link = Text.match(/https?:\/\/\S+verify-email\S+/)?.[0];
         return Boolean(link);

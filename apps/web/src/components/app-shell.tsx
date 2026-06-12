@@ -108,7 +108,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
         return (
           <div key={section.label ?? sectionIndex} className="grid gap-0.5">
             {section.label && (
-              <p className="text-sidebar-foreground/45 px-3 pb-1 text-[10px] font-semibold tracking-[0.14em] uppercase">
+              <p className="text-muted-foreground px-3 pb-1 text-[10px] font-semibold tracking-[0.14em] uppercase">
                 {t(`sections.${section.label}`)}
               </p>
             )}
@@ -183,7 +183,7 @@ function VersionBadge({ version }: { version?: string }) {
   return (
     <div className="mt-auto grid gap-3 px-5">
       <div className="gold-thread opacity-40" aria-hidden />
-      <div className="text-sidebar-foreground/55 text-xs">{t('versionBadge', { version })}</div>
+      <div className="text-muted-foreground text-xs">{t('versionBadge', { version })}</div>
     </div>
   );
 }
