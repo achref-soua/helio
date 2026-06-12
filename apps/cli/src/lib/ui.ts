@@ -19,18 +19,30 @@ export const dim = paint('2');
 export const good = paint('92');
 
 /**
- * The radial palette of the sun: a near-white core cooling through
- * yellows into an amber rim (xterm-256 indexes). Distances are in
- * half-block pixels — every cell is one pixel wide and two tall, so the
- * disc is drawn at double vertical resolution and comes out round.
+ * The Helio logo in half-block pixels: a glowing disc (near-white core
+ * cooling through yellows, xterm-256) and eight short rounded rays at
+ * 45° steps with a clear gap — the same geometry as icon.svg. Cells are
+ * one pixel wide and two tall, so the mark is drawn at double vertical
+ * resolution and comes out round.
  */
 function sunShade(dx: number, dy: number): number | null {
   const d = Math.hypot(dx, dy);
-  if (d <= 1.6) return 230;
-  if (d <= 3.2) return 226;
-  if (d <= 4.8) return 220;
-  if (d <= 6.0) return 214;
-  if (d <= 7.0) return 208;
+  // The disc, core to rim.
+  if (d <= 1.2) return 230;
+  if (d <= 2.4) return 226;
+  if (d <= 3.4) return 220;
+  if (d <= 4.3) return 214;
+  // The rays: short strokes from r 5.8 to 8.3, two pixels thick.
+  if (d >= 5.8 && d <= 8.3) {
+    for (let k = 0; k < 8; k += 1) {
+      const angle = (k * Math.PI) / 4;
+      const ux = Math.cos(angle);
+      const uy = Math.sin(angle);
+      const along = dx * ux + dy * uy;
+      const across = Math.abs(dx * uy - dy * ux);
+      if (along >= 5.8 && along <= 8.3 && across <= 0.95) return 208;
+    }
+  }
   return null;
 }
 
@@ -65,7 +77,7 @@ export function banner(version: string, tagline: string): void {
     say('');
     return;
   }
-  const SIZE = 14; // pixels per side → 7 terminal rows
+  const SIZE = 18; // pixels per side → 9 terminal rows
   const rows = Math.ceil(SIZE / 2);
   const wordmarkRow = Math.floor(rows / 2) - 1;
   for (let r = 0; r < rows; r += 1) {
