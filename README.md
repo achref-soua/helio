@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/achref-soua/helio/releases/download/v2.0.0/helio-demo.mp4"><b>▶&nbsp;Watch the demo film (3:58, MP4 — recorded on v2.0)</b></a>
+  <a href="https://github.com/achref-soua/helio/releases/download/v2.0.0/helio-demo.mp4"><b>▶&nbsp;Watch the demo film (4:27, MP4 — recorded on v2.0)</b></a>
   &nbsp;·&nbsp;
   <a href="docs/helio-product-guide.pdf"><b>📘&nbsp;Read the v2.0 product guide (PDF)</b></a>
 </p>
