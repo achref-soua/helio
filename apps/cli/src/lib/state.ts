@@ -63,3 +63,30 @@ export function writeManifest(
 export function isInstalled(paths: InstallPaths): boolean {
   return existsSync(paths.composeFile) && existsSync(paths.envFile);
 }
+
+/**
+ * What to tell someone whose install directory already exists. `install`
+ * deliberately refuses here — re-running it would generate fresh secrets
+ * and overwrite the `.env`, leaving the existing database undecryptable.
+ * The three lines map to the three real intents; most people who hit this
+ * just ran `helio uninstall` (which keeps data by design — see
+ * {@link keptDataMessage}) and simply want their stack back, so `helio up`
+ * comes first.
+ */
+export function alreadyInstalledMessage(home: string): string {
+  return [
+    `Helio is already installed at ${home}. To`,
+    `  • start it again with your data:  helio up`,
+    `  • move to a newer release:        helio update`,
+    `  • wipe it and reinstall fresh:    helio uninstall --purge-data, then reinstall`,
+  ].join('\n');
+}
+
+/**
+ * What `uninstall` (without `--purge-data`) says after stopping the stack.
+ * It keeps the directory, so the next step is `helio up`, not a reinstall —
+ * the one-line installer would land on {@link alreadyInstalledMessage}.
+ */
+export function keptDataMessage(home: string): string {
+  return `kept ${home} (config, .env, backups) — "helio up" brings it back; "helio uninstall --purge-data" removes it for good`;
+}
