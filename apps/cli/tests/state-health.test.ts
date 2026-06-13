@@ -6,9 +6,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { waitForHttpOk } from '../src/lib/health';
 import {
+  alreadyInstalledMessage,
   helioHome,
   installPaths,
   isInstalled,
+  keptDataMessage,
   readManifest,
   writeManifest,
 } from '../src/lib/state';
@@ -29,6 +31,26 @@ describe('installation state', () => {
     const manifest = readManifest(paths)!;
     expect(manifest.version).toBe('v2.0.0');
     expect(manifest.installedAt).toBeTruthy();
+  });
+});
+
+describe('reinstall guidance', () => {
+  // The bug this guards: `uninstall` keeps ~/.helio by design, so the
+  // directory still looks installed and a reinstall lands on this message.
+  // It must point at all three real intents, not just "update".
+  it('names the install directory and every recovery path', () => {
+    const message = alreadyInstalledMessage('/home/jo/.helio');
+    expect(message).toContain('/home/jo/.helio');
+    expect(message).toContain('helio up');
+    expect(message).toContain('helio update');
+    expect(message).toContain('helio uninstall --purge-data');
+  });
+
+  it('tells a kept-data uninstall to use "up", not a reinstall', () => {
+    const message = keptDataMessage('/home/jo/.helio');
+    expect(message).toContain('/home/jo/.helio');
+    expect(message).toContain('helio up');
+    expect(message).toContain('--purge-data');
   });
 });
 

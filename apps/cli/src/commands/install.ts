@@ -15,7 +15,13 @@ import { compose, detectDocker } from '../lib/docker';
 import { envValue, fillTemplate } from '../lib/envfile';
 import { waitForHttpOk } from '../lib/health';
 import { writeWindowsDesktopShortcut } from '../lib/shortcut';
-import { helioHome, installPaths, isInstalled, writeManifest } from '../lib/state';
+import {
+  alreadyInstalledMessage,
+  helioHome,
+  installPaths,
+  isInstalled,
+  writeManifest,
+} from '../lib/state';
 import { banner, bold, dim, fail, ok, prompt, say, step, sun, warn } from '../lib/ui';
 import { CLI_VERSION, registerCommand } from '../registry';
 
@@ -52,9 +58,7 @@ async function run(argv: string[]): Promise<number> {
 
   const paths = installPaths(values.dir ?? helioHome());
   if (isInstalled(paths)) {
-    fail(
-      `Helio is already installed at ${paths.home} — use "helio update" to move to a newer release`,
-    );
+    fail(alreadyInstalledMessage(paths.home));
   }
   mkdirSync(paths.releasesDir, { recursive: true });
 
