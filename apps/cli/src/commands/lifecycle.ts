@@ -10,6 +10,7 @@ import {
   type InstallPaths,
   installPaths,
   isInstalled,
+  keptDataMessage,
   readManifest,
 } from '../lib/state';
 import { confirmTyped, fail, say, warn } from '../lib/ui';
@@ -100,7 +101,7 @@ registerCommand('uninstall', 'Stop Helio and optionally erase its data', async (
     rmSync(paths.home, { recursive: true, force: true });
     say(`removed ${paths.home}`);
   } else {
-    say(`kept ${paths.home} (config, .env, backups) — "helio up" brings it back`);
+    say(keptDataMessage(paths.home));
   }
   return code;
 });
