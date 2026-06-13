@@ -2,6 +2,10 @@
 
 Thanks for your interest in improving Helio! This document describes how the project is developed and what a contribution needs to be merged.
 
+## Code of conduct
+
+This project is governed by the [Contributor Covenant](CODE_OF_CONDUCT.md). By participating, you are expected to uphold it. Please report unacceptable behavior to **achref.soua@outlook.com**.
+
 ## Prerequisites
 
 | Tool    | Version | Notes                                       |

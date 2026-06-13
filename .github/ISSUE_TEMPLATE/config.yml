@@ -3,3 +3,6 @@ contact_links:
   - name: Security vulnerability
     url: https://github.com/achref-soua/helio/security/advisories/new
     about: Please report vulnerabilities privately — never in a public issue.
+  - name: Code of Conduct
+    url: https://github.com/achref-soua/helio/blob/main/CODE_OF_CONDUCT.md
+    about: By participating, you agree to uphold our Code of Conduct.
