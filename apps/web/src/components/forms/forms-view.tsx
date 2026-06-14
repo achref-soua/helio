@@ -160,17 +160,19 @@ export function FormsView() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-3">
-                <div className="flex items-center gap-2">
-                  <code
-                    className="text-muted-foreground min-w-0 flex-1 truncate text-xs"
-                    title={`/f/${form.id}`}
-                  >
-                    /f/{form.id}
-                  </code>
+                {/* The hosted path gets its own full-width row and wraps
+                    (break-all) so the whole link is always visible — never
+                    clipped — however long the slug or however narrow the card. */}
+                <code
+                  className="text-muted-foreground bg-muted/60 block rounded-md px-2.5 py-1.5 text-xs break-all"
+                  data-testid="form-path"
+                >
+                  /f/{form.id}
+                </code>
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="shrink-0"
                     onClick={() => setPreviewId(previewId === form.id ? null : form.id)}
                     data-testid="form-preview-toggle"
                   >
@@ -179,7 +181,6 @@ export function FormsView() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="shrink-0"
                     onClick={() => copyLink(form.id)}
                     aria-label={t('copyLink', { name: form.name })}
                   >
