@@ -30,8 +30,6 @@ const DEFAULT_STAGES: Array<{ name: string; kind: 'OPEN' | 'WON' | 'LOST' }> = [
   { name: 'Lost', kind: 'LOST' },
 ];
 
-const currencySchema = z.string().trim().toUpperCase().length(3).default('USD');
-
 /**
  * CRM-lite: pipelines, stages, and deals. Everything is workspace-scoped
  * and RLS-isolated; the board query returns one pipeline with its ordered
@@ -125,7 +123,8 @@ export const crmRouter = router({
         stageId: z.string().min(1),
         title: z.string().trim().min(1).max(160),
         valueCents: z.number().int().min(0).max(1_000_000_000).default(0),
-        currency: currencySchema,
+        // Optional: falls back to the organization's chosen default currency.
+        currency: z.string().trim().toUpperCase().length(3).optional(),
         contactId: z.string().min(1).optional(),
       }),
     )
@@ -136,6 +135,15 @@ export const crmRouter = router({
         select: { kind: true },
       });
       if (!stage) throw new TRPCError({ code: 'NOT_FOUND', message: 'Stage not found' });
+      const currency =
+        input.currency ??
+        (
+          await ctx.tenantDb.organization.findUnique({
+            where: { id: ctx.organizationId },
+            select: { currency: true },
+          })
+        )?.currency ??
+        'USD';
       const position = await ctx.tenantDb.deal.count({
         where: { workspaceId: input.workspaceId, stageId: input.stageId },
       });
@@ -148,7 +156,7 @@ export const crmRouter = router({
           stageId: input.stageId,
           title: input.title,
           valueCents: input.valueCents,
-          currency: input.currency,
+          currency,
           status: stage.kind,
           position,
           contactId: input.contactId,

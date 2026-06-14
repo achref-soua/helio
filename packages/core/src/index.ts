@@ -89,6 +89,12 @@ export {
 } from './crypto-envelope';
 export { CONTACT_CSV_HEADER, type ContactCsvRow, contactsToCsv, csvCell, csvDocument } from './csv';
 export {
+  type CurrencyCode,
+  formatMoney,
+  isSupportedCurrency,
+  SUPPORTED_CURRENCIES,
+} from './currencies';
+export {
   STUDIO_MODELS,
   type StudioField,
   type StudioFieldType,

@@ -12,6 +12,7 @@ import { BackupsPanel } from './backups-panel';
 import { BrandingPanel } from './branding-panel';
 import { ChurnModelPanel } from './churn-model-panel';
 import { CredentialsPanel } from './credentials-panel';
+import { CurrencyPanel } from './currency-panel';
 import { DeliverabilityPanel } from './deliverability-panel';
 import { IntegrationsPanel } from './integrations-panel';
 import { MembersPanel } from './members-panel';
@@ -118,6 +119,7 @@ export default async function SettingsPage({
       {canAdmin && (
         <SettingsSection title={ts('workspaceTitle')} description={ts('workspaceDesc')}>
           <BrandingPanel canManage />
+          <CurrencyPanel canManage />
           <AnalyticsPanel canManage />
           <ChurnModelPanel canManage />
         </SettingsSection>

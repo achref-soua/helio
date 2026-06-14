@@ -1754,5 +1754,14 @@
     "workspaceDesc": "Make this workspace your own and fine-tune how it works.",
     "maintenanceTitle": "Maintenance",
     "maintenanceDesc": "Keep this instance backed up, up to date, and healthy."
+  },
+  "currency": {
+    "title": "Currency",
+    "subtitle": "The currency Helio shows deal amounts and revenue in.",
+    "label": "Default currency",
+    "hint": "Applies across deals, pipelines, and reports, and is the default for new deals. Existing deals keep the currency they were created with.",
+    "save": "Save currency",
+    "saved": "Currency updated",
+    "genericError": "Something went wrong"
   }
 }
