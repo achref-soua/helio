@@ -69,6 +69,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
+      # Grace window for the first-boot user/DB init (see selfhost compose).
+      start_period: 120s
 
   redpanda:
     image: redpandadata/redpanda:v24.3.1
