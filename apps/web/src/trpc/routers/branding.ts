@@ -1,4 +1,4 @@
-import { isHexColor, newId } from '@helio/core';
+import { isHexColor, isSupportedCurrency, newId } from '@helio/core';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
@@ -23,7 +23,7 @@ export const brandingRouter = router({
   get: orgProcedure.query(async ({ ctx }) => {
     const org = await ctx.tenantDb.organization.findUnique({
       where: { id: ctx.organizationId },
-      select: { name: true, brandName: true, brandColor: true, logo: true },
+      select: { name: true, brandName: true, brandColor: true, logo: true, currency: true },
     });
     if (!org) throw new TRPCError({ code: 'NOT_FOUND' });
     return org;
@@ -35,6 +35,13 @@ export const brandingRouter = router({
         brandName: z.string().trim().max(60).nullable().optional(),
         brandColor: hexColorSchema.nullable().optional(),
         logo: logoUrlSchema.nullable().optional(),
+        // ISO 4217 code, validated against the supported set in @helio/core.
+        currency: z
+          .string()
+          .trim()
+          .toUpperCase()
+          .refine(isSupportedCurrency, 'Unsupported currency')
+          .optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -45,6 +52,7 @@ export const brandingRouter = router({
           ...(input.brandName !== undefined ? { brandName: input.brandName || null } : {}),
           ...(input.brandColor !== undefined ? { brandColor: input.brandColor } : {}),
           ...(input.logo !== undefined ? { logo: input.logo } : {}),
+          ...(input.currency !== undefined ? { currency: input.currency } : {}),
         },
       });
       await ctx.tenantDb.auditLog.create({
