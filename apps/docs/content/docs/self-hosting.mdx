@@ -56,6 +56,37 @@ Everything lives in `~/.helio`: the pinned compose file, your `.env`
 backups. Pin a version with `HELIO_VERSION=vX.Y.Z` before the install
 one-liner, or `helio install --version vX.Y.Z`.
 
+### Updating
+
+There are two ways to move to a newer release; both take a database backup
+first, then migrate, and both are reversible from that backup.
+
+- **From the terminal** — `helio update` on the host. Always available.
+- **One click in the dashboard** — **Settings → Updates**, where an _owner_
+  sees the running version, any newer release, and an **Update** button. Helio
+  recreates the whole stack and the page reconnects when the new version is
+  live. This is on by default for a fresh install.
+
+The one-click path runs a small **updater sidecar** — the only container that
+mounts the Docker socket, so it can recreate the stack. The dashboard never
+touches the socket: an owner's click only writes a secret-guarded request to a
+shared volume, and the sidecar runs nothing but the fixed `helio update`. It is
+optional and easy to turn off:
+
+```bash
+# At install time: keep only the terminal `helio update`.
+helio install --no-inapp-update
+
+# On an existing install: hide the button and drop the sidecar (and its
+# socket) entirely, in ~/.helio/.env —
+HELIO_INAPP_UPDATE=false
+# and remove `update` from COMPOSE_PROFILES, then:
+helio down && helio up
+```
+
+See the [security policy](https://github.com/achref-soua/helio/blob/main/SECURITY.md)
+for the sidecar's trust model.
+
 ### Serving a whole team from one machine
 
 Helio is a multi-user web app: install it **once** on a shared machine or

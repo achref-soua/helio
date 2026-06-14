@@ -95,6 +95,11 @@ services:
       HELIO_ENCRYPTION_KEY: ${HELIO_ENCRYPTION_KEY}
       HELIO_ENCRYPTION_KEY_PREVIOUS: ${HELIO_ENCRYPTION_KEY_PREVIOUS:-}
       HELIO_UPDATE_CHECK: ${HELIO_UPDATE_CHECK:-true}
+      # One-click in-app updates: when true (with the `update` profile), the
+      # owner can update from Settings → Updates. The shared secret lets the
+      # dashboard authorize its request to the updater sidecar.
+      HELIO_INAPP_UPDATE: ${HELIO_INAPP_UPDATE:-false}
+      HELIO_UPDATE_SECRET: ${HELIO_UPDATE_SECRET:-}
       SMTP_HOST: mailpit
       SMTP_PORT: '1025'
       MAIL_FROM: ${MAIL_FROM:-Helio <no-reply@helio.local>}
@@ -115,6 +120,9 @@ services:
       HELIO_BACKUPS_PATH: /var/lib/helio/backups
     volumes:
       - ${HELIO_BACKUPS_PATH:-./backups}:/var/lib/helio/backups:ro
+      # Shared with the updater sidecar: the dashboard drops update requests
+      # here and reads back status (no-op unless the `update` profile is on).
+      - update-state:/var/lib/helio/update-state
     depends_on:
       postgres:
         condition: service_healthy
@@ -190,6 +198,30 @@ services:
       retries: 12
       # Same first-boot grace as the node services.
       start_period: 120s
+
+  # ── update profile (optional one-click in-app update) ───────────────────
+  # The sidecar that performs dashboard-triggered updates. It is the ONLY
+  # container that mounts the Docker socket, and it runs nothing but the
+  # fixed `helio update` (the dashboard's request carries no command). It is
+  # entirely optional: drop the `update` profile and it never starts — no
+  # sidecar, no socket. The terminal `helio update` works either way.
+  # See SECURITY.md for the trust model.
+  updater:
+    image: ghcr.io/achref-soua/helio-updater:__HELIO_VERSION__
+    profiles: ['update']
+    restart: unless-stopped
+    environment:
+      # Authorizes the dashboard's update request; shared with the web app.
+      HELIO_UPDATE_SECRET: ${HELIO_UPDATE_SECRET:?set by the installer}
+      # The image the sidecar launches the (detached) update worker from.
+      HELIO_UPDATER_IMAGE: ghcr.io/achref-soua/helio-updater:__HELIO_VERSION__
+      HELIO_COMPOSE_PROJECT: helio-selfhost
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Read-only — used only to discover the install dir's host path; the
+      # detached worker mounts that same path read-write to run the update.
+      - ./:/helio-home:ro
+      - update-state:/state
 
   # ── full profile ────────────────────────────────────────────────────────
 
@@ -352,3 +384,6 @@ volumes:
   redis-data:
   clickhouse-data:
   redpanda-data:
+  # The dashboard writes update requests here; the updater sidecar reads them
+  # and publishes status the dashboard polls back across the restart.
+  update-state:

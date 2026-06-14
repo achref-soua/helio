@@ -40,6 +40,7 @@ async function run(argv: string[]): Promise<number> {
       dir: { type: 'string' },
       profile: { type: 'string' },
       'bundle-file': { type: 'string' },
+      'no-inapp-update': { type: 'boolean', default: false },
       'no-browser': { type: 'boolean', default: false },
       yes: { type: 'boolean', short: 'y', default: false },
     },
@@ -99,15 +100,25 @@ async function run(argv: string[]): Promise<number> {
     }
   }
   if (profile !== 'core' && profile !== 'full') fail(`unknown profile "${profile}"`);
-  const envContent = content.replace(/^COMPOSE_PROFILES=.*$/m, `COMPOSE_PROFILES=${profile}`);
+
+  // One-click in-app updates ship on by default (the dashboard's Update
+  // button); --no-inapp-update opts out, leaving only the terminal `helio
+  // update`. On adds the `update` profile (the socket-holding sidecar — see
+  // SECURITY.md) and flips the dashboard toggle.
+  const inAppUpdate = !values['no-inapp-update'];
+  const composeProfiles = inAppUpdate ? `${profile},update` : profile;
+  let envContent = content.replace(/^COMPOSE_PROFILES=.*$/m, `COMPOSE_PROFILES=${composeProfiles}`);
+  if (inAppUpdate) {
+    envContent = envContent.replace(/^HELIO_INAPP_UPDATE=.*$/m, 'HELIO_INAPP_UPDATE=true');
+  }
   writeFileSync(paths.envFile, envContent);
   chmodSync(paths.envFile, 0o600);
   writeManifest(paths, { name: 'helio', version: manifest.version, files: manifest.files });
   step('Generating your secrets');
   ok(`written to ${paths.envFile} (keep this file with your backups)`);
 
-  // 4. Bring the stack up: infra → migrations → apps.
-  const profiles = [profile];
+  // 4. Bring the stack up: infra → migrations → apps (+ the update sidecar).
+  const profiles = inAppUpdate ? [profile, 'update'] : [profile];
   step('Pulling images (a first install downloads 1-2 GB)');
   if ((await compose(paths, ['pull'], { profiles })) !== 0) {
     fail('image pull failed — is this release published? (helio install --version vX.Y.Z)');

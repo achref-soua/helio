@@ -1,10 +1,11 @@
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
 import {
   assetUrl,
   bundleAssetName,
+  type BundleManifest,
   downloadAsset,
   extractTarGz,
   resolveLatestTag,
@@ -32,6 +33,7 @@ async function run(argv: string[]): Promise<number> {
     args: argv,
     options: {
       version: { type: 'string' },
+      'bundle-file': { type: 'string' },
       'no-backup': { type: 'boolean', default: false },
       force: { type: 'boolean', default: false },
       yes: { type: 'boolean', short: 'y', default: false },
@@ -44,8 +46,24 @@ async function run(argv: string[]): Promise<number> {
   if (!isInstalled(paths)) fail(`no installation at ${paths.home} — run "helio install" first`);
   const current = readManifest(paths)?.version ?? 'v0.0.0';
 
-  let tag = values.version ?? (await resolveLatestTag());
-  if (!tag.startsWith('v')) tag = `v${tag}`;
+  // Acquire the new bundle. A local file (air-gapped sites, and the way the
+  // in-app updater path is exercised in tests) is verified up front so its
+  // manifest names the version we are moving to; otherwise we resolve a tag
+  // and download below, after the version gate and backup.
+  const bundleFile = values['bundle-file'];
+  let tag: string;
+  let bundleDir: string | undefined;
+  let manifest: BundleManifest | undefined;
+  if (bundleFile !== undefined) {
+    bundleDir = path.join(paths.releasesDir, '.incoming');
+    rmSync(bundleDir, { recursive: true, force: true });
+    extractTarGz(path.resolve(bundleFile), bundleDir);
+    manifest = verifyBundle(bundleDir);
+    tag = manifest.version.startsWith('v') ? manifest.version : `v${manifest.version}`;
+  } else {
+    tag = values.version ?? (await resolveLatestTag());
+    if (!tag.startsWith('v')) tag = `v${tag}`;
+  }
   if (tag === current) {
     say(`already on ${current}`);
     return 0;
@@ -71,12 +89,15 @@ async function run(argv: string[]): Promise<number> {
     }
   }
 
-  // 2. Fetch + verify the new bundle; archive the current one for rollback.
-  const bundleDir = path.join(paths.releasesDir, tag);
-  const archive = path.join(bundleDir, bundleAssetName(tag));
-  await downloadAsset(assetUrl(tag, bundleAssetName(tag)), archive);
-  extractTarGz(archive, bundleDir);
-  const manifest = verifyBundle(bundleDir);
+  // 2. Fetch + verify the new bundle (unless a local --bundle-file already
+  // gave us a verified one); archive the current compose for rollback.
+  if (bundleDir === undefined || manifest === undefined) {
+    bundleDir = path.join(paths.releasesDir, tag);
+    const archive = path.join(bundleDir, bundleAssetName(tag));
+    await downloadAsset(assetUrl(tag, bundleAssetName(tag)), archive);
+    extractTarGz(archive, bundleDir);
+    manifest = verifyBundle(bundleDir);
+  }
 
   const previousDir = path.join(paths.releasesDir, current);
   mkdirSync(previousDir, { recursive: true });

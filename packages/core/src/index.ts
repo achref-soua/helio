@@ -347,6 +347,7 @@ export {
   unsubscribeUrl,
   verifyUnsubscribeToken,
 } from './unsubscribe';
+export { isTerminalUpdatePhase, parseUpdateStatus, type UpdateJobStatus } from './updates';
 export { healthPayload, helioCommit, helioVersion, isNewerHelioVersion } from './version';
 export {
   endpointsForEvent,

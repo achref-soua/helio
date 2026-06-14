@@ -27,6 +27,7 @@ import { segmentRouter } from './segment';
 import { setupRouter } from './setup';
 import { ssoRouter } from './sso';
 import { supportRouter } from './support';
+import { updatesRouter } from './updates';
 import { webhookRouter } from './webhook';
 import { widgetRouter } from './widget';
 import { workspaceRouter } from './workspace';
@@ -77,6 +78,7 @@ export const appRouter = router({
   branding: brandingRouter,
   integrations: integrationsRouter,
   support: supportRouter,
+  updates: updatesRouter,
   deliverability: deliverabilityRouter,
   widget: widgetRouter,
   inAppMessage: inAppMessageRouter,
