@@ -171,7 +171,7 @@ export function FormsView() {
                 </code>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => setPreviewId(previewId === form.id ? null : form.id)}
                     data-testid="form-preview-toggle"

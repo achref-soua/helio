@@ -206,16 +206,16 @@ function LandingEditor({ id, onClose }: { id: string; onClose: () => void }) {
           data-testid="landing-title"
         />
         {page?.published && (
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
+            className="w-fit"
             onClick={copyLink}
-            title={`/p/${id}`}
-            className="text-muted-foreground hover:text-foreground flex max-w-full items-center gap-1 text-xs"
             data-testid="landing-copy-link"
           >
-            <Copy className="size-3 shrink-0" aria-hidden />{' '}
-            <code className="truncate">/p/{id}</code>
-          </button>
+            <Copy aria-hidden /> {t('copyLink')}
+          </Button>
         )}
       </div>
 

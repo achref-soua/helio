@@ -941,7 +941,8 @@
       "4": "Thu",
       "5": "Fri",
       "6": "Sat"
-    }
+    },
+    "copyLink": "Copy link"
   },
   "booking": {
     "notFoundTitle": "Booking unavailable",
@@ -1102,7 +1103,8 @@
       "form": "Form"
     },
     "preview": "Live preview",
-    "previewFormCta": "Subscribe"
+    "previewFormCta": "Subscribe",
+    "copyLink": "Copy link"
   },
   "hostedLanding": {
     "notFound": "This page does not exist or is not published.",
