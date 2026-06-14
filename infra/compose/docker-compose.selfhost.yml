@@ -203,11 +203,18 @@ services:
       CLICKHOUSE_DB: ${CLICKHOUSE_DB:-helio}
     volumes:
       - clickhouse-data:/var/lib/clickhouse
+    ulimits:
+      nofile: 262144
     healthcheck:
       test: ['CMD-SHELL', 'wget -qO- http://localhost:8123/ping || exit 1']
       interval: 10s
       timeout: 5s
       retries: 18
+      # First boot creates the user and database before the HTTP port
+      # binds; on a cold WSL2 disk that init runs long enough that, without
+      # a grace window, `up --wait` declares ClickHouse failed before it has
+      # finished initializing. Mirrors the web service's start_period above.
+      start_period: 120s
 
   redpanda:
     image: redpandadata/redpanda:v24.3.1
