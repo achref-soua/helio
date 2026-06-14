@@ -30,6 +30,16 @@ export const env = createEnv({
     .default('false')
     .transform((value) => value === 'true'),
   HELIO_BACKUPS_PATH: z.string().default('/var/lib/helio/backups'),
+  // One-click in-app updates (Settings → Updates). Enabled in the self-host
+  // bundle's `update` profile, where the updater sidecar shares the
+  // update-state volume mounted at HELIO_UPDATE_STATE_DIR. The secret
+  // authorizes the dashboard's request to that sidecar.
+  HELIO_INAPP_UPDATE: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  HELIO_UPDATE_SECRET: z.string().optional(),
+  HELIO_UPDATE_STATE_DIR: z.string().default('/var/lib/helio/update-state'),
   // Analytics reads (full profile); callers degrade gracefully without it.
   CLICKHOUSE_URL: z.string().min(1).default('http://localhost:8123'),
   CLICKHOUSE_USER: z.string().min(1).default('helio'),

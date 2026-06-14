@@ -19,6 +19,7 @@ import { ScimPanel } from './scim-panel';
 import { SecurityPanel } from './security-panel';
 import { SsoPanel } from './sso-panel';
 import { SupportPanel } from './support-panel';
+import { UpdatesPanel } from './updates-panel';
 import { WebhooksPanel } from './webhooks-panel';
 
 export default async function SettingsPage({
@@ -84,6 +85,7 @@ export default async function SettingsPage({
           <SupportPanel canManage />
         </>
       )}
+      <UpdatesPanel />
       <AboutPanel />
     </div>
   );

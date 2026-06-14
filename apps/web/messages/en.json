@@ -1331,8 +1331,6 @@
     "version": "Version",
     "devBuild": "dev build",
     "license": "License",
-    "updateAvailable": "Update available: {version} — view the release notes",
-    "upToDate": "You're on the latest release.",
     "repo": "GitHub repository",
     "releases": "Releases & changelog",
     "docs": "Documentation"
@@ -1718,5 +1716,29 @@
   "require2fa": {
     "banner": "Your organization requires two-factor authentication. Enable it below (any authenticator app works) to continue.",
     "enrollCta": "Enable two-factor now"
+  },
+  "updates": {
+    "title": "Updates",
+    "subtitle": "Keep this Helio up to date. Major upgrades take a backup first.",
+    "current": "Installed version",
+    "devBuild": "dev build",
+    "devNote": "This is a development build; release updates are not checked.",
+    "available": "Version {version} is available.",
+    "releaseNotes": "Read the release notes",
+    "updateNow": "Update to {version}",
+    "ownerOnly": "Only an owner can run the in-app update. You can also run \"helio update\" on the server.",
+    "terminalHint": "Update from the server with \"helio update\". One-click updates are turned off on this deployment.",
+    "upToDate": "You are on the latest release.",
+    "check": "Check for updates",
+    "genericError": "Something went wrong",
+    "confirmTitle": "Update to {version}?",
+    "confirmBody": "Helio will take a backup, then restart to apply the update. The dashboard will be briefly unavailable — this page will reconnect when it is back. Do not close this tab.",
+    "cancel": "Cancel",
+    "confirmAction": "Update now",
+    "working": "Updating…",
+    "downtimeHint": "This can take a few minutes. The dashboard will restart; keep this tab open and it will reconnect.",
+    "done": "Updated to {version}.",
+    "reload": "Reload the dashboard",
+    "failed": "The update failed. Your data is safe — a backup was taken before it started."
   }
 }

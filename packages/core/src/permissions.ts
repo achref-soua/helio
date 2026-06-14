@@ -50,6 +50,7 @@ export const PERMISSIONS = [
   'admin:database',
   // Instance-critical operations (owners only).
   'admin:backups',
+  'admin:updates',
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -85,6 +86,7 @@ const MIN_ROLE: Record<Permission, Role> = {
   'admin:health': 'admin',
   'admin:database': 'admin',
   'admin:backups': 'owner',
+  'admin:updates': 'owner',
 };
 
 /** Minimum role required for a permission (drives the docs matrix). */

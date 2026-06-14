@@ -16,6 +16,9 @@ describe('the permission matrix', () => {
     }
     expect(can('admin', 'admin:backups')).toBe(false);
     expect(minimumRoleFor('admin:backups')).toBe('owner');
+    // Triggering a host-level update is the most privileged action there is.
+    expect(can('admin', 'admin:updates')).toBe(false);
+    expect(minimumRoleFor('admin:updates')).toBe('owner');
   });
 
   it('admins hold every editor permission plus configuration', () => {
