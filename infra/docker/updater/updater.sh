@@ -207,11 +207,13 @@ worker() {
   phase_tailer "$_target" &
   _tailer=$!
 
+  # --no-self-update: this worker's `helio` is the image's baked binary, not
+  # a user install, so refreshing it is pointless (and it is --rm anyway).
   if [ -n "$_target" ]; then
-    HELIO_HOME="$HELIO_HOME_DIR" helio update --yes --version "$_target" >>"$LOG_FILE" 2>&1
+    HELIO_HOME="$HELIO_HOME_DIR" helio update --yes --no-self-update --version "$_target" >>"$LOG_FILE" 2>&1
     _code=$?
   else
-    HELIO_HOME="$HELIO_HOME_DIR" helio update --yes >>"$LOG_FILE" 2>&1
+    HELIO_HOME="$HELIO_HOME_DIR" helio update --yes --no-self-update >>"$LOG_FILE" 2>&1
     _code=$?
   fi
 
