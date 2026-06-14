@@ -34,3 +34,6 @@ overrides:
   protobufjs: ^7.5.8
   postcss: ^8.5.10
   '@hono/node-server@1': '>=1.19.13 <2'
+  # esbuild < 0.28.1: dev-server arbitrary file read (Windows) + Deno-module
+  # RCE via NPM_CONFIG_REGISTRY (GHSA-gv7w-rqvm-qjhr, GHSA-g7r4-m6w7-qqqr).
+  esbuild: ^0.28.1
