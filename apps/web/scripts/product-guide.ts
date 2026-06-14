@@ -28,15 +28,8 @@ import {
  * (OUT_FILE to override).
  */
 const rootEnv = path.resolve(import.meta.dirname, '../../../.env');
-// The guide always states the version it documents — read from the root
-// package.json (kept current by release tooling) instead of hardcoding.
-const VERSION = `v${
-  (
-    JSON.parse(
-      readFileSync(path.resolve(import.meta.dirname, '../../../package.json'), 'utf8'),
-    ) as { version: string }
-  ).version
-}`;
+// The guide is intentionally version-less: Helio is under heavy development,
+// so a printed version would date the document the moment it ships.
 if (existsSync(rootEnv)) loadEnvFile(rootEnv);
 
 const OUT_FILE =
@@ -130,8 +123,12 @@ async function captureShots(page: Page, showroom: Showroom): Promise<void> {
   await smtpDialog.getByLabel('Name', { exact: true }).fill('Acme SMTP');
   await smtpDialog.getByLabel('Host', { exact: true }).fill('localhost');
   await smtpDialog.getByLabel('Port', { exact: true }).fill(process.env.SMTP_PORT ?? '1025');
-  await smtpDialog.getByLabel('From email').fill('hello@acme.example');
-  await smtpDialog.getByLabel('SMTP password').fill('a-sealed-example-secret');
+  await smtpDialog.getByLabel('From email', { exact: true }).fill('hello@acme.example');
+  await smtpDialog.getByLabel('From name', { exact: true }).fill('Acme Inc.');
+  await smtpDialog.getByLabel('SMTP password', { exact: true }).fill('a-sealed-example-secret');
+  await page.waitForTimeout(300);
+  await smtpDialog.screenshot({ path: path.join(SHOT_DIR, 'cred-email.png') });
+  console.log('captured cred-email');
   await smtpDialog.getByRole('button', { name: 'Save', exact: true }).click();
   const credentialRow = credentials.locator('li', { hasText: 'Acme SMTP' });
   await credentialRow.getByRole('button', { name: 'Verify' }).click();
@@ -148,6 +145,86 @@ async function captureShots(page: Page, showroom: Showroom): Promise<void> {
   await page.waitForTimeout(900);
   await credentials.screenshot({ path: path.join(SHOT_DIR, 'settings.png') });
   console.log('captured settings');
+
+  // The other channels: open each Add dialog, show its real fields, capture,
+  // and close without saving (illustrative). Each is best-effort so one flaky
+  // dialog can't sink the whole render.
+  const credDialog = async (
+    channel: string,
+    kind: string,
+    fields: Array<[string, string]>,
+    shot: string,
+  ): Promise<void> => {
+    try {
+      await credentials.getByLabel(`Add a ${channel} credential`).click();
+      await page.getByRole('option', { name: kind, exact: true }).click();
+      const dialog = page.getByRole('dialog');
+      for (const [label, value] of fields) {
+        await dialog
+          .getByLabel(label, { exact: true })
+          .fill(value)
+          .catch(() => {});
+      }
+      await page.waitForTimeout(350);
+      await dialog.screenshot({ path: path.join(SHOT_DIR, `${shot}.png`) });
+      console.log(`captured ${shot}`);
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
+    } catch (error) {
+      console.warn(`capture ${shot} failed — ${(error as Error).message}`);
+    }
+  };
+  await credDialog(
+    'SMS',
+    'Twilio SMS',
+    [
+      ['Name', 'Twilio'],
+      ['Account SID', 'AC00000000000000000000000000000000'],
+      ['From number', '+15551234567'],
+      ['Auth token', 'an-example-auth-token'],
+    ],
+    'cred-sms',
+  );
+  await credDialog(
+    'WhatsApp',
+    'WhatsApp Cloud API',
+    [
+      ['Name', 'WhatsApp'],
+      ['Phone number ID', '109876543210987'],
+      ['Access token', 'an-example-access-token'],
+    ],
+    'cred-whatsapp',
+  );
+  await credDialog(
+    'AI copilot',
+    'AI provider',
+    [
+      ['Name', 'OpenAI'],
+      ['Model', 'gpt-4o-mini'],
+      ['API key', 'sk-an-example-key'],
+    ],
+    'cred-ai',
+  );
+
+  // Outbound webhooks panel.
+  try {
+    const webhooks = page.getByTestId('webhooks-panel');
+    await webhooks.waitFor();
+    await webhooks.evaluate((element) => {
+      element.scrollIntoView({ block: 'start' });
+      window.scrollBy(0, -88);
+    });
+    await page.waitForTimeout(500);
+    await webhooks.screenshot({ path: path.join(SHOT_DIR, 'webhooks.png') });
+    console.log('captured webhooks');
+  } catch (error) {
+    console.warn(`capture webhooks failed — ${(error as Error).message}`);
+  }
+
+  // The widgets page — one-line embeds keyed to the workspace write key.
+  await page.goto(`${BASE_URL}/widgets`);
+  await page.waitForTimeout(900);
+  await capture(page, 'widgets');
 
   await page.goto(`${BASE_URL}/admin/audit`);
   await page.getByTestId('audit-view').waitFor();
@@ -209,6 +286,11 @@ const SUN = (size: number, stroke = ACCENT) =>
   '<path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
 
 function shotFigure(name: string, captionText: string, panel = false): string {
+  // A capture that didn't land must not crash the whole render — degrade to a
+  // captioned placeholder so the layout (and the missing shot) is obvious.
+  if (!existsSync(path.join(SHOT_DIR, `${name}.png`))) {
+    return `<figure class="shot${panel ? ' panel' : ''}"><div class="shot-missing">[ ${name} ]</div><figcaption>${captionText}</figcaption></figure>`;
+  }
   return `<figure class="shot${panel ? ' panel' : ''}"><img src="${img(name)}" alt="" /><figcaption>${captionText}</figcaption></figure>`;
 }
 
@@ -225,8 +307,13 @@ function buildHtml(): string {
   * { box-sizing: border-box; }
   body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
          color: ${INK}; font-size: 11.5px; line-height: 1.62; }
-  .page { page-break-after: always; padding: 26px 6px 0; }
-  .page:last-child { page-break-after: auto; }
+  /* Sections flow and fill the page instead of each forcing a page break
+     (which left short sections half-empty). Headings stay with the content
+     they introduce; figures, tables, code, and cards never split. */
+  .page { padding: 22px 6px 8px; }
+  .page + .page { padding-top: 30px; }
+  .kicker, h2, h3, h4 { break-after: avoid; }
+  .grid2, pre, table, .card, ol.steps li, .quote, .callout, .toc { break-inside: avoid; }
 
   /* cover */
   .cover { page-break-after: always; height: 1020px; background: #100d0a; color: #fff;
@@ -256,12 +343,15 @@ function buildHtml(): string {
   .shot img { width: 100%; border: 1px solid #e7e0d4; border-radius: 10px;
               box-shadow: 0 2px 10px rgba(28,25,23,.07); }
   /* Tall panel crops (a single settings card) stay reading-size. */
-  .shot.panel img { width: auto; max-width: 76%; max-height: 470px;
+  .shot.panel img { width: auto; max-width: 76%; max-height: 390px;
                     display: block; margin: 0 auto; }
-  /* In the picture tour, cap height so two blocks pack per page. */
-  .flow .shot img { width: auto; max-width: 100%; max-height: 360px;
+  /* In a flowing chapter, cap height so two blocks reliably pack per page. */
+  .flow .shot img { width: auto; max-width: 100%; max-height: 288px;
                     display: block; margin: 0 auto; }
+  .flow .shot.panel img { max-height: 288px; }
   .shot figcaption { color: #78716c; font-size: 10px; margin-top: 5px; text-align: center; }
+  .shot-missing { border: 1px dashed #d6cec0; border-radius: 10px; padding: 40px;
+                  text-align: center; color: #b0a89a; font-family: ui-monospace, monospace; }
   ol.steps { padding-left: 0; counter-reset: step; list-style: none; margin: 10px 0; }
   ol.steps li { counter-increment: step; position: relative; padding: 0 0 12px 38px; }
   ol.steps li::before { content: counter(step); position: absolute; left: 0; top: 1px;
@@ -291,7 +381,7 @@ function buildHtml(): string {
   <div class="tagline">The open-source growth platform — unify customer data, segment anyone,
   orchestrate journeys across every channel, and let AI do the heavy lifting.
   Self-hosted, on your own servers.</div>
-  <div class="meta">Product guide<span class="sep">•</span>${VERSION}<span class="sep">•</span>${date}</div>
+  <div class="meta">Product guide<span class="sep">•</span>${date}</div>
   <div class="foot">Achref Soua · ${REPO.replace('https://', '')}</div>
 </div></div>
 
@@ -311,7 +401,7 @@ function buildHtml(): string {
     <div><b>06</b> Migrating from HubSpot, Mailchimp, or Klaviyo</div>
     <div><b>07</b> A CRM that closes the loop</div>
     <div><b>08</b> Admin: audit, reports, health, Database Studio</div>
-    <div><b>09</b> Your AI key, your churn model</div>
+    <div><b>09</b> Configuration: connect every channel &amp; tool</div>
     <div><b>10</b> The usage guide — how do I…?</div>
     <div><b>11</b> Under the hood (kept light)</div>
     <div><b>12</b> Contributing, questions &amp; contact</div>
@@ -631,25 +721,102 @@ helio uninstall   <span class="c"># remove the stack, keep your data (--purge-da
   ${shotFigure('admin-health', 'System health: services, stores, backups, and alerts on one page.')}
 </div>
 
-<!-- ════════ 09 ai ════════ -->
-<div class="page">
-  <div class="kicker">09 · Intelligence</div>
-  <h2>Your AI key, your churn model</h2>
-  <p class="lead">Helio's intelligence runs on credentials you control — and if your data team
-  has its own churn model, Helio will happily use theirs instead of its own.</p>
-  ${shotFigure('settings', 'Provider credentials: email, SMS, WhatsApp, AI — sealed in the vault, shown only masked.', true)}
-  <ol class="steps">
-    <li><b>Paste your AI key.</b> OpenAI, Anthropic, Groq — or a local model server (Ollama).
-    The copilot badge always shows which provider answered.</li>
-    <li><b>Download training data.</b> Settings → Churn prediction model → Training CSV: the
-    exact feature columns Helio computes, plus the churn label, ready for a notebook.</li>
-    <li><b>Bring the model back.</b> Upload ONNX or XGBoost JSON (pickle is refused — it can
-    execute code), or point Helio at your own HTTPS model server. Validation runs in a
-    sandbox and explains any problem in plain words.</li>
-    <li><b>Activate, then relax.</b> One model is active per workspace. If it ever fails,
-    Helio marks it, raises an alert, and scores with the built-in model — predictions never
-    stop.</li>
-  </ol>
+<!-- ════════ 09 configuration ════════ -->
+<div class="flow">
+  <div class="block">
+    <div class="kicker">09 · Configuration</div>
+    <h2>Connect every channel &amp; tool</h2>
+    <p class="lead">Everything Helio sends or reads leaves through <i>your</i> accounts. Provider
+    credentials live in one place — <b>Settings → Provider credentials</b> — sealed in an encrypted
+    vault (AES-256-GCM), shown only masked, and proven with a one-click <b>Verify</b> /
+    <b>Send&nbsp;test</b> before you rely on them. Add one per channel; the rest of this chapter is
+    the field-by-field walk-through.</p>
+    ${shotFigure('settings', 'Provider credentials — one vault for email, SMS, WhatsApp, and AI, each shown masked and test-verifiable.', true)}
+  </div>
+
+  <div class="block">
+    <h3>Email — SMTP, or a first-class provider</h3>
+    <p>Under <b>Email sending</b> → Add. <b>SMTP</b> works with any relay: <b>Host</b>, <b>Port</b>
+    (587, or tick <i>Use TLS</i> for 465), <b>Username</b>, the <b>SMTP password</b> (vault-sealed),
+    and the <b>From email</b> / <b>From name</b> your recipients see. Prefer an API key? First-class
+    adapters ship for <b>AWS&nbsp;SES, Postmark, Resend, and Mailgun</b>. Save, then <b>Verify</b> —
+    Helio does a real handshake and a test send, so a typo can never reach production. Until you
+    connect one, all mail lands safely in the bundled Mailpit test inbox.</p>
+    ${shotFigure('cred-email', 'Adding an SMTP sender: host, port, TLS, and the From identity every send carries.', true)}
+  </div>
+
+  <div class="block">
+    <h3>AI — your key, any provider</h3>
+    <p>Under <b>AI copilot</b> → Add, choose a <b>Provider</b> — OpenAI, Anthropic, Groq, Ollama, or
+    any local OpenAI-compatible server — name the <b>Model</b> (e.g. <code>gpt-4o-mini</code>,
+    <code>llama-3.3-70b</code>), and paste your <b>API key</b>. Self-hosting? Set the <b>Base URL</b>
+    to your endpoint and leave the key blank. This one credential powers the copilot,
+    NL→segment/journey, brand-voice content, and predictions; the copilot badge always names the
+    provider that answered. (A deployment can also ship a shared fallback key for anyone who hasn't
+    added their own.)</p>
+    ${shotFigure('cred-ai', 'The AI provider form: provider, model, an optional self-hosted base URL, and your key.', true)}
+  </div>
+
+  <div class="block">
+    <h3>SMS — Twilio</h3>
+    <p>Under <b>SMS</b> → Add Twilio: your <b>Account&nbsp;SID</b>, a <b>From number</b> (an
+    SMS-capable Twilio number in E.164, e.g. <code>+15551234567</code>), and the <b>Auth token</b>
+    (sealed). Drop a <i>Send&nbsp;SMS</i> node into any journey and it goes out through your Twilio
+    account — quiet hours, frequency caps, and A/B splits all apply. Delivery-status callbacks
+    update each send (wire them under Webhooks, next).</p>
+    ${shotFigure('cred-sms', 'Twilio SMS: account SID, From number, and the sealed auth token.', true)}
+  </div>
+
+  <div class="block">
+    <h3>WhatsApp — Meta Cloud API</h3>
+    <p>Under <b>WhatsApp</b> → Add the <b>Cloud API</b>: your <b>Phone number&nbsp;ID</b> and a
+    permanent <b>Access token</b>. A <i>Send&nbsp;WhatsApp</i> journey node then reaches contacts on
+    WhatsApp from your own business number — same canvas, same guardrails as every other channel.</p>
+    ${shotFigure('cred-whatsapp', 'WhatsApp Cloud API: the phone-number ID and your access token.', true)}
+  </div>
+
+  <div class="block">
+    <h3>Webhooks — both directions</h3>
+    <p><b>Inbound</b> webhooks keep deliverability honest: point your email provider's
+    bounce/complaint events and Twilio's status callback at the gateway
+    (<code>/webhooks/email/…</code>, <code>/webhooks/sms/twilio</code>, each guarded by a token you
+    set in <code>~/.helio/.env</code>) and Helio adds bad addresses to the suppression list
+    automatically — every send path honors it. <b>Outbound</b> webhooks (<b>Settings → Webhooks</b>)
+    push <i>your</i> systems on contact, deal, and task events: add an endpoint URL, choose the
+    events, and copy the signing secret — every payload is signed (<code>x-helio-signature</code>)
+    so you can verify it really came from Helio.</p>
+    ${shotFigure('webhooks', 'Outbound webhooks: an endpoint, its event subscriptions, and a signing secret to verify delivery.', true)}
+  </div>
+
+  <div class="block">
+    <h3>Capture from your website — forms, widgets &amp; click tracking</h3>
+    <p>Three white-labeled ways to turn your site into a Helio source: <b>Forms</b> (a hosted link
+    or an iframe embed), <b>Landing pages</b> (block-built, published on your domain), and
+    <b>Widgets</b> (a one-line script for banners, popups, and on-site forms). All create contacts
+    and can trigger journeys.</p>
+    <p>For the <b>clicks and page views</b> that power segments, funnels, and attribution, drop the
+    tracking snippet on every page. It posts events to the ingestion service under your workspace's
+    <b>write key</b> (Widgets shows it); <code>identify</code> ties a visitor to a contact:</p>
+    <pre><span class="c">&lt;!-- once, on every page of your site --&gt;</span>
+&lt;script src="https://your-helio-domain/widget.js" data-write-key="wk_live_…"&gt;&lt;/script&gt;
+
+<span class="c">// then anywhere in your app — page views are automatic</span>
+helio.identify('ada@acme.com', { plan: 'pro' });
+helio.track('Added to cart', { sku: 'AB-12', cents: 4200 });</pre>
+    ${shotFigure('widgets', 'Widgets: a one-line embed per surface, each keyed to your workspace write key.', true)}
+  </div>
+
+  <div class="block">
+    <h3>Bring your own churn model</h3>
+    <p>If your data team has a better churn model, Helio will use it instead of its own.
+    <b>Settings → Churn prediction model → Training&nbsp;CSV</b> downloads the exact feature columns
+    Helio computes plus the churn label, ready for a notebook. Upload the result as <b>ONNX or
+    XGBoost JSON</b> (pickle is refused — it can execute code) or point Helio at your own <b>HTTPS
+    model server</b>. Validation runs in a sandbox; one model is active per workspace, and if it
+    ever fails Helio raises an alert and falls back to the built-in model, so predictions never
+    stop.</p>
+  </div>
+  <div class="pagebreak"></div>
 </div>
 
 <!-- ════════ 10 usage ════════ -->
@@ -752,7 +919,7 @@ helio uninstall   <span class="c"># remove the stack, keep your data (--purge-da
     <tr><td><b>Repository</b></td><td>${REPO}</td></tr>
     <tr><td><b>Issues &amp; ideas</b></td><td>${REPO}/issues</td></tr>
   </table>
-  <p style="margin-top:26px;color:#78716c">Helio ${VERSION} · AGPL-3.0 — every screenshot in this
+  <p style="margin-top:26px;color:#78716c">Helio · AGPL-3.0 — every screenshot in this
   guide is the real product.</p>
 </div>
 
@@ -769,17 +936,23 @@ helio uninstall   <span class="c"># remove the stack, keep your data (--purge-da
 
 async function main() {
   mkdirSync(path.dirname(OUT_FILE), { recursive: true });
-  rmSync(SHOT_DIR, { recursive: true, force: true });
-
-  await cleanPreviousShowrooms();
+  // RENDER_ONLY reuses the last captured shots and only re-renders the PDF —
+  // fast iteration on layout/CSS without re-seeding and re-capturing. KEEP_SHOTS
+  // captures as usual but leaves the shots on disk for the next RENDER_ONLY.
+  const renderOnly = process.env.RENDER_ONLY === '1';
+  const keepShots = renderOnly || process.env.KEEP_SHOTS === '1';
 
   const browser = await chromium.launch();
   const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
-  const page = await context.newPage();
   try {
-    await signUpAndOnboard(page);
-    const showroom = await seedShowroom();
-    await captureShots(page, showroom);
+    if (!renderOnly) {
+      rmSync(SHOT_DIR, { recursive: true, force: true });
+      await cleanPreviousShowrooms();
+      const page = await context.newPage();
+      await signUpAndOnboard(page);
+      const showroom = await seedShowroom();
+      await captureShots(page, showroom);
+    }
 
     const doc = await context.newPage();
     await doc.setContent(buildHtml(), { waitUntil: 'networkidle' });
@@ -799,7 +972,7 @@ async function main() {
   } finally {
     await browser.close();
   }
-  rmSync(SHOT_DIR, { recursive: true, force: true });
+  if (!keepShots) rmSync(SHOT_DIR, { recursive: true, force: true });
   console.log(`product guide: ${OUT_FILE}`);
 }
 
