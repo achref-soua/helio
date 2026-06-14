@@ -161,11 +161,16 @@ export function FormsView() {
               </CardHeader>
               <CardContent className="grid gap-3">
                 <div className="flex items-center gap-2">
-                  <code className="text-muted-foreground truncate text-xs">/f/{form.id}</code>
+                  <code
+                    className="text-muted-foreground min-w-0 flex-1 truncate text-xs"
+                    title={`/f/${form.id}`}
+                  >
+                    /f/{form.id}
+                  </code>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="ml-auto"
+                    className="shrink-0"
                     onClick={() => setPreviewId(previewId === form.id ? null : form.id)}
                     data-testid="form-preview-toggle"
                   >
@@ -174,6 +179,7 @@ export function FormsView() {
                   <Button
                     variant="outline"
                     size="sm"
+                    className="shrink-0"
                     onClick={() => copyLink(form.id)}
                     aria-label={t('copyLink', { name: form.name })}
                   >

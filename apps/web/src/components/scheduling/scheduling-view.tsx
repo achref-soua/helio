@@ -253,11 +253,12 @@ export function SchedulingView() {
                 <button
                   type="button"
                   onClick={copyLink}
-                  className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs"
+                  title={`/m/${page.id}`}
+                  className="text-muted-foreground hover:text-foreground flex min-w-0 items-center gap-1 text-xs"
                   data-testid="sched-copy-link"
                 >
-                  <Copy className="size-3" aria-hidden />
-                  <code>/m/{page.id}</code>
+                  <Copy className="size-3 shrink-0" aria-hidden />
+                  <code className="truncate">/m/{page.id}</code>
                 </button>
               )}
             </div>
@@ -288,7 +289,7 @@ export function SchedulingView() {
                       timeStyle: 'short',
                     })}
                   </span>
-                  <span className="text-muted-foreground truncate">
+                  <span className="text-muted-foreground min-w-0 truncate">
                     {meeting.inviteeName ? `${meeting.inviteeName} · ` : ''}
                     {meeting.inviteeEmail}
                   </span>

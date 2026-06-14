@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
+import type { ReactNode } from 'react';
 
 import { auth } from '@/lib/auth';
 
@@ -22,6 +23,32 @@ import { SupportPanel } from './support-panel';
 import { UpdatesPanel } from './updates-panel';
 import { WebhooksPanel } from './webhooks-panel';
 
+/**
+ * One labelled band of related settings. The cards still flow two-up on wide
+ * screens (grid-cols-1 pins the track to minmax(0,1fr) so narrow phones never
+ * scroll sideways), but a titled header turns the old undifferentiated wall
+ * into something you can scan.
+ */
+function SettingsSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="grid scroll-mt-6 gap-4">
+      <div className="border-border/70 border-b pb-2.5">
+        <h2 className="font-display text-lg font-semibold tracking-tight">{title}</h2>
+        <p className="text-muted-foreground text-sm">{description}</p>
+      </div>
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2">{children}</div>
+    </section>
+  );
+}
+
 export default async function SettingsPage({
   searchParams,
 }: {
@@ -29,8 +56,9 @@ export default async function SettingsPage({
 }) {
   const { enroll2fa } = await searchParams;
   const requestHeaders = await headers();
-  const [t, organization, session] = await Promise.all([
+  const [t, ts, organization, session] = await Promise.all([
     getTranslations('members'),
+    getTranslations('settingsSections'),
     auth.api.getFullOrganization({ headers: requestHeaders }),
     auth.api.getSession({ headers: requestHeaders }),
   ]);
@@ -39,54 +67,63 @@ export default async function SettingsPage({
   }
 
   const me = organization.members.find((member) => member.userId === session.user.id);
+  const canAdmin = me?.role === 'owner' || me?.role === 'admin';
+  const isOwner = me?.role === 'owner';
 
   return (
-    // grid-cols-1 pins the track to minmax(0,1fr): without it the track
-    // sizes to the widest card's min-content and narrow phones scroll
-    // sideways.
-    // Two columns on wide screens: settings panels are self-contained
-    // cards, and a single half-width column wasted the rest of the page.
-    <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
-      <div className="xl:col-span-2">
+    <div className="grid grid-cols-1 gap-10">
+      <div>
         <h1 className="font-display text-3xl font-semibold tracking-tight">{t('title')}</h1>
         <p className="text-muted-foreground text-sm">{t('subtitle', { org: organization.name })}</p>
       </div>
-      <MembersPanel
-        members={organization.members.map((member) => ({
-          id: member.id,
-          role: member.role,
-          name: member.user.name,
-          email: member.user.email,
-        }))}
-        invitations={organization.invitations
-          .filter((invitation) => invitation.status === 'pending')
-          .map((invitation) => ({
-            id: invitation.id,
-            email: invitation.email,
-            role: invitation.role ?? 'viewer',
+
+      <SettingsSection title={ts('teamTitle')} description={ts('teamDesc')}>
+        <MembersPanel
+          members={organization.members.map((member) => ({
+            id: member.id,
+            role: member.role,
+            name: member.user.name,
+            email: member.user.email,
           }))}
-        canManage={me?.role === 'owner' || me?.role === 'admin'}
-      />
-      <SecurityPanel autoEnroll={enroll2fa === '1'} />
-      {(me?.role === 'owner' || me?.role === 'admin') && <PasswordPolicyPanel canManage />}
-      {(me?.role === 'owner' || me?.role === 'admin') && (
-        <>
+          invitations={organization.invitations
+            .filter((invitation) => invitation.status === 'pending')
+            .map((invitation) => ({
+              id: invitation.id,
+              email: invitation.email,
+              role: invitation.role ?? 'viewer',
+            }))}
+          canManage={canAdmin}
+        />
+        <SecurityPanel autoEnroll={enroll2fa === '1'} />
+        {canAdmin && <PasswordPolicyPanel canManage />}
+        {canAdmin && <SsoPanel canManage />}
+        {canAdmin && <ScimPanel canManage />}
+        {canAdmin && <ApiKeysPanel canManage />}
+      </SettingsSection>
+
+      {canAdmin && (
+        <SettingsSection title={ts('channelsTitle')} description={ts('channelsDesc')}>
           <CredentialsPanel canManage />
-          <SsoPanel canManage />
-          <ScimPanel canManage />
-          <ApiKeysPanel canManage />
+          <DeliverabilityPanel canManage />
           <WebhooksPanel canManage />
           <IntegrationsPanel canManage />
+        </SettingsSection>
+      )}
+
+      {canAdmin && (
+        <SettingsSection title={ts('workspaceTitle')} description={ts('workspaceDesc')}>
           <BrandingPanel canManage />
-          <DeliverabilityPanel canManage />
           <AnalyticsPanel canManage />
           <ChurnModelPanel canManage />
-          <BackupsPanel isOwner={me?.role === 'owner'} />
-          <SupportPanel canManage />
-        </>
+        </SettingsSection>
       )}
-      <UpdatesPanel />
-      <AboutPanel />
+
+      <SettingsSection title={ts('maintenanceTitle')} description={ts('maintenanceDesc')}>
+        {canAdmin && <BackupsPanel isOwner={isOwner} />}
+        <UpdatesPanel />
+        {canAdmin && <SupportPanel canManage />}
+        <AboutPanel />
+      </SettingsSection>
     </div>
   );
 }

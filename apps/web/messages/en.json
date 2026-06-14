@@ -1515,7 +1515,9 @@
       "open": "Open system alerts ({count} unread)",
       "title": "System alerts",
       "empty": "No alerts.",
-      "markAllRead": "Mark all read"
+      "markAllRead": "Mark all read",
+      "updateAvailable": "Helio {version} is available",
+      "updateAction": "Review it in Settings → Updates"
     },
     "database": {
       "table": "Table",
@@ -1740,5 +1742,15 @@
     "done": "Updated to {version}.",
     "reload": "Reload the dashboard",
     "failed": "The update failed. Your data is safe — a backup was taken before it started."
+  },
+  "settingsSections": {
+    "teamTitle": "Team & access",
+    "teamDesc": "Who can get in, how they sign in, and the keys that reach your data.",
+    "channelsTitle": "Channels & delivery",
+    "channelsDesc": "Connect your sending channels, tune deliverability, and wire up external tools.",
+    "workspaceTitle": "Workspace",
+    "workspaceDesc": "Make this workspace your own and fine-tune how it works.",
+    "maintenanceTitle": "Maintenance",
+    "maintenanceDesc": "Keep this instance backed up, up to date, and healthy."
   }
 }

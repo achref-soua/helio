@@ -209,10 +209,12 @@ function LandingEditor({ id, onClose }: { id: string; onClose: () => void }) {
           <button
             type="button"
             onClick={copyLink}
-            className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs"
+            title={`/p/${id}`}
+            className="text-muted-foreground hover:text-foreground flex max-w-full items-center gap-1 text-xs"
             data-testid="landing-copy-link"
           >
-            <Copy className="size-3" aria-hidden /> <code>/p/{id}</code>
+            <Copy className="size-3 shrink-0" aria-hidden />{' '}
+            <code className="truncate">/p/{id}</code>
           </button>
         )}
       </div>

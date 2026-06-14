@@ -14,6 +14,7 @@ import {
 import { compose } from '../lib/docker';
 import { envValue, mergeTemplate } from '../lib/envfile';
 import { waitForHttpOk } from '../lib/health';
+import { isSelfUpdateNeeded, selfUpdateBinary } from '../lib/self-update';
 import { helioHome, installPaths, isInstalled, readManifest, writeManifest } from '../lib/state';
 import { banner, confirm, fail, say, warn } from '../lib/ui';
 import { CLI_VERSION, registerCommand } from '../registry';
@@ -35,6 +36,7 @@ async function run(argv: string[]): Promise<number> {
       version: { type: 'string' },
       'bundle-file': { type: 'string' },
       'no-backup': { type: 'boolean', default: false },
+      'no-self-update': { type: 'boolean', default: false },
       force: { type: 'boolean', default: false },
       yes: { type: 'boolean', short: 'y', default: false },
     },
@@ -142,6 +144,28 @@ async function run(argv: string[]): Promise<number> {
       ? `Helio ${tag} is up at ${appUrl}`
       : `update applied; the dashboard is still warming up (${appUrl})`,
   );
+
+  // Keep the `helio` command itself current, so `helio --version` and the
+  // next run reflect the release just applied — not whatever was first
+  // installed. Best-effort: the stack is already updated. Skipped for the
+  // in-app updater worker (--no-self-update, an ephemeral binary) and for
+  // air-gapped installs (--bundle-file ships no binary).
+  if (
+    !values['no-self-update'] &&
+    bundleFile === undefined &&
+    isSelfUpdateNeeded(CLI_VERSION, tag)
+  ) {
+    try {
+      const result = await selfUpdateBinary(tag);
+      if (result.updated) say(`the helio command is now ${tag} too`);
+      else say(`left the helio command as-is (${result.reason})`);
+    } catch (error) {
+      warn(
+        `the stack updated, but refreshing the helio command failed (${error instanceof Error ? error.message : String(error)}). ` +
+          'Re-run the install command to refresh it.',
+      );
+    }
+  }
   return 0;
 }
 
