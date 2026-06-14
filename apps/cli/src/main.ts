@@ -12,6 +12,7 @@
 
 import './commands/index';
 
+import { cleanupSelfUpdateLeftover } from './lib/self-update';
 import { CLI_VERSION, getCommand, listCommands } from './registry';
 
 function help(): void {
@@ -27,6 +28,8 @@ Commands:`);
 }
 
 async function main(): Promise<void> {
+  // Clear a Windows self-update leftover from a previous run (no-op elsewhere).
+  cleanupSelfUpdateLeftover();
   const [command, ...rest] = process.argv.slice(2);
   if (!command || command === 'help' || command === '--help' || command === '-h') {
     help();

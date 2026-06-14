@@ -61,7 +61,11 @@ one-liner, or `helio install --version vX.Y.Z`.
 There are two ways to move to a newer release; both take a database backup
 first, then migrate, and both are reversible from that backup.
 
-- **From the terminal** — `helio update` on the host. Always available.
+- **From the terminal** — `helio update` on the host. Always available, and it
+  now refreshes the `helio` command itself along with the stack, so
+  `helio --version` keeps pace with what is running (pass `--no-self-update` to
+  skip that). An install from before this was added shows its original version
+  until you re-run the install command once.
 - **One click in the dashboard** — **Settings → Updates**, where an _owner_
   sees the running version, any newer release, and an **Update** button. Helio
   recreates the whole stack and the page reconnects when the new version is
