@@ -328,6 +328,52 @@ async function run(page: Page) {
 
   await page.goto(`${BASE_URL}/login`);
   await capture('login');
+
+  // AUDIT=1: a full-page sweep of every page into docs/audit/ (gitignored),
+  // for the UI review — reveals truncation/overflow the framed docs shots
+  // don't. Best-effort: a page that errors is logged, not fatal.
+  if (process.env.AUDIT) await auditSweep(page);
+}
+
+const AUDIT_DIR = path.resolve(import.meta.dirname, '../../../docs/audit');
+async function auditSweep(page: Page) {
+  mkdirSync(AUDIT_DIR, { recursive: true });
+  const pages: Array<[string, string]> = [
+    ['overview', '/'],
+    ['contacts', '/contacts'],
+    ['companies', '/companies'],
+    ['segments', '/segments'],
+    ['emails', '/emails'],
+    ['campaigns', '/campaigns'],
+    ['journeys', '/journeys'],
+    ['forms', '/forms'],
+    ['landing', '/landing'],
+    ['widgets', '/widgets'],
+    ['in-app', '/in-app'],
+    ['insights', '/insights'],
+    ['scheduling', '/scheduling'],
+    ['deals', '/deals'],
+    ['deals-reports', '/deals/reports'],
+    ['tasks', '/tasks'],
+    ['copilot', '/copilot'],
+    ['settings', '/settings'],
+    ['help', '/help'],
+    ['admin', '/admin'],
+    ['admin-health', '/admin/health'],
+    ['admin-audit', '/admin/audit'],
+    ['admin-database', '/admin/database'],
+    ['admin-reports', '/admin/reports'],
+  ];
+  for (const [name, route] of pages) {
+    try {
+      await page.goto(`${BASE_URL}${route}`, { waitUntil: 'networkidle', timeout: 25_000 });
+      await page.waitForTimeout(900);
+      await page.screenshot({ path: path.join(AUDIT_DIR, `${name}.png`), fullPage: true });
+      console.log(`audit: ${name}`);
+    } catch (error) {
+      console.warn(`audit: ${name} failed — ${(error as Error).message}`);
+    }
+  }
 }
 
 main().catch((error) => {
