@@ -80,7 +80,7 @@ const probeEnv = Object.fromEntries(
 const config = spawnSync(
   'docker',
   ['compose', '-f', path.join(bundleDir, 'docker-compose.yml'), 'config', '--quiet'],
-  { env: { ...process.env, ...probeEnv, COMPOSE_PROFILES: 'core,full,ops' } },
+  { env: { ...process.env, ...probeEnv, COMPOSE_PROFILES: 'core,full,ops,update' } },
 );
 if (config.error) {
   console.warn('docker not available — skipped compose validation');

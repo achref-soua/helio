@@ -44,6 +44,11 @@ export default defineConfig({
     env: {
       // The e2e server answers on :3100; auth callbacks must match.
       APP_URL: BASE_URL,
+      // Exercise the Updates panel's enabled path (no sidecar in e2e, so the
+      // state dir just reads empty — see updates.spec.ts).
+      HELIO_INAPP_UPDATE: 'true',
+      HELIO_UPDATE_SECRET: 'e2e-update-secret',
+      HELIO_UPDATE_STATE_DIR: '/tmp/helio-e2e-update-state',
     },
   },
 });

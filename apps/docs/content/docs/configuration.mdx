@@ -111,11 +111,14 @@ Release images bake the version and commit in at build time; every service
 reports them on `/healthz`, and the dashboard shows them in the sidebar and
 under **Settings → About**. Source checkouts report `dev`.
 
-| Variable             | Required | Purpose                                                                                                                            |
-| -------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `HELIO_VERSION`      | —        | Release version (set by image build args; leave unset in dev).                                                                     |
-| `HELIO_COMMIT`       | —        | Build commit hash (set by image build args).                                                                                       |
-| `HELIO_UPDATE_CHECK` | —        | The dashboard polls GitHub's public releases feed (cached, anonymous, sends nothing) and shows an update notice. `false` disables. |
+| Variable                 | Required | Purpose                                                                                                                                                                                                                                                                                             |
+| ------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HELIO_VERSION`          | —        | Release version (set by image build args; leave unset in dev).                                                                                                                                                                                                                                      |
+| `HELIO_COMMIT`           | —        | Build commit hash (set by image build args).                                                                                                                                                                                                                                                        |
+| `HELIO_UPDATE_CHECK`     | —        | The dashboard polls GitHub's public releases feed (cached, anonymous, sends nothing) and shows the running version and any newer release. `false` disables.                                                                                                                                         |
+| `HELIO_INAPP_UPDATE`     | —        | One-click in-app update (self-host bundle's `update` profile). `true` lets an owner update the instance from Settings → Updates via the socket-holding updater sidecar — see [SECURITY.md](https://github.com/achref-soua/helio/blob/main/SECURITY.md). Default `false`; the installer turns it on. |
+| `HELIO_UPDATE_SECRET`    | —        | Authorizes the dashboard's request to the updater sidecar (installer-generated; shared by the web and updater services only).                                                                                                                                                                       |
+| `HELIO_UPDATE_STATE_DIR` | —        | Where the dashboard reads/writes the update handshake (the shared `update-state` volume). Defaults to `/var/lib/helio/update-state`.                                                                                                                                                                |
 
 ## Auth & email
 
