@@ -44,7 +44,12 @@ function SettingsSection({
         <h2 className="font-display text-lg font-semibold tracking-tight">{title}</h2>
         <p className="text-muted-foreground text-sm">{description}</p>
       </div>
-      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2">{children}</div>
+      {/* Masonry (CSS columns) instead of a 2-up grid: cards pack tightly by
+          height, so a short card next to a tall one no longer leaves a ragged
+          gap. break-inside-avoid keeps each card whole; mb gives the rhythm. */}
+      <div className="gap-5 [column-fill:balance] xl:columns-2 [&>*]:mb-5 [&>*]:break-inside-avoid [&>*:last-child]:mb-0">
+        {children}
+      </div>
     </section>
   );
 }
