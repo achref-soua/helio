@@ -63,3 +63,4 @@ apps/docs/.source/
 # Local marketing material — never part of the release.
 marketing/
 
+docs/audit*/
