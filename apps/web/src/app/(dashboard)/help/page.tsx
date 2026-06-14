@@ -8,6 +8,7 @@ import {
   LifeBuoy,
   Mail,
   Megaphone,
+  Plug,
   Route,
   Settings,
   Sparkles,
@@ -29,6 +30,7 @@ const SECTIONS = [
   { key: 'insights', href: '/insights', icon: BarChart3 },
   { key: 'copilot', href: '/copilot', icon: Sparkles },
   { key: 'crm', href: '/deals', icon: Handshake },
+  { key: 'configuration', href: '/settings', icon: Plug },
   { key: 'settings', href: '/settings', icon: Settings },
 ] as const;
 

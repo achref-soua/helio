@@ -1267,7 +1267,7 @@
       "sections": {
         "contacts": {
           "title": "Bring in your audience",
-          "body": "Import a CSV, capture signups from forms, or send events through the tracking SDK. Every person becomes one profile with traits, scores, and a full activity timeline.",
+          "body": "Import a CSV, migrate from HubSpot, Mailchimp or Klaviyo, capture signups from forms, or send events through the tracking SDK. Every person becomes one profile with traits, scores, and a full activity timeline.",
           "cta": "Open contacts"
         },
         "segments": {
@@ -1310,9 +1310,14 @@
           "body": "Track deals through pipeline stages, work tasks by due date, and share a booking link that turns meetings into contacts automatically.",
           "cta": "View deals"
         },
+        "configuration": {
+          "title": "Connect your tools",
+          "body": "Plug in everything Helio sends through — your SMTP relay (or SES, Postmark, Resend, Mailgun), an AI model key, SMS and WhatsApp — then wire webhooks, third-party integrations, the SPF/DKIM/DMARC deliverability wizard, and one-click updates. Every field carries an “i” hint explaining exactly what it needs.",
+          "cta": "Connect your channels"
+        },
         "settings": {
           "title": "Run it your way",
-          "body": "Invite teammates, brand the workspace, mint scoped API keys, wire webhooks and integrations, and harden access with 2FA, SSO, and SCIM.",
+          "body": "Invite teammates, brand the workspace, set your currency, mint scoped API keys, and harden access with 2FA, SSO, and SCIM.",
           "cta": "Open settings"
         }
       }
