@@ -66,20 +66,21 @@ helm upgrade --install helio ./infra/helm/helio \
 
 ## Key values
 
-| Key                             | Default                   | Description                                            |
-| ------------------------------- | ------------------------- | ------------------------------------------------------ |
-| `image.registry` / `.namespace` | `ghcr.io` / `achref-soua` | Where the `helio-<service>` images live.               |
-| `image.tag`                     | chart `appVersion`        | Image tag for every service.                           |
-| `config`                        | see `values.yaml`         | Non-secret env, rendered into a ConfigMap.             |
-| `secrets.existingSecret`        | `""`                      | Use an out-of-band Secret instead of rendering one.    |
-| `secrets.data.*`                | `""`                      | Secret env (auth, DB, Redis, tracking, LLM key).       |
-| `services.<name>.replicas`      | `1`–`2`                   | Per-service replica count.                             |
-| `services.<name>.resources`     | `resources`               | Per-service compute override.                          |
-| `ingress.enabled` / `.hosts`    | `false`                   | Public routing for web / api / tracking.               |
-| `autoscaling.enabled`           | `false`                   | HPAs for `autoscaling.services`.                       |
-| `postgresql.enabled`            | `true`                    | Bundled in-cluster Postgres (pgvector) for evaluation. |
-| `redis.enabled`                 | `true`                    | Bundled in-cluster Redis for evaluation.               |
-| `migrations.enabled` / `.image` | `false`                   | Run schema migrations as a pre-install/upgrade hook.   |
+| Key                             | Default                   | Description                                                                                         |
+| ------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------- |
+| `image.registry` / `.namespace` | `ghcr.io` / `achref-soua` | Where the `helio-<service>` images live.                                                            |
+| `image.tag`                     | chart `appVersion`        | Image tag for every service.                                                                        |
+| `config`                        | see `values.yaml`         | Non-secret env, rendered into a ConfigMap.                                                          |
+| `secrets.existingSecret`        | `""`                      | Use an out-of-band Secret instead of rendering one.                                                 |
+| `secrets.data.*`                | `""`                      | Secret env (auth, DB, Redis, tracking, LLM key).                                                    |
+| `services.<name>.replicas`      | `1`–`2`                   | Per-service replica count.                                                                          |
+| `services.<name>.resources`     | `resources`               | Per-service compute override.                                                                       |
+| `ingress.enabled` / `.hosts`    | `false`                   | Public routing for web / api / tracking.                                                            |
+| `networkPolicy.enabled`         | `false`                   | Default-deny ingress + restrict the intelligence plane to web/workers (needs a policy-capable CNI). |
+| `autoscaling.enabled`           | `false`                   | HPAs for `autoscaling.services`.                                                                    |
+| `postgresql.enabled`            | `true`                    | Bundled in-cluster Postgres (pgvector) for evaluation.                                              |
+| `redis.enabled`                 | `true`                    | Bundled in-cluster Redis for evaluation.                                                            |
+| `migrations.enabled` / `.image` | `false`                   | Run schema migrations as a pre-install/upgrade hook.                                                |
 
 The complete, commented surface is [`values.yaml`](./values.yaml).
 

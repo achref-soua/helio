@@ -38,7 +38,7 @@ services:
       retries: 10
 
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.21.8
     profiles: [core, full]
     ports:
       - '${MAILPIT_SMTP_PORT:-1025}:1025' # SMTP — all dev email lands here
@@ -124,7 +124,7 @@ services:
       - '${TEMPORAL_UI_PORT:-8080}:8080'
 
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     profiles: [full]
     command: ['server', '/data', '--console-address', ':9001']
     environment:
@@ -143,7 +143,7 @@ services:
 
   # ── Observability profile ──────────────────────────────────────────
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
+    image: otel/opentelemetry-collector-contrib:0.116.0
     profiles: [observability]
     command: ['--config=/etc/otel/config.yaml']
     volumes:
@@ -153,7 +153,7 @@ services:
       - '4318:4318' # OTLP HTTP
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.1.0
     profiles: [observability]
     extra_hosts:
       - 'host.docker.internal:host-gateway'
@@ -163,7 +163,7 @@ services:
       - '${PROMETHEUS_PORT:-9090}:9090'
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.4.0
     profiles: [observability]
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: 'true'
