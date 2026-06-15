@@ -1,8 +1,10 @@
+import hmac
 import os
 import time
 
 import structlog
 from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 from prometheus_client import CONTENT_TYPE_LATEST, Histogram, generate_latest
 
 from .logging import configure_logging
@@ -154,6 +156,29 @@ def create_app() -> FastAPI:
             allow_private_endpoints=settings.allow_private_model_endpoints,
         )
         app.dependency_overrides[get_scoring_service] = lambda: scoring_service
+
+    service_token = settings.service_token.get_secret_value()
+    if not service_token:
+        log.warning(
+            "service token unset",
+            detail=(
+                "INTEL_SERVICE_TOKEN is not set; the /v1 API is unauthenticated. "
+                "Set it (matching the web app) on any networked deployment."
+            ),
+        )
+
+    @app.middleware("http")
+    async def enforce_service_token(request: Request, call_next):  # type: ignore[no-untyped-def]
+        # The dashboard is the only legitimate caller of /v1 and it forwards a
+        # *trusted* organization id, which this service turns into the RLS
+        # tenant — so an unauthenticated caller could read any tenant's data
+        # through the AI plane. Require the shared token on every /v1 route;
+        # /healthz, /readyz, and /metrics stay open for orchestration.
+        if service_token and request.url.path.startswith("/v1"):
+            presented = request.headers.get("x-helio-service-token", "")
+            if not hmac.compare_digest(presented, service_token):
+                return JSONResponse({"detail": "invalid or missing service token"}, status_code=401)
+        return await call_next(request)
 
     @app.middleware("http")
     async def observe_requests(request: Request, call_next):  # type: ignore[no-untyped-def]

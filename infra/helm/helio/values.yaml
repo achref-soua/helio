@@ -82,6 +82,10 @@ secrets:
     UNSUBSCRIBE_SECRET: ''
     # Optional — only when the intelligence plane talks to a hosted LLM.
     INTEL_LLM_API_KEY: ''
+    # openssl rand -hex 32 — shared web↔intelligence token. Without it the AI
+    # plane's /v1 API is unauthenticated on the cluster network (it trusts the
+    # forwarded organization id), so set this in any real deployment.
+    INTEL_SERVICE_TOKEN: ''
 
 # -- The application services. Each entry becomes a Deployment; entries with a
 # `port` also get a ClusterIP Service and HTTP health probes.
