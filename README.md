@@ -219,6 +219,14 @@ Measured on the development reference (WSL2, core profile, production build, v2.
 
 Hot-path budgets (ingestion ≥ 5k events/s, API reads p95 < 150 ms) have a committed k6 harness in [`infra/k6/`](infra/k6) — `task loadtest` drives a 6 000 events/s firehose at the ingestion endpoint with thresholds asserted. Run it against the full stack and record the summary in [`infra/k6/README.md`](infra/k6/README.md).
 
+For horizontal scale, the RLS app connection can be fronted by an opt-in transaction-mode PgBouncer — safe by design, since Helio sets the tenant id transaction-locally ([ADR-0022](docs/adr/0022-pgbouncer-transaction-pooling.md)) — and ingestion resolves write keys through a shared Redis cache ([ADR-0023](docs/adr/0023-write-key-shared-cache.md)).
+
+## Security
+
+Multi-tenant isolation is enforced at the database: PostgreSQL row-level security under a non-superuser role, with the tenant id set transaction-locally so it never leaks across requests or a connection pool. On top of that — SSRF guards on every server-side fetch of an operator-supplied URL, a shared-token boundary in front of the AI plane, hashed scoped API keys, an AES-256-GCM credential vault, TOTP 2FA and SSO/SCIM, and an opt-in Kubernetes NetworkPolicy.
+
+The **[v2.0.9 security audit](docs/security/audit-2.0.9.md)** documents the latest hardening pass — findings, fixes, and verification. See [SECURITY.md](SECURITY.md) for the policy and the full surface table, and the [threat model](docs/threat-model.md).
+
 ## Roadmap
 
 | Milestone | Focus                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |

@@ -11,5 +11,6 @@ coverage/
 storybook-static/
 LICENSE
 .data/
+.scratch/
 # Helm chart templates are Go templates, not valid YAML — Prettier can't parse them.
 infra/helm/*/templates/
