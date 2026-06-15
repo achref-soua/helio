@@ -48,13 +48,23 @@ helio.identify('user-123', { email: 'ada@example.com' });
 
 const messages = await helio.inApp();
 for (const message of messages) {
-  showInYourUI(message); // { title, body, ctaLabel, ctaUrl }
+  // { title, body, ctaLabel, ctaUrl, palette: { background, text, button, accent } }
+  showInYourUI(message);
 }
 await helio.markInAppSeen(messages.map((m) => m.deliveryId));
 ```
 
 `inApp()` returns `[]` when no `appHost` is set, no contact email is known, or
 the request fails — it never throws, so it's safe to call on every page load.
+
+## Colors
+
+Each message carries a **palette** — `background`, `text`, `button`, and
+`accent` — set in the composer beside a live preview. New messages start from
+your [brand color](/docs/guides/white-labeling), and every value is
+re-validated on the server (always a `#hex` literal) before it is returned by
+`inApp()`, so you can apply `message.palette` straight to inline styles when you
+render the message in your product.
 
 ## Privacy & isolation
 
