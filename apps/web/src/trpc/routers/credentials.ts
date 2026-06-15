@@ -210,6 +210,7 @@ export const credentialsRouter = router({
           kind,
           (existing.config ?? {}) as Record<string, unknown>,
           secrets,
+          { allowPrivateModelEndpoint: env.INTEL_ALLOW_PRIVATE_MODEL_ENDPOINTS },
         );
       } catch {
         // Wrong/rotated deployment key: the stored value is unreadable.
