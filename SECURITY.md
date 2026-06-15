@@ -58,11 +58,16 @@ blast radius is contained deliberately:
   `helio update` — there is no path from a request to arbitrary execution.
 - **Owner-only and audited.** The `admin:updates` permission is owner-only and
   re-checked on the server; every trigger is written to the audit log.
-- **Off is one flag.** Install with `--no-inapp-update`, set
-  `HELIO_INAPP_UPDATE=false`, or drop `update` from `COMPOSE_PROFILES` — any of
-  these removes the sidecar (and the socket). The terminal `helio update`
-  works regardless.
+- **On by default; off is durable.** Fresh installs enable it, and `helio
+update` self-heals the wiring (so the button appears on existing installs that
+  predate it). To keep it **off across updates**, install or update with
+  `--no-inapp-update`, which records the durable sentinel `HELIO_INAPP_UPDATE=off`
+  and drops `update` from `COMPOSE_PROFILES` — removing the sidecar and the
+  socket. A bare `HELIO_INAPP_UPDATE=false` means "not configured" and is
+  re-enabled by the next `helio update`; use `off` (not `false`) to opt out for
+  good. The terminal `helio update` works regardless of the setting.
 
-Operators who do not want any container holding the Docker socket should leave
-the `update` profile off and update from the terminal. The shared volume is
-reachable only by Helio's own (trusted, in-network) containers.
+Operators who do not want any container holding the Docker socket should opt out
+with `--no-inapp-update` (or set `HELIO_INAPP_UPDATE=off` and drop the `update`
+profile) and update from the terminal. The shared volume is reachable only by
+Helio's own (trusted, in-network) containers.

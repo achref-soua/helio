@@ -62,6 +62,12 @@ describe('self-host compose: in-app update sidecar', () => {
     expect(updater).toMatch(/HELIO_UPDATE_SECRET:\s*\$\{HELIO_UPDATE_SECRET/);
   });
 
+  it('pins the updater image to the release version placeholder', () => {
+    // The release retags this byte-identically when only other code changed;
+    // the placeholder keeps the sidecar on the same version as the stack.
+    expect(updater).toMatch(/image:\s*ghcr\.io\/achref-soua\/helio-updater:__HELIO_VERSION__/);
+  });
+
   it('shares the update-state volume with the web app', () => {
     expect(selfhost).toMatch(/^ {2}update-state:\s*$/m);
     expect(serviceBlock(selfhost, 'web')).toContain('update-state:/var/lib/helio/update-state');

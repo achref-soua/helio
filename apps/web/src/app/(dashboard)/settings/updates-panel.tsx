@@ -120,7 +120,12 @@ export function UpdatesPanel() {
             ) : inAppEnabled ? (
               <p className="text-muted-foreground text-xs">{t('ownerOnly')}</p>
             ) : (
-              <p className="text-muted-foreground text-xs">{t('terminalHint')}</p>
+              <div className="text-muted-foreground grid gap-1 text-xs">
+                <p>{t('terminalHint')}</p>
+                <code className="bg-muted text-foreground w-fit rounded px-1.5 py-0.5 font-mono">
+                  helio update
+                </code>
+              </div>
             )}
           </div>
         ) : check.data ? (
