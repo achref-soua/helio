@@ -52,7 +52,7 @@ export const supportRouter = router({
       // The effective inbox a report is emailed to (org → deployment → From).
       notifyEmail: resolveSupportRecipient(
         org?.supportEmail ?? null,
-        env.HELIO_SUPPORT_EMAIL ?? null,
+        env.HELIO_SUPPORT_EMAIL,
         env.MAIL_FROM,
       ),
     };
@@ -194,7 +194,7 @@ export const supportRouter = router({
       let emailed = false;
       const recipient = resolveSupportRecipient(
         org?.supportEmail ?? null,
-        env.HELIO_SUPPORT_EMAIL ?? null,
+        env.HELIO_SUPPORT_EMAIL,
         env.MAIL_FROM,
       );
       try {

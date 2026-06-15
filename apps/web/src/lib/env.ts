@@ -70,9 +70,10 @@ export const env = createEnv({
   // Maintenance. Without any token, reports are delivered by email only.
   HELIO_SUPPORT_TOKEN: z.string().optional(),
   // Where in-app bug reports are emailed when an org has not set its own
-  // recipient. Falls back to MAIL_FROM, so a report is never dropped (Mailpit
-  // in dev).
-  HELIO_SUPPORT_EMAIL: z.string().email().optional(),
+  // recipient. Defaults to the Helio maintainer (reports are about Helio, so
+  // they reach whoever can fix them — mirrors HELIO_SUPPORT_REPO); a self-host
+  // can point it at its own inbox. An org override always wins.
+  HELIO_SUPPORT_EMAIL: z.string().email().default('achref.soua@outlook.com'),
   // Per-replica abuse damping on the public, unauthenticated endpoints
   // (forms, booking, widget/in-app delivery, SCIM). Disable for load tests.
   PUBLIC_RATE_LIMITS_ENABLED: z
