@@ -26,6 +26,15 @@ The embed fetches your live widgets from a write-key-scoped, CORS-enabled
 endpoint and renders them with zero dependencies — visitors can dismiss them,
 and only public widget content is ever exposed.
 
+## Colors
+
+Each widget has its own palette — **background**, **text**, **button**, and
+**accent** — set in the composer beside a live preview. New widgets start from
+your [brand color](/docs/guides/white-labeling); every value is re-validated on
+the server (always a `#hex` literal) before the endpoint returns it, so the
+zero-dependency embed paints the banner or popup in your colors (the button text
+is auto-picked for contrast).
+
 <Callout>
   Widgets are tenant-isolated: the endpoint resolves the workspace from the write key, so a key only
   ever serves its own workspace's live widgets.
