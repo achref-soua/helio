@@ -31,7 +31,14 @@ const prisma = createPrismaClient(env.DATABASE_ADMIN_URL);
 const redis = new Redis(env.REDIS_URL);
 
 const app = createApp({
-  keys: new PrismaWriteKeyResolver(prisma),
+  // L1 in-process cache backed by a shared Redis L2 (keyed by the write key, so
+  // tenant-safe by construction); a cold replica resolves from Redis, not Postgres.
+  keys: new PrismaWriteKeyResolver(prisma, 60_000, Date.now, {
+    get: (key) => redis.get(`wk:${key}`),
+    set: async (key, value, ttlMs) => {
+      await redis.set(`wk:${key}`, value, 'PX', ttlMs);
+    },
+  }),
   producer,
   pushStore: {
     async upsert(input) {
