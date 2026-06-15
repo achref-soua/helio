@@ -30,17 +30,24 @@ Self-hosted deployments are configured by their operators; misconfiguration of a
 
 ## v2 security surfaces (what changed and how it is defended)
 
-| Surface              | Defense                                                                                                                                                  |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Credential vault     | AES-256-GCM envelopes, row-bound AAD, masked reads only, zero-downtime key rotation (ADR-0019)                                                           |
-| Backups              | Sidecar-owned dumps, checksummed, optional passphrase encryption; downloads stream by DB-row filename only, owner-gated and rate-limited (ADR-0020)      |
-| BYO churn models     | Pickle refused by magic byte; artifacts execute only in a rlimit-sandboxed child process; HTTPS endpoints SSRF-guarded (ADR-0021)                        |
-| Database Studio      | Hand-rolled allow-list — auth/credential/secret tables are not browsable by construction; validated writes; full audit; owner-only typed-confirm deletes |
-| First-run setup      | Locks shut at the first user; rate-limited; instances are invite-only by default afterwards (`ALLOW_PUBLIC_SIGNUP=false` in the bundle)                  |
-| REST API keys        | Per-resource scopes with explicit per-handler checks; org-embedded keys verified by whole-key hash behind RLS                                            |
-| Passwords & sessions | zxcvbn gate, enumeration-safe reset, session list/revoke, optional org rotation policy, optional org-required 2FA (any RFC-6238 app)                     |
-| Install pipeline     | Release bundles and binaries ship sha256 checksums; `helio install` verifies before extracting                                                           |
-| In-app update        | Single-purpose socket sidecar runs only the fixed `helio update`; owner-gated, shared-secret request that carries no command; fully optional (see below) |
+| Surface              | Defense                                                                                                                                                                                                                        |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Credential vault     | AES-256-GCM envelopes, row-bound AAD, masked reads only, zero-downtime key rotation (ADR-0019)                                                                                                                                 |
+| Backups              | Sidecar-owned dumps, checksummed, optional passphrase encryption; downloads stream by DB-row filename only, owner-gated and rate-limited (ADR-0020)                                                                            |
+| BYO churn models     | Pickle refused by magic byte; artifacts execute only in a rlimit-sandboxed child process; HTTPS endpoints SSRF-guarded (ADR-0021)                                                                                              |
+| Database Studio      | Hand-rolled allow-list — auth/credential/secret tables are not browsable by construction; validated writes; full audit; owner-only typed-confirm deletes                                                                       |
+| First-run setup      | Locks shut at the first user; rate-limited; instances are invite-only by default afterwards (`ALLOW_PUBLIC_SIGNUP=false` in the bundle)                                                                                        |
+| REST API keys        | Per-resource scopes with explicit per-handler checks; org-embedded keys verified by whole-key hash behind RLS                                                                                                                  |
+| Passwords & sessions | zxcvbn gate, enumeration-safe reset, session list/revoke, optional org rotation policy, optional org-required 2FA (any RFC-6238 app)                                                                                           |
+| Install pipeline     | Release bundles and binaries ship sha256 checksums; `helio install` verifies before extracting                                                                                                                                 |
+| In-app update        | Single-purpose socket sidecar runs only the fixed `helio update`; owner-gated, shared-secret request that carries no command; fully optional (see below)                                                                       |
+| AI plane             | The intelligence `/v1` API requires a shared `INTEL_SERVICE_TOKEN` (the bundle generates it); the dashboard is the only caller, so the one tenant-data path outside Postgres RLS can't be driven by anyone else on the network |
+| Server-side fetches  | Outbound webhooks and credential "test connection" probes are SSRF-guarded — hosts that are, or resolve to, private/loopback/metadata addresses are refused unless explicitly opted in                                         |
+| Connection pooling   | Optional PgBouncer (transaction mode) is safe by design: the tenant id is set transaction-locally and was verified to never leak across pooled connections (ADR-0022)                                                          |
+| Rate limiting & CNI  | The gateway limiter degrades to an in-memory window if Redis is down (no API outage on a cache blip); the Helm chart ships an opt-in NetworkPolicy restricting the AI plane to web + workers                                   |
+
+A full write-up of the v2.0.9 hardening pass — findings, fixes, and verification —
+is in [`docs/security/audit-2.0.9.md`](./docs/security/audit-2.0.9.md).
 
 ### In-app update sidecar (one-click update)
 
