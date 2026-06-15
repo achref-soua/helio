@@ -50,6 +50,15 @@ export const env = createEnv({
   // The intelligence service (AI copilot). The BFF authenticates the user
   // and forwards the verified org/workspace; this is the only caller.
   INTELLIGENCE_URL: z.string().min(1).default('http://localhost:8000'),
+  // Shared secret the intelligence /v1 API requires (X-Helio-Service-Token).
+  // Empty in dev; set on any networked deployment (must match the intel service).
+  INTEL_SERVICE_TOKEN: z.string().default(''),
+  // Mirrors the intelligence guard: allow a churn "test connection" probe to a
+  // private/LAN model endpoint. Off by default (SSRF guard).
+  INTEL_ALLOW_PRIVATE_MODEL_ENDPOINTS: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   // Sibling services + stores for the admin health page (G5). HTTP ones
   // answer /healthz; Redis/Temporal get a TCP reachability probe.
   API_URL: z.string().min(1).default('http://localhost:4000'),

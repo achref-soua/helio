@@ -31,9 +31,14 @@ overrides:
   # and postcss already resolve safe copies elsewhere in the tree; these
   # ranges unify the stragglers. @hono/node-server is scoped to the 1.x line
   # so the safe direct 2.x dependency isn't downgraded.
-  protobufjs: ^7.5.8
+  # protobufjs < 7.6.3: prototype pollution via crafted .proto/reflection
+  # (GHSA-f38q-mgvj-vph7) — reaches us through @opentelemetry → @grpc.
+  protobufjs: ^7.6.3
   postcss: ^8.5.10
   '@hono/node-server@1': '>=1.19.13 <2'
   # esbuild < 0.28.1: dev-server arbitrary file read (Windows) + Deno-module
   # RCE via NPM_CONFIG_REGISTRY (GHSA-gv7w-rqvm-qjhr, GHSA-g7r4-m6w7-qqqr).
   esbuild: ^0.28.1
+  # js-yaml < 4.1.2: quadratic-complexity DoS in merge-key handling via
+  # repeated aliases (GHSA-h67p-54hq-rp68) — dev-only, via openapi-typescript.
+  js-yaml: ^4.1.2

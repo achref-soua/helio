@@ -43,6 +43,18 @@ resources:
   limits:
     memory: 512Mi
 
+# -- Network isolation. Requires a NetworkPolicy-capable CNI (Calico, Cilium,
+# …); off by default so it can't silently break a cluster without one. When on:
+# default-deny ingress to Helio pods, allow traffic between this release's pods,
+# restrict the intelligence plane to the web and workers pods (defence in depth
+# on top of INTEL_SERVICE_TOKEN), and optionally let a named ingress-controller
+# namespace reach the HTTP services.
+networkPolicy:
+  enabled: false
+  # Namespace label value (kubernetes.io/metadata.name) of the ingress
+  # controller permitted to reach web/api/ingest/tracking. Empty = none.
+  ingressControllerNamespace: ''
+
 # -- Non-secret configuration, rendered into a ConfigMap and `envFrom`'d by
 # every service. Point the endpoints at your in-cluster or managed backends.
 config:
@@ -82,6 +94,10 @@ secrets:
     UNSUBSCRIBE_SECRET: ''
     # Optional — only when the intelligence plane talks to a hosted LLM.
     INTEL_LLM_API_KEY: ''
+    # openssl rand -hex 32 — shared web↔intelligence token. Without it the AI
+    # plane's /v1 API is unauthenticated on the cluster network (it trusts the
+    # forwarded organization id), so set this in any real deployment.
+    INTEL_SERVICE_TOKEN: ''
 
 # -- The application services. Each entry becomes a Deployment; entries with a
 # `port` also get a ClusterIP Service and HTTP health probes.

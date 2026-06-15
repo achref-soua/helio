@@ -63,5 +63,8 @@ apps/docs/.source/
 # Local marketing material — never part of the release.
 marketing/
 
+# Scratch space (audit artifacts, throwaway notes) — never committed.
+.scratch/
+
 docs/audit*/
 out/

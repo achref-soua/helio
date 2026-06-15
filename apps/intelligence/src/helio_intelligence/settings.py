@@ -17,11 +17,23 @@ class Settings(BaseSettings):
     log_level: str = "info"
     service_name: str = "intelligence"
 
+    # Shared service token. The /v1 surface trusts the organization id its
+    # caller forwards (the dashboard authenticates the user first), so an
+    # unauthenticated caller that reached this service could read any tenant's
+    # data through the AI plane. When set, every /v1 request must present a
+    # matching X-Helio-Service-Token; unset leaves it open for local dev.
+    service_token: SecretStr = SecretStr("")
+
     # Domain data: the RLS-bound app connection (helio_app role). Every
     # copilot read runs inside a transaction that sets app.org_id, so the
     # database physically prevents cross-organization access — the copilot
     # can never see another tenant's data, even on a buggy query.
     database_url: str = ""
+    # Set when database_url points at PgBouncer in transaction mode: asyncpg's
+    # statement cache must be disabled (server-side prepared statements don't
+    # survive pooled transactions). Harmless but slightly slower otherwise, so
+    # it's opt-in and off by default.
+    database_pgbouncer: bool = False
 
     # LLM gateway (provider-agnostic: openai | anthropic | groq | ollama
     # | local). Test target is Llama 3 via Groq; local/ollama point at a

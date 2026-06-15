@@ -147,3 +147,23 @@ export function probeOutcome(
   }
   return { ok: false, message: `The provider answered HTTP ${status}` };
 }
+
+/**
+ * Whether a connectivity probe for this credential may legitimately target a
+ * private/loopback address. A self-hosted LLM (`local`/`ollama`) is meant to
+ * run on localhost or the LAN, and a churn endpoint may too once the operator
+ * sets `INTEL_ALLOW_PRIVATE_MODEL_ENDPOINTS`. Every other probe must be public,
+ * so the executor SSRF-guards it (see web `runCredentialProbe`). All probe URLs
+ * but these are hardcoded vendor domains, which are public regardless.
+ */
+export function probeAllowsPrivateAddress(
+  kind: CredentialKind,
+  config: Record<string, unknown>,
+  allowPrivateModelEndpoint = false,
+): boolean {
+  if (kind === 'LLM') {
+    return config.provider === 'local' || config.provider === 'ollama';
+  }
+  if (kind === 'CHURN_ENDPOINT') return allowPrivateModelEndpoint;
+  return false;
+}
