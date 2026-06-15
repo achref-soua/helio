@@ -767,7 +767,12 @@
     "emptyTitle": "No forms yet",
     "emptyBody": "Host a signup page and grow your audience.",
     "preview": "Preview",
-    "hidePreview": "Hide preview"
+    "hidePreview": "Hide preview",
+    "colors": "Colors",
+    "hideColors": "Hide colors",
+    "colorsHint": "Theme this form. New forms start from your brand color.",
+    "saveColors": "Save colors",
+    "paletteSaved": "Colors saved"
   },
   "hostedForm": {
     "subtitle": "Sign up to hear from us.",
@@ -1768,5 +1773,11 @@
     "save": "Save currency",
     "saved": "Currency updated",
     "genericError": "Something went wrong"
+  },
+  "palette": {
+    "background": "Background",
+    "text": "Text",
+    "button": "Button",
+    "accent": "Accent"
   }
 }

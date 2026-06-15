@@ -612,6 +612,10 @@ model Form {
   name           String
   /// Shown as the page heading on the hosted form.
   title          String
+  /// Per-element color palette (background/text/button/accent) for the hosted
+  /// page — see @helio/core surfacePaletteSchema. Null falls back to the org
+  /// brand color at render.
+  palette        Json?
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 

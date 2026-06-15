@@ -201,6 +201,15 @@ export {
   landingDocumentSchema,
 } from './landing';
 export {
+  defaultPalette,
+  PALETTE_KEYS,
+  type PaletteKey,
+  paletteSurfaceVars,
+  resolvePalette,
+  type SurfacePalette,
+  surfacePaletteSchema,
+} from './palette';
+export {
   can,
   minimumRoleFor,
   type Permission,

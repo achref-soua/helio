@@ -1,5 +1,6 @@
 'use client';
 
+import { resolvePalette, type SurfacePalette } from '@helio/core';
 import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
 import {
@@ -13,11 +14,12 @@ import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
 import { Skeleton } from '@helio/ui/components/skeleton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClipboardCopy, Eye, FileText, Plus, Trash2 } from 'lucide-react';
+import { ClipboardCopy, Eye, FileText, Palette, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { PaletteFields } from '@/components/palette-fields';
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
 import { useTRPC } from '@/trpc/client';
 
@@ -32,14 +34,44 @@ export function FormsView() {
   const [title, setTitle] = useState('');
   // The hosted page itself, framed — zero drift from what visitors see.
   const [previewId, setPreviewId] = useState<string | null>(null);
+  // The form whose palette is being themed, and the working draft.
+  const [customizeId, setCustomizeId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<SurfacePalette | null>(null);
 
   const formsQuery = useQuery({
     ...trpc.form.list.queryOptions({ workspaceId: workspaceId ?? '' }),
     enabled: !!workspaceId,
   });
+  // The org brand color seeds palette defaults for forms not yet themed.
+  const brandingQuery = useQuery(trpc.branding.get.queryOptions());
+  const brandColor = brandingQuery.data?.brandColor ?? null;
   const createForm = useMutation(trpc.form.create.mutationOptions());
+  const updateForm = useMutation(trpc.form.update.mutationOptions());
   const deleteForm = useMutation(trpc.form.delete.mutationOptions());
   const invalidate = () => queryClient.invalidateQueries(trpc.form.list.pathFilter());
+
+  function toggleCustomize(form: { id: string; palette: unknown }) {
+    if (customizeId === form.id) {
+      setCustomizeId(null);
+      setDraft(null);
+    } else {
+      setCustomizeId(form.id);
+      setDraft(resolvePalette(form.palette, brandColor));
+    }
+  }
+
+  async function onSavePalette(id: string) {
+    if (!draft) return;
+    try {
+      await updateForm.mutateAsync({ id, palette: draft });
+      await invalidate();
+      toast.success(t('paletteSaved'));
+      setCustomizeId(null);
+      setDraft(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('genericError'));
+    }
+  }
 
   async function onCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -186,7 +218,44 @@ export function FormsView() {
                   >
                     <ClipboardCopy aria-hidden /> {t('copy')}
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleCustomize(form)}
+                    data-testid="form-customize-toggle"
+                  >
+                    <Palette aria-hidden />{' '}
+                    {customizeId === form.id ? t('hideColors') : t('colors')}
+                  </Button>
                 </div>
+                {customizeId === form.id && draft && (
+                  <div
+                    className="grid gap-3 rounded-md border p-3"
+                    data-testid="form-palette-editor"
+                  >
+                    <p className="text-muted-foreground text-xs">{t('colorsHint')}</p>
+                    <PaletteFields value={draft} onChange={setDraft} />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => onSavePalette(form.id)}
+                        disabled={updateForm.isPending}
+                      >
+                        {t('saveColors')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setCustomizeId(null);
+                          setDraft(null);
+                        }}
+                      >
+                        {t('cancel')}
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 {previewId === form.id && (
                   <iframe
                     title={t('preview')}
