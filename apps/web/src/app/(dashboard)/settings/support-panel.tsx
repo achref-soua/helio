@@ -33,19 +33,22 @@ export function SupportPanel({ canManage }: { canManage: boolean }) {
 
   const [seeded, setSeeded] = useState(false);
   const [repo, setRepo] = useState('');
+  const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
 
   const cfg = config.data;
   if (cfg && !seeded) {
     setSeeded(true);
-    // Only seed the field when the org has overridden the default repo.
+    // Only seed a field when the org has overridden the deployment default.
     setRepo(cfg.custom ? cfg.repoSlug : '');
+    setEmail(cfg.customEmail ? cfg.notifyEmail : '');
   }
 
   async function onSave() {
     try {
       await configure.mutateAsync({
         repo: repo.trim(),
+        email: email.trim(),
         ...(token.trim() ? { token: token.trim() } : {}),
       });
       await queryClient.invalidateQueries(trpc.support.config.pathFilter());
@@ -88,6 +91,22 @@ export function SupportPanel({ canManage }: { canManage: boolean }) {
           />
           <p className="text-muted-foreground text-xs">
             {t('repoHint', { repo: cfg?.repoSlug ?? '' })}
+          </p>
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="support-email">{t('emailLabel')}</Label>
+          <Input
+            id="support-email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder={cfg?.notifyEmail ?? 'support@example.com'}
+            autoComplete="off"
+            spellCheck={false}
+            data-testid="support-email"
+          />
+          <p className="text-muted-foreground text-xs">
+            {t('emailHint', { email: cfg?.notifyEmail ?? '' })}
           </p>
         </div>
         <div className="grid gap-2">

@@ -38,8 +38,11 @@ model Organization {
   /// falls back to HELIO_SUPPORT_REPO (the upstream repo by default).
   supportRepo           String?  @map("support_repo")
   /// Optional GitHub PAT (crypto-envelope sealed) for server-side issue
-  /// creation; without it, reports open a prefilled new-issue page instead.
+  /// creation; falls back to the deployment-wide HELIO_SUPPORT_TOKEN.
   supportToken          String?  @map("support_token")
+  /// Where in-app bug reports are emailed. Null falls back to
+  /// HELIO_SUPPORT_EMAIL, then the deployment's MAIL_FROM identity.
+  supportEmail          String?  @map("support_email")
   createdAt             DateTime @default(now()) @map("created_at")
 
   workspaces          Workspace[]

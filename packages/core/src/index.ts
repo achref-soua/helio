@@ -179,13 +179,17 @@ export {
 } from './gateway-keys';
 export {
   buildSupportIssue,
+  buildSupportNotificationEmail,
   createGitHubIssue,
   type FetchLike,
   githubNewIssueUrl,
   type GithubRepo,
   parseGithubRepo,
+  resolveSupportRecipient,
+  resolveSupportRepo,
   type SupportIssue,
   supportIssueLabels,
+  type SupportNotification,
   type SupportReportInput,
 } from './github-support';
 export { type Id, idTimestamp, isId, newId } from './id';
