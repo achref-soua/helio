@@ -1,10 +1,13 @@
 import { expect, test } from '@playwright/test';
 
-// Bug reports go to GitHub, not an in-app inbox. With no PAT configured (the
-// default), filing a report opens a prefilled new-issue page — we stub
-// window.open so the test stays hermetic (no real github.com navigation).
+// Bug reports are filed entirely server-side — a GitHub issue when a token is
+// configured, and always an email to the support inbox (Mailpit in the dev
+// stack). With no PAT configured (the default), the report is delivered by
+// email, so filing one shows a confirmation and closes the dialog — there is no
+// browser hand-off to GitHub's new-issue page. We stub window.open to prove no
+// tab is ever popped.
 
-test('filing a report opens a prefilled GitHub issue', async ({ page }) => {
+test('filing a report submits server-side and confirms — no browser hand-off', async ({ page }) => {
   await page.addInitScript(() => {
     (window as unknown as { __opened: string[] }).__opened = [];
     window.open = (url?: string | URL) => {
@@ -21,22 +24,24 @@ test('filing a report opens a prefilled GitHub issue', async ({ page }) => {
   await page.getByTestId('report-subject').fill('Export button does nothing');
   await page.getByTestId('report-body').fill('Clicking export on /contacts is a no-op.');
   await page.getByTestId('report-submit').click();
-  await expect(page.getByText('Opening GitHub')).toBeVisible();
+
+  // A confirmation appears and the dialog closes — no manual GitHub submit step.
+  await expect(page.getByText(/Report sent/)).toBeVisible();
+  await expect(page.getByRole('dialog')).toBeHidden();
 
   const opened = await page.evaluate(() => (window as unknown as { __opened: string[] }).__opened);
-  expect(opened).toHaveLength(1);
-  const url = new URL(opened[0]!);
-  expect(url.origin + url.pathname).toBe('https://github.com/achref-soua/helio/issues/new');
-  expect(url.searchParams.get('title')).toBe('Export button does nothing');
-  expect(url.searchParams.get('labels')).toBe('bug');
+  expect(opened).toHaveLength(0);
 });
 
-test('settings shows the GitHub target, not an inbox', async ({ page }) => {
+test('settings shows the GitHub repo and the notification email, not an inbox', async ({
+  page,
+}) => {
   await page.goto('/settings');
   const panel = page.getByTestId('support-panel');
   await expect(panel).toBeVisible();
   await expect(panel).toContainText('GitHub');
   await expect(panel.getByTestId('support-repo')).toBeVisible();
+  await expect(panel.getByTestId('support-email')).toBeVisible();
   // The old triage inbox is gone.
   await expect(page.getByTestId('support-row')).toHaveCount(0);
 });

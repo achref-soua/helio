@@ -8,8 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@helio/ui/components/card';
-import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
+import { PasswordInput } from '@helio/ui/components/password-input';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -59,9 +59,8 @@ export default function ChangePasswordPage() {
           <form className="grid gap-4" onSubmit={onSubmit}>
             <div className="grid gap-1.5">
               <Label htmlFor="current-password">{t('current')}</Label>
-              <Input
+              <PasswordInput
                 id="current-password"
-                type="password"
                 required
                 value={current}
                 onChange={(event) => setCurrent(event.target.value)}
@@ -69,9 +68,8 @@ export default function ChangePasswordPage() {
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="new-password">{t('new')}</Label>
-              <Input
+              <PasswordInput
                 id="new-password"
-                type="password"
                 required
                 minLength={10}
                 value={next}

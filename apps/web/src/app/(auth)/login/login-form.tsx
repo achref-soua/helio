@@ -10,6 +10,7 @@ import {
 } from '@helio/ui/components/card';
 import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
+import { PasswordInput } from '@helio/ui/components/password-input';
 import { Separator } from '@helio/ui/components/separator';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -86,13 +87,7 @@ export function LoginForm({ showSignup }: { showSignup: boolean }) {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">{t('password')}</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-            />
+            <PasswordInput id="password" name="password" autoComplete="current-password" required />
           </div>
           <Button type="submit" disabled={pending}>
             {pending ? t('working') : t('loginAction')}
