@@ -67,7 +67,14 @@ def create_app() -> FastAPI:
     # once if either is configured.
     from .data import Database
 
-    database = Database(settings.database_url) if settings.database_url else None
+    database = (
+        Database(
+            settings.database_url,
+            statement_cache_size=0 if settings.database_pgbouncer else 100,
+        )
+        if settings.database_url
+        else None
+    )
     app.state.database = database
 
     # AI surfaces come up when a database exists and there is at least one

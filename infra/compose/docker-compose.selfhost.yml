@@ -32,6 +32,31 @@ services:
       timeout: 5s
       retries: 20
 
+  # Optional transaction-mode connection pooler for the RLS app role. Opt in
+  # with COMPOSE_PROFILES=...,pgbouncer plus HELIO_APP_DB_HOST=pgbouncer and
+  # HELIO_APP_DB_PORT=6432 (and INTEL_DATABASE_PGBOUNCER=true). Safe in
+  # transaction mode because every tenant query sets app.org_id with
+  # set_config(..., true) inside a transaction (see ADR-0022); migrations and
+  # the auth kernel keep the direct admin connection.
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.23.1-p3
+    restart: unless-stopped
+    profiles: [pgbouncer]
+    environment:
+      DB_HOST: postgres
+      DB_PORT: '5432'
+      DB_NAME: ${POSTGRES_DB:-helio}
+      DB_USER: helio_app
+      DB_PASSWORD: ${HELIO_APP_DB_PASSWORD}
+      AUTH_TYPE: scram-sha-256
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: '1000'
+      DEFAULT_POOL_SIZE: '25'
+      LISTEN_PORT: '6432'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -87,7 +112,7 @@ services:
     ports:
       - '${WEB_PORT:-3000}:3000'
     environment:
-      DATABASE_URL: postgresql://helio_app:${HELIO_APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-helio}
+      DATABASE_URL: postgresql://helio_app:${HELIO_APP_DB_PASSWORD}@${HELIO_APP_DB_HOST:-postgres}:${HELIO_APP_DB_PORT:-5432}/${POSTGRES_DB:-helio}
       DATABASE_ADMIN_URL: postgresql://${POSTGRES_USER:-helio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-helio}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       APP_URL: ${APP_URL:-http://localhost:3000}
@@ -146,7 +171,7 @@ services:
     ports:
       - '${API_PORT:-4000}:4000'
     environment:
-      DATABASE_URL: postgresql://helio_app:${HELIO_APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-helio}
+      DATABASE_URL: postgresql://helio_app:${HELIO_APP_DB_PASSWORD}@${HELIO_APP_DB_HOST:-postgres}:${HELIO_APP_DB_PORT:-5432}/${POSTGRES_DB:-helio}
       REDIS_URL: redis://redis:6379
       EMAIL_WEBHOOK_TOKEN: ${EMAIL_WEBHOOK_TOKEN:-}
       SMS_WEBHOOK_TOKEN: ${SMS_WEBHOOK_TOKEN:-}
@@ -171,7 +196,8 @@ services:
     image: ghcr.io/achref-soua/helio-intelligence:__HELIO_VERSION__
     restart: unless-stopped
     environment:
-      INTEL_DATABASE_URL: postgresql://helio_app:${HELIO_APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-helio}
+      INTEL_DATABASE_URL: postgresql://helio_app:${HELIO_APP_DB_PASSWORD}@${HELIO_APP_DB_HOST:-postgres}:${HELIO_APP_DB_PORT:-5432}/${POSTGRES_DB:-helio}
+      INTEL_DATABASE_PGBOUNCER: ${INTEL_DATABASE_PGBOUNCER:-false}
       INTEL_LLM_PROVIDER: ${INTEL_LLM_PROVIDER:-groq}
       INTEL_LLM_MODEL: ${INTEL_LLM_MODEL:-llama-3.3-70b-versatile}
       INTEL_LLM_API_KEY: ${INTEL_LLM_API_KEY:-}

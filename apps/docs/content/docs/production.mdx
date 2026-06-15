@@ -125,6 +125,26 @@ Point your `app`, `api`, and `track` DNS records at the ingress controller's
 external address. With [cert-manager](https://cert-manager.io/) and the
 annotation above, certificates are issued automatically for the `tls` hosts.
 
+## Connection pooling
+
+At scale, route the RLS app role (`helio_app`) through a transaction-mode
+PgBouncer so many app connections share a few Postgres backends. The admin
+connection (migrations, the auth kernel) stays direct. The Compose bundle ships
+an opt-in `pgbouncer` service — enable it in your `.env`:
+
+```bash
+COMPOSE_PROFILES=full,pgbouncer
+HELIO_APP_DB_HOST=pgbouncer
+HELIO_APP_DB_PORT=6432
+INTEL_DATABASE_PGBOUNCER=true   # asyncpg disables its statement cache for the pooler
+```
+
+This is safe because every tenant query sets `app.org_id` transaction-locally,
+so row-level security is enforced identically with or without the pooler — see
+[ADR-0022](https://github.com/achref-soua/helio/blob/main/docs/adr/0022-pgbouncer-transaction-pooling.md).
+On Kubernetes, run PgBouncer (transaction mode) as a Deployment and point
+`DATABASE_URL` at it while leaving `DATABASE_ADMIN_URL` on the direct service.
+
 ## Observability
 
 Set `config.OTEL_EXPORTER_OTLP_ENDPOINT` to your collector to turn on

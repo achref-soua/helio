@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     # database physically prevents cross-organization access — the copilot
     # can never see another tenant's data, even on a buggy query.
     database_url: str = ""
+    # Set when database_url points at PgBouncer in transaction mode: asyncpg's
+    # statement cache must be disabled (server-side prepared statements don't
+    # survive pooled transactions). Harmless but slightly slower otherwise, so
+    # it's opt-in and off by default.
+    database_pgbouncer: bool = False
 
     # LLM gateway (provider-agnostic: openai | anthropic | groq | ollama
     # | local). Test target is Llama 3 via Groq; local/ollama point at a
