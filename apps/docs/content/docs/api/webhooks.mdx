@@ -86,6 +86,15 @@ function verify(rawBody: string, signature: string, secret: string): boolean {
   re-serialization — re-serializing can change bytes and break the HMAC.
 </Callout>
 
+## Outbound — address safety
+
+Both outbound paths are **SSRF-guarded**. Helio refuses to deliver to private,
+loopback, link-local, or cloud-metadata addresses — `127.0.0.0/8`, RFC 1918,
+`169.254.169.254`, IPv6 ULA/link-local — and re-checks the address a hostname
+resolves to, so a webhook URL can't be aimed at the deployment's own network.
+For a receiver that legitimately lives on the LAN, set
+`HELIO_ALLOW_PRIVATE_WEBHOOKS=true` on the workers to opt back in.
+
 ## Inbound — provider webhooks
 
 | Source                 | Endpoint            | Effect                                                      |

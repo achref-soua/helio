@@ -40,6 +40,14 @@ export const env = createEnv({
   EVENTS_TOPIC: z.string().min(1).default('helio.events.v1'),
   /** Optional HMAC key for journey webhook signatures (x-helio-signature). */
   WEBHOOK_SIGNING_SECRET: z.string().min(24).optional(),
+  /**
+   * Allow outbound webhooks to reach private/loopback addresses. Off by default
+   * (SSRF guard); enable only for trusted LAN receivers behind the firewall.
+   */
+  HELIO_ALLOW_PRIVATE_WEBHOOKS: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   /** Opens per-org provider credentials (ADR-0019); absent → env providers. */
   HELIO_ENCRYPTION_KEY: z.string().optional(),
   HELIO_ENCRYPTION_KEY_PREVIOUS: z.string().optional(),
