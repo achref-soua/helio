@@ -21,7 +21,7 @@
 <p align="center">
   <a href="https://github.com/achref-soua/helio/releases/download/v2.0.0/helio-demo.mp4"><b>▶&nbsp;Watch the demo film (4:27, MP4 — recorded on v2.0)</b></a>
   &nbsp;·&nbsp;
-  <a href="docs/helio-product-guide.pdf"><b>📘&nbsp;Read the v2.0 product guide (PDF)</b></a>
+  <a href="docs/helio-product-guide.pdf"><b>📘&nbsp;Read the product guide (PDF)</b></a>
 </p>
 
 <p align="center"><sub>The journey canvas and the AI copilot, captured from a live instance. The film and the guide regenerate from the real product via <code>task demo:video</code> and <code>task product:guide</code>.</sub></p>
@@ -236,7 +236,7 @@ Hot-path budgets (ingestion ≥ 5k events/s, API reads p95 < 150 ms) have a comm
 
 ## Documentation
 
-- 📘 **[Product guide (PDF)](docs/helio-product-guide.pdf)** — the whole story in 23 pages: why Helio, a screenshot tour, installation and org setup, migrating from HubSpot/Mailchimp/Klaviyo, the CRM, the admin control room, the usage guide, and how to contribute. Written for technical and non-technical readers alike.
+- 📘 **[Product guide (PDF)](docs/helio-product-guide.pdf)** — the whole story in 25 pages: why Helio, a screenshot tour, installation and org setup, connecting every channel (SMTP, AI, SMS, WhatsApp, webhooks, widgets), migrating from HubSpot/Mailchimp/Klaviyo, the CRM, the admin control room, the usage guide, and how to contribute. Written for technical and non-technical readers alike.
 - 🧭 **[Setup guide (PDF)](docs/helio-setup-guide.pdf)** — a plain-language walkthrough for operators: install Helio, complete first-run setup, and understand every settings panel. No technical background needed.
 - 📖 **[Documentation site](apps/docs)** (Fumadocs) — concepts, self-hosting, configuration, every feature guide, the REST API, SDKs, the MCP server, and migration guides. Run it locally with `task docs` (→ `localhost:3002`).
 - [Architecture (C4) & trust boundaries](docs/architecture.md) · [Decision log (ADRs)](docs/adr) · [Threat model](docs/threat-model.md)
