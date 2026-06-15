@@ -34,6 +34,8 @@ export interface SecretFieldSpec {
   label: string;
   /** Optional secrets may be omitted (e.g. unauthenticated SMTP, local LLMs). */
   optional?: boolean;
+  /** One-line help, surfaced as an info tooltip beside the field. */
+  hint?: string;
 }
 
 /** UI metadata for one config key — the settings form renders from this. */
@@ -44,6 +46,8 @@ export interface ConfigFieldSpec {
   options?: readonly string[];
   placeholder?: string;
   required?: boolean;
+  /** One-line help, surfaced as an info tooltip beside the field. */
+  hint?: string;
 }
 
 export interface CredentialKindSpec {
@@ -84,20 +88,52 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
         type: 'text',
         placeholder: 'smtp.example.com',
         required: true,
+        hint: 'Your mail relay’s hostname — e.g. smtp.gmail.com, email-smtp.us-east-1.amazonaws.com.',
       },
-      { name: 'port', label: 'Port', type: 'number', placeholder: '587', required: true },
-      { name: 'secure', label: 'Use TLS (port 465)', type: 'checkbox' },
-      { name: 'user', label: 'Username', type: 'text' },
+      {
+        name: 'port',
+        label: 'Port',
+        type: 'number',
+        placeholder: '587',
+        required: true,
+        hint: 'Usually 587 (STARTTLS) or 465 (implicit TLS). Use 465 only with “Use TLS” ticked.',
+      },
+      {
+        name: 'secure',
+        label: 'Use TLS (port 465)',
+        type: 'checkbox',
+        hint: 'Tick for an implicit-TLS port (465). Leave off for 587, which upgrades with STARTTLS.',
+      },
+      {
+        name: 'user',
+        label: 'Username',
+        type: 'text',
+        hint: 'The login your relay expects — often your full email address or an SMTP API username.',
+      },
       {
         name: 'fromEmail',
         label: 'From email',
         type: 'text',
         placeholder: 'hello@yourdomain.com',
         required: true,
+        hint: 'The address recipients see. Use a domain you’ve authenticated (SPF/DKIM) for inbox placement.',
       },
-      { name: 'fromName', label: 'From name', type: 'text', placeholder: 'Acme Inc.' },
+      {
+        name: 'fromName',
+        label: 'From name',
+        type: 'text',
+        placeholder: 'Acme Inc.',
+        hint: 'The display name beside your From address, e.g. “Acme Support”.',
+      },
     ],
-    secretFields: [{ name: 'password', label: 'SMTP password', optional: true }],
+    secretFields: [
+      {
+        name: 'password',
+        label: 'SMTP password',
+        optional: true,
+        hint: 'Your SMTP password or API secret. Sealed in the vault and never shown again.',
+      },
+    ],
   },
   EMAIL_POSTMARK: {
     kind: 'EMAIL_POSTMARK',
@@ -107,11 +143,34 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
       .object({ messageStream: z.string().trim().min(1).max(80).optional(), ...fromFields })
       .strict(),
     configFields: [
-      { name: 'fromEmail', label: 'From email', type: 'text', required: true },
-      { name: 'fromName', label: 'From name', type: 'text' },
-      { name: 'messageStream', label: 'Message stream', type: 'text', placeholder: 'outbound' },
+      {
+        name: 'fromEmail',
+        label: 'From email',
+        type: 'text',
+        required: true,
+        hint: 'The verified sender address recipients see. Authenticate its domain for inbox placement.',
+      },
+      {
+        name: 'fromName',
+        label: 'From name',
+        type: 'text',
+        hint: 'The display name beside your From address, e.g. “Acme Support”.',
+      },
+      {
+        name: 'messageStream',
+        label: 'Message stream',
+        type: 'text',
+        placeholder: 'outbound',
+        hint: 'The Postmark message stream to send through — “outbound” for broadcasts, or your own stream id.',
+      },
     ],
-    secretFields: [{ name: 'serverToken', label: 'Server API token' }],
+    secretFields: [
+      {
+        name: 'serverToken',
+        label: 'Server API token',
+        hint: 'Postmark → Servers → API Tokens. Sealed in the vault.',
+      },
+    ],
   },
   EMAIL_RESEND: {
     kind: 'EMAIL_RESEND',
@@ -119,10 +178,27 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
     channel: 'email',
     configSchema: z.object({ ...fromFields }).strict(),
     configFields: [
-      { name: 'fromEmail', label: 'From email', type: 'text', required: true },
-      { name: 'fromName', label: 'From name', type: 'text' },
+      {
+        name: 'fromEmail',
+        label: 'From email',
+        type: 'text',
+        required: true,
+        hint: 'A sender on a domain you’ve verified in Resend. This is the From recipients see.',
+      },
+      {
+        name: 'fromName',
+        label: 'From name',
+        type: 'text',
+        hint: 'The display name beside your From address.',
+      },
     ],
-    secretFields: [{ name: 'apiKey', label: 'API key' }],
+    secretFields: [
+      {
+        name: 'apiKey',
+        label: 'API key',
+        hint: 'Resend → API Keys (starts with “re_”). Sealed in the vault.',
+      },
+    ],
   },
   EMAIL_MAILGUN: {
     kind: 'EMAIL_MAILGUN',
@@ -142,12 +218,37 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
         type: 'text',
         placeholder: 'mg.yourdomain.com',
         required: true,
+        hint: 'The Mailgun sending domain you verified, e.g. mg.yourdomain.com.',
       },
-      { name: 'region', label: 'Region', type: 'select', options: ['us', 'eu'], required: true },
-      { name: 'fromEmail', label: 'From email', type: 'text', required: true },
-      { name: 'fromName', label: 'From name', type: 'text' },
+      {
+        name: 'region',
+        label: 'Region',
+        type: 'select',
+        options: ['us', 'eu'],
+        required: true,
+        hint: 'The Mailgun region your domain lives in — “eu” if you created it under the EU endpoint.',
+      },
+      {
+        name: 'fromEmail',
+        label: 'From email',
+        type: 'text',
+        required: true,
+        hint: 'A sender on your verified Mailgun domain. This is the From recipients see.',
+      },
+      {
+        name: 'fromName',
+        label: 'From name',
+        type: 'text',
+        hint: 'The display name beside your From address.',
+      },
     ],
-    secretFields: [{ name: 'apiKey', label: 'API key' }],
+    secretFields: [
+      {
+        name: 'apiKey',
+        label: 'API key',
+        hint: 'Mailgun → Settings → API Keys (your private API key). Sealed in the vault.',
+      },
+    ],
   },
   SMS_TWILIO: {
     kind: 'SMS_TWILIO',
@@ -172,6 +273,7 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
         type: 'text',
         placeholder: 'AC…',
         required: true,
+        hint: 'On your Twilio Console dashboard — a 34-character ID starting with “AC”.',
       },
       {
         name: 'fromNumber',
@@ -179,9 +281,16 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
         type: 'text',
         placeholder: '+15555550100',
         required: true,
+        hint: 'An SMS-capable Twilio number you own, in E.164 format (country code + number, e.g. +15555550100).',
       },
     ],
-    secretFields: [{ name: 'authToken', label: 'Auth token' }],
+    secretFields: [
+      {
+        name: 'authToken',
+        label: 'Auth token',
+        hint: 'Your Twilio Auth Token (Console → Account Info). Sealed in the vault.',
+      },
+    ],
   },
   WHATSAPP_CLOUD: {
     kind: 'WHATSAPP_CLOUD',
@@ -189,9 +298,21 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
     channel: 'whatsapp',
     configSchema: z.object({ phoneNumberId: z.string().trim().min(1).max(64) }).strict(),
     configFields: [
-      { name: 'phoneNumberId', label: 'Phone number ID', type: 'text', required: true },
+      {
+        name: 'phoneNumberId',
+        label: 'Phone number ID',
+        type: 'text',
+        required: true,
+        hint: 'Meta → WhatsApp → API Setup: the numeric Phone number ID (not the phone number itself).',
+      },
     ],
-    secretFields: [{ name: 'accessToken', label: 'Access token' }],
+    secretFields: [
+      {
+        name: 'accessToken',
+        label: 'Access token',
+        hint: 'A permanent System-User token from Meta with the whatsapp_business_messaging permission.',
+      },
+    ],
   },
   LLM: {
     kind: 'LLM',
@@ -213,6 +334,7 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
         type: 'select',
         options: [...LLM_PROVIDERS],
         required: true,
+        hint: 'Your LLM vendor — or “ollama”/“local” for a self-hosted, OpenAI-compatible server.',
       },
       {
         name: 'model',
@@ -220,17 +342,36 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
         type: 'text',
         placeholder: 'llama-3.3-70b-versatile',
         required: true,
+        hint: 'The provider’s model id, e.g. gpt-4o-mini, claude-3-5-sonnet, llama-3.3-70b-versatile.',
       },
       {
         name: 'baseUrl',
         label: 'Base URL (self-hosted)',
         type: 'text',
         placeholder: 'http://localhost:11434/v1',
+        hint: 'Only for local/self-hosted models: your OpenAI-compatible endpoint. Leave blank for a hosted provider.',
       },
-      { name: 'temperature', label: 'Temperature', type: 'number' },
-      { name: 'maxTokens', label: 'Max tokens', type: 'number' },
+      {
+        name: 'temperature',
+        label: 'Temperature',
+        type: 'number',
+        hint: 'Sampling randomness, 0–2. Lower is more deterministic. Blank uses the provider default.',
+      },
+      {
+        name: 'maxTokens',
+        label: 'Max tokens',
+        type: 'number',
+        hint: 'Caps the response length. Leave blank to use the model’s default.',
+      },
     ],
-    secretFields: [{ name: 'apiKey', label: 'API key', optional: true }],
+    secretFields: [
+      {
+        name: 'apiKey',
+        label: 'API key',
+        optional: true,
+        hint: 'Your provider API key. Not needed for a local model (Ollama). Sealed in the vault.',
+      },
+    ],
   },
   CHURN_ENDPOINT: {
     kind: 'CHURN_ENDPOINT',
@@ -255,9 +396,17 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
         type: 'text',
         placeholder: 'https://models.internal/churn',
         required: true,
+        hint: 'An HTTPS endpoint that scores a batch of feature rows and returns churn probabilities.',
       },
     ],
-    secretFields: [{ name: 'authHeader', label: 'Authorization header value', optional: true }],
+    secretFields: [
+      {
+        name: 'authHeader',
+        label: 'Authorization header value',
+        optional: true,
+        hint: 'Sent as the Authorization header on each request, e.g. “Bearer …”. Sealed in the vault.',
+      },
+    ],
   },
   IMPORT_HUBSPOT: {
     kind: 'IMPORT_HUBSPOT',
@@ -265,7 +414,13 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
     channel: 'import',
     configSchema: z.object({}).strict(),
     configFields: [],
-    secretFields: [{ name: 'accessToken', label: 'Private app access token' }],
+    secretFields: [
+      {
+        name: 'accessToken',
+        label: 'Private app access token',
+        hint: 'HubSpot → Settings → Integrations → Private Apps. Needs the CRM contact read scopes.',
+      },
+    ],
   },
   IMPORT_MAILCHIMP: {
     kind: 'IMPORT_MAILCHIMP',
@@ -273,7 +428,13 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
     channel: 'import',
     configSchema: z.object({}).strict(),
     configFields: [],
-    secretFields: [{ name: 'apiKey', label: 'API key' }],
+    secretFields: [
+      {
+        name: 'apiKey',
+        label: 'API key',
+        hint: 'Mailchimp → Account → Extras → API keys. The data-center suffix (e.g. “-us21”) is read from the key.',
+      },
+    ],
   },
   IMPORT_KLAVIYO: {
     kind: 'IMPORT_KLAVIYO',
@@ -281,7 +442,13 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
     channel: 'import',
     configSchema: z.object({}).strict(),
     configFields: [],
-    secretFields: [{ name: 'apiKey', label: 'Private API key' }],
+    secretFields: [
+      {
+        name: 'apiKey',
+        label: 'Private API key',
+        hint: 'Klaviyo → Settings → API keys → Private (starts with “pk_”). Sealed in the vault.',
+      },
+    ],
   },
 };
 

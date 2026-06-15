@@ -250,16 +250,15 @@ export function SchedulingView() {
                 {upsert.isPending ? t('saving') : t('save')}
               </Button>
               {page && (
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={copyLink}
-                  title={`/m/${page.id}`}
-                  className="text-muted-foreground hover:text-foreground flex min-w-0 items-center gap-1 text-xs"
                   data-testid="sched-copy-link"
                 >
-                  <Copy className="size-3 shrink-0" aria-hidden />
-                  <code className="truncate">/m/{page.id}</code>
-                </button>
+                  <Copy aria-hidden /> {t('copyLink')}
+                </Button>
               )}
             </div>
           </form>

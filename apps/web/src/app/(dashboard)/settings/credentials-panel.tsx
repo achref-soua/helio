@@ -26,8 +26,9 @@ import {
 } from '@helio/ui/components/dialog';
 import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@helio/ui/components/tooltip';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { KeyRound, Send, ShieldCheck, Trash2 } from 'lucide-react';
+import { Info, KeyRound, Send, ShieldCheck, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -43,12 +44,38 @@ const STATUS_TONE = {
   FAILED: 'destructive',
 } as const;
 
+/**
+ * A field label with an optional info "i" — hover (or focus) it for a
+ * one-line explanation of what the field wants. The hint text lives on the
+ * credential spec in @helio/core, so it stays next to the schema it documents.
+ */
+function HintLabel({ htmlFor, label, hint }: { htmlFor?: string; label: string; hint?: string }) {
+  if (!hint) return <Label htmlFor={htmlFor}>{label}</Label>;
+  return (
+    <Label htmlFor={htmlFor} className="flex items-center gap-1.5">
+      {label}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={`About ${label}`}
+            className="text-muted-foreground hover:text-foreground inline-flex"
+          >
+            <Info className="size-3.5" aria-hidden />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-[260px] text-xs leading-relaxed">{hint}</TooltipContent>
+      </Tooltip>
+    </Label>
+  );
+}
+
 function ConfigField({ field, defaultValue }: { field: ConfigFieldSpec; defaultValue?: unknown }) {
   const id = `cred-${field.name}`;
   if (field.type === 'select') {
     return (
       <div className="grid gap-1.5">
-        <Label htmlFor={id}>{field.label}</Label>
+        <HintLabel htmlFor={id} label={field.label} hint={field.hint} />
         <ThemedSelect
           id={id}
           name={`config.${field.name}`}
@@ -60,21 +87,39 @@ function ConfigField({ field, defaultValue }: { field: ConfigFieldSpec; defaultV
   }
   if (field.type === 'checkbox') {
     return (
-      <label className="flex items-center gap-2 text-sm" htmlFor={id}>
-        <input
-          id={id}
-          name={`config.${field.name}`}
-          type="checkbox"
-          defaultChecked={Boolean(defaultValue)}
-          className="accent-primary size-4"
-        />
-        {field.label}
-      </label>
+      <div className="flex items-center gap-1.5 text-sm">
+        <label className="flex items-center gap-2" htmlFor={id}>
+          <input
+            id={id}
+            name={`config.${field.name}`}
+            type="checkbox"
+            defaultChecked={Boolean(defaultValue)}
+            className="accent-primary size-4"
+          />
+          {field.label}
+        </label>
+        {field.hint && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label={`About ${field.label}`}
+                className="text-muted-foreground hover:text-foreground inline-flex"
+              >
+                <Info className="size-3.5" aria-hidden />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[260px] text-xs leading-relaxed">
+              {field.hint}
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
     );
   }
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor={id}>{field.label}</Label>
+      <HintLabel htmlFor={id} label={field.label} hint={field.hint} />
       <Input
         id={id}
         name={`config.${field.name}`}
@@ -321,7 +366,11 @@ export function CredentialsPanel({ canManage }: { canManage: boolean }) {
             ))}
             {spec.secretFields.map((field) => (
               <div key={`${activeKind}-${field.name}`} className="grid gap-1.5">
-                <Label htmlFor={`cred-secret-${field.name}`}>{field.label}</Label>
+                <HintLabel
+                  htmlFor={`cred-secret-${field.name}`}
+                  label={field.label}
+                  hint={field.hint}
+                />
                 <Input
                   id={`cred-secret-${field.name}`}
                   name={`secret.${field.name}`}

@@ -30,6 +30,10 @@ model Organization {
   brandName             String?  @map("brand_name")
   /// White-label accent color as a #rrggbb hex; applied as the primary token.
   brandColor            String?  @map("brand_color")
+  /// The organization's default currency (ISO 4217, e.g. USD/EUR/GBP). Used
+  /// for deal amounts and revenue throughout the dashboard, and as the default
+  /// for new deals.
+  currency              String   @default("USD")
   createdAt             DateTime @default(now()) @map("created_at")
 
   workspaces          Workspace[]
