@@ -2,17 +2,24 @@ import { dashboardLayoutSchema, normalizeDashboardLayout } from '@helio/core';
 import { type Prisma } from '@helio/db';
 import { z } from 'zod';
 
+import { authDb } from '@/lib/auth';
+
 import { orgProcedure, router } from '../init';
 
 /**
  * The customizable dashboard. `layout` is the member's own widget order +
  * visibility (normalized against the current catalog); `metrics` are the extra
- * counts the opt-in widgets show. Everything is scoped to the tenant client.
+ * counts the opt-in widgets show.
+ *
+ * The `member` table is auth-owned (Better-Auth), outside the tenant RLS grant,
+ * so layout reads/writes go through `authDb` — scoped explicitly to the
+ * authenticated user's own (org, user) row, the same pattern as the `me` query.
+ * `metrics` reads tenant tables and stays on the RLS-bound tenant client.
  */
 export const dashboardRouter = router({
   /** The current member's normalized dashboard layout. */
   layout: orgProcedure.query(async ({ ctx }) => {
-    const member = await ctx.tenantDb.member.findUnique({
+    const member = await authDb.member.findUnique({
       where: {
         organizationId_userId: {
           organizationId: ctx.organizationId,
@@ -28,7 +35,7 @@ export const dashboardRouter = router({
   setLayout: orgProcedure
     .input(z.object({ layout: dashboardLayoutSchema }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.tenantDb.member.update({
+      await authDb.member.update({
         where: {
           organizationId_userId: {
             organizationId: ctx.organizationId,

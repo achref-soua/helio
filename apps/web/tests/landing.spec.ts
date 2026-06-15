@@ -18,17 +18,21 @@ test('build a landing page, publish it, and capture a signup', async ({ page }) 
   // Theme the page's button color via the palette editor.
   const paletteEditor = page.getByTestId('landing-palette-editor');
   await expect(paletteEditor).toBeVisible();
-  await paletteEditor.getByRole('textbox', { name: 'Button' }).fill('#00aa55');
+  await paletteEditor.getByTestId('palette-field-button').fill('#00aa55');
 
   await page.getByTestId('landing-save').click();
   await expect(page.getByText('Saved')).toBeVisible();
   await page.getByTestId('landing-publish').click();
   await expect(page.getByText('Page published')).toBeVisible();
 
-  // Follow the public link.
+  // Follow the public link. The copy-link button writes the URL to the
+  // clipboard (it no longer renders the path as text), so read it back.
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   const link = page.getByTestId('landing-copy-link');
   await expect(link).toBeVisible();
-  const path = (await link.textContent())?.match(/\/p\/\S+/)?.[0];
+  await link.click();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  const path = copied.match(/\/p\/\S+/)?.[0];
   expect(path).toBeTruthy();
 
   await page.goto(path!);

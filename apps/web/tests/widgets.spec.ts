@@ -14,7 +14,7 @@ test('create an on-site widget, toggle it live, then delete it', async ({ page }
   // Theme the widget's button color via the palette editor.
   await page
     .getByTestId('widget-palette-editor')
-    .getByRole('textbox', { name: 'Button' })
+    .getByTestId('palette-field-button')
     .fill('#0066ff');
   await page.getByTestId('widget-submit').click();
   await expect(page.getByText('Widget saved')).toBeVisible();

@@ -14,7 +14,7 @@ test('compose an in-app message, pause it, then delete it', async ({ page }) => 
   // Theme the message's button color via the palette editor.
   await page
     .getByTestId('in-app-palette-editor')
-    .getByRole('textbox', { name: 'Button' })
+    .getByTestId('palette-field-button')
     .fill('#ff0000');
   await page.getByTestId('in-app-submit').click();
   await expect(page.getByText('Message saved')).toBeVisible();
