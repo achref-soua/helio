@@ -42,7 +42,7 @@ test('theme the form palette and see it on the public page', async ({ page, brow
   const editor = card.getByTestId('form-palette-editor');
   await expect(editor).toBeVisible();
   // The text input (not the native swatch) carries the role label.
-  await editor.getByRole('textbox', { name: 'Button' }).fill('#ff0000');
+  await editor.getByTestId('palette-field-button').fill('#ff0000');
   await editor.getByRole('button', { name: 'Save colors' }).click();
   await expect(page.getByText('Colors saved')).toBeVisible();
 

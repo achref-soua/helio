@@ -23,10 +23,12 @@ export function ColorField({
   label,
   value,
   onChange,
+  testId,
 }: {
   label: string;
   value: string;
   onChange: (next: string) => void;
+  testId?: string;
 }) {
   const id = useId();
   const valid = isHexColor(value);
@@ -36,7 +38,9 @@ export function ColorField({
       <div className="flex items-center gap-2">
         <input
           type="color"
-          aria-label={label}
+          // Distinct from the text input's label so the two controls don't
+          // collide by accessible name (the picker is a secondary affordance).
+          aria-label={`${label} picker`}
           value={toSixHex(value)}
           onChange={(event) => onChange(event.target.value)}
           className="border-input size-9 shrink-0 cursor-pointer rounded-md border bg-transparent p-1"
@@ -49,6 +53,7 @@ export function ColorField({
           spellCheck={false}
           aria-invalid={!valid}
           className="font-mono"
+          data-testid={testId}
         />
       </div>
     </div>
@@ -76,6 +81,7 @@ export function PaletteFields({
           label={t(key)}
           value={value[key]}
           onChange={(next) => onChange({ ...value, [key]: next })}
+          testId={`palette-field-${key}`}
         />
       ))}
     </div>
