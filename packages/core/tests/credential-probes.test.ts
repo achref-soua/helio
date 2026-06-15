@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { probeOutcome, probeRequestFor } from '../src/credential-probes';
+import { probeAllowsPrivateAddress, probeOutcome, probeRequestFor } from '../src/credential-probes';
 import { CREDENTIAL_KINDS } from '../src/credentials';
 
 describe('probeRequestFor', () => {
@@ -79,5 +79,26 @@ describe('probeOutcome', () => {
   it('treats any non-5xx as reachable for churn endpoints', () => {
     expect(probeOutcome('CHURN_ENDPOINT', 405).ok).toBe(true);
     expect(probeOutcome('CHURN_ENDPOINT', 503).ok).toBe(false);
+  });
+});
+
+describe('probeAllowsPrivateAddress', () => {
+  it('allows private targets only for self-hosted LLMs', () => {
+    expect(probeAllowsPrivateAddress('LLM', { provider: 'local' })).toBe(true);
+    expect(probeAllowsPrivateAddress('LLM', { provider: 'ollama' })).toBe(true);
+    expect(probeAllowsPrivateAddress('LLM', { provider: 'anthropic' })).toBe(false);
+    expect(probeAllowsPrivateAddress('LLM', {})).toBe(false);
+  });
+
+  it('allows a private churn endpoint only when the operator opted in', () => {
+    expect(probeAllowsPrivateAddress('CHURN_ENDPOINT', { url: 'http://10.0.0.5/' })).toBe(false);
+    expect(probeAllowsPrivateAddress('CHURN_ENDPOINT', { url: 'http://10.0.0.5/' }, true)).toBe(
+      true,
+    );
+  });
+
+  it('never allows private targets for vendor-hosted credentials', () => {
+    expect(probeAllowsPrivateAddress('EMAIL_POSTMARK', {}, true)).toBe(false);
+    expect(probeAllowsPrivateAddress('IMPORT_HUBSPOT', {}, true)).toBe(false);
   });
 });

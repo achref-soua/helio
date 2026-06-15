@@ -52,7 +52,12 @@ export {
   type NormalizeResult,
   suggestColumnMapping,
 } from './contacts';
-export { probeOutcome, type ProbeRequest, probeRequestFor } from './credential-probes';
+export {
+  probeAllowsPrivateAddress,
+  probeOutcome,
+  type ProbeRequest,
+  probeRequestFor,
+} from './credential-probes';
 export {
   type ConfigFieldSpec,
   CREDENTIAL_KINDS,
@@ -350,7 +355,7 @@ export {
   MAX_SQL_ROWS,
   type SqlGuardResult,
 } from './sql-guard';
-export { type AssertPublicUrlOptions, assertPublicUrl, isBlockedAddress, SsrfError } from './ssrf';
+export { assertPublicUrl, type AssertPublicUrlOptions, isBlockedAddress, SsrfError } from './ssrf';
 export { SUPPORT_KINDS, type SupportKind, supportKindSchema } from './support';
 export {
   compareTasks,
