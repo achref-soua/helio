@@ -1,0 +1,87 @@
+{{- if .Values.networkPolicy.enabled }}
+# Default-deny all ingress to Helio pods; the policies below re-open exactly
+# what the platform needs.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "helio.fullname" . }}-default-deny
+  labels:
+    {{- include "helio.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "helio.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+---
+# Allow traffic between this release's pods (the internal service mesh), for
+# every component except the intelligence plane, which is restricted below.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "helio.fullname" . }}-allow-internal
+  labels:
+    {{- include "helio.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: NotIn
+        values: ["intelligence"]
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "helio.selectorLabels" . | nindent 14 }}
+---
+# The intelligence plane sits outside Postgres RLS and trusts the org id its
+# caller forwards; restrict ingress to the web and workers pods (defence in
+# depth on top of the shared INTEL_SERVICE_TOKEN).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "helio.fullname" . }}-intelligence
+  labels:
+    {{- include "helio.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "helio.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: intelligence
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "helio.selectorLabels" . | nindent 14 }}
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values: ["web", "workers"]
+{{- if .Values.networkPolicy.ingressControllerNamespace }}
+---
+# Let the named ingress-controller namespace reach the public HTTP services.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "helio.fullname" . }}-allow-ingress-controller
+  labels:
+    {{- include "helio.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: ["web", "api", "ingest", "tracking"]
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.networkPolicy.ingressControllerNamespace | quote }}
+{{- end }}
+{{- end }}
