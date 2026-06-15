@@ -1149,7 +1149,8 @@
     },
     "preview": "Live preview",
     "previewTitleFallback": "Your headline",
-    "previewBodyFallback": "Your message appears here as visitors will see it."
+    "previewBodyFallback": "Your message appears here as visitors will see it.",
+    "colors": "Colors"
   },
   "inApp": {
     "title": "In-app messages",

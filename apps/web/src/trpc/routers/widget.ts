@@ -1,4 +1,5 @@
-import { newId, widgetTypeSchema } from '@helio/core';
+import { defaultPalette, newId, surfacePaletteSchema, widgetTypeSchema } from '@helio/core';
+import { type Prisma } from '@helio/db';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
@@ -31,10 +32,16 @@ export const widgetRouter = router({
         body: z.string().trim().min(1).max(1000),
         ctaLabel: z.string().trim().max(60).optional(),
         ctaUrl: ctaUrlSchema.optional(),
+        palette: surfacePaletteSchema.optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       requirePermission(ctx.memberRole, 'widgets:write');
+      // Seed the palette from the org brand color so a new widget is on-brand.
+      const org = await ctx.tenantDb.organization.findUnique({
+        where: { id: ctx.organizationId },
+        select: { brandColor: true },
+      });
       const widget = await ctx.tenantDb.widget.create({
         data: {
           id: newId('wgt'),
@@ -46,6 +53,7 @@ export const widgetRouter = router({
           body: input.body,
           ctaLabel: input.ctaLabel || null,
           ctaUrl: input.ctaUrl || null,
+          palette: input.palette ?? defaultPalette(org?.brandColor),
         },
       });
       await writeAudit(ctx.tenantDb, {
@@ -68,6 +76,7 @@ export const widgetRouter = router({
         body: z.string().trim().min(1).max(1000).optional(),
         ctaLabel: z.string().trim().max(60).nullable().optional(),
         ctaUrl: ctaUrlSchema.nullable().optional(),
+        palette: surfacePaletteSchema.optional(),
         active: z.boolean().optional(),
       }),
     )
@@ -84,6 +93,7 @@ export const widgetRouter = router({
           active: rest.active,
           ...(rest.ctaLabel !== undefined ? { ctaLabel: rest.ctaLabel } : {}),
           ...(rest.ctaUrl !== undefined ? { ctaUrl: rest.ctaUrl } : {}),
+          ...(rest.palette ? { palette: rest.palette as Prisma.InputJsonValue } : {}),
         },
       });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });

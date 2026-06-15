@@ -1,6 +1,13 @@
 'use client';
 
-import { WIDGET_TYPES, widgetEmbedSnippet, type WidgetType } from '@helio/core';
+import {
+  paletteSurfaceVars,
+  resolvePalette,
+  type SurfacePalette,
+  WIDGET_TYPES,
+  widgetEmbedSnippet,
+  type WidgetType,
+} from '@helio/core';
 import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
 import { Card, CardContent } from '@helio/ui/components/card';
@@ -18,9 +25,10 @@ import { Skeleton } from '@helio/ui/components/skeleton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MousePointerClick, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { type CSSProperties, useState } from 'react';
 import { toast } from 'sonner';
 
+import { PaletteFields } from '@/components/palette-fields';
 import { PreviewShell } from '@/components/preview-shell';
 import { ThemedSelect } from '@/components/themed-select';
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
@@ -37,6 +45,7 @@ interface EditingWidget {
   body: string;
   ctaLabel: string | null;
   ctaUrl: string | null;
+  palette: unknown;
 }
 
 /** What the embed script will actually paint, miniaturized. */
@@ -45,19 +54,20 @@ function WidgetPreview({
   title,
   body,
   ctaLabel,
+  palette,
 }: {
   type: WidgetType;
   title: string;
   body: string;
   ctaLabel: string;
+  palette: SurfacePalette;
 }) {
   const t = useTranslations('widgets');
+  const style = paletteSurfaceVars(palette) as CSSProperties;
   const message = (
     <>
       <p className="text-[13px] leading-snug font-semibold">{title || t('previewTitleFallback')}</p>
-      <p className="text-muted-foreground text-xs leading-snug">
-        {body || t('previewBodyFallback')}
-      </p>
+      <p className="text-xs leading-snug opacity-80">{body || t('previewBodyFallback')}</p>
       {ctaLabel && (
         <span className="bg-primary text-primary-foreground mt-1 w-fit rounded-md px-2.5 py-1 text-xs font-medium">
           {ctaLabel}
@@ -75,10 +85,20 @@ function WidgetPreview({
           <span className="bg-border h-2.5 w-32 rounded-full" />
         </div>
         {type === 'BANNER' ? (
-          <div className="bg-card grid gap-1 border-b p-3 shadow-sm">{message}</div>
+          <div
+            className="bg-card text-foreground grid gap-1 border-b p-3 shadow-sm"
+            style={style}
+            data-testid="widget-preview-surface"
+          >
+            {message}
+          </div>
         ) : (
           <div className="absolute inset-x-0 top-6 bottom-0 grid place-items-center bg-black/30 p-4">
-            <div className="bg-card grid w-full max-w-60 gap-1 rounded-lg border p-3 shadow-lg">
+            <div
+              className="bg-card text-foreground grid w-full max-w-60 gap-1 rounded-lg border p-3 shadow-lg"
+              style={style}
+              data-testid="widget-preview-surface"
+            >
               {message}
             </div>
           </div>
@@ -96,17 +116,26 @@ export function WidgetsView() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<EditingWidget | null>(null);
   // Controlled mirror of the dialog fields so the preview tracks typing.
-  const [draft, setDraft] = useState({
-    type: 'BANNER' as WidgetType,
+  const [draft, setDraft] = useState<{
+    type: WidgetType;
+    title: string;
+    body: string;
+    ctaLabel: string;
+    palette: SurfacePalette;
+  }>({
+    type: 'BANNER',
     title: '',
     body: '',
     ctaLabel: '',
+    palette: resolvePalette(null, null),
   });
 
   const list = useQuery({
     ...trpc.widget.list.queryOptions({ workspaceId: workspaceId ?? '' }),
     enabled: !!workspaceId,
   });
+  const brandingQuery = useQuery(trpc.branding.get.queryOptions());
+  const brandColor = brandingQuery.data?.brandColor ?? null;
   const create = useMutation(trpc.widget.create.mutationOptions());
   const update = useMutation(trpc.widget.update.mutationOptions());
   const remove = useMutation(trpc.widget.remove.mutationOptions());
@@ -115,7 +144,13 @@ export function WidgetsView() {
 
   function openCreate() {
     setEditing(null);
-    setDraft({ type: 'BANNER', title: '', body: '', ctaLabel: '' });
+    setDraft({
+      type: 'BANNER',
+      title: '',
+      body: '',
+      ctaLabel: '',
+      palette: resolvePalette(null, brandColor),
+    });
     setOpen(true);
   }
   function openEdit(widget: EditingWidget) {
@@ -125,6 +160,7 @@ export function WidgetsView() {
       title: widget.title,
       body: widget.body,
       ctaLabel: widget.ctaLabel ?? '',
+      palette: resolvePalette(widget.palette, brandColor),
     });
     setOpen(true);
   }
@@ -148,9 +184,10 @@ export function WidgetsView() {
           ...fields,
           ctaLabel: fields.ctaLabel ?? null,
           ctaUrl: fields.ctaUrl ?? null,
+          palette: draft.palette,
         });
       } else {
-        await create.mutateAsync({ workspaceId, ...fields });
+        await create.mutateAsync({ workspaceId, ...fields, palette: draft.palette });
       }
       await invalidate();
       toast.success(t('saved'));
@@ -258,6 +295,7 @@ export function WidgetsView() {
                 title={widget.title}
                 body={widget.body}
                 ctaLabel={widget.ctaLabel ?? ''}
+                palette={resolvePalette(widget.palette, brandColor)}
               />
             </li>
           ))}
@@ -370,6 +408,13 @@ export function WidgetsView() {
                   />
                 </div>
               </div>
+              <div className="grid gap-2" data-testid="widget-palette-editor">
+                <Label>{t('colors')}</Label>
+                <PaletteFields
+                  value={draft.palette}
+                  onChange={(palette) => setDraft((current) => ({ ...current, palette }))}
+                />
+              </div>
               <DialogFooter>
                 <Button
                   type="submit"
@@ -385,6 +430,7 @@ export function WidgetsView() {
               title={draft.title}
               body={draft.body}
               ctaLabel={draft.ctaLabel}
+              palette={draft.palette}
             />
           </div>
         </DialogContent>
