@@ -10,6 +10,7 @@ import {
 } from '@helio/ui/components/card';
 import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
+import { PasswordInput } from '@helio/ui/components/password-input';
 import { useMutation } from '@tanstack/react-query';
 import { Sun } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -90,9 +91,8 @@ export function SetupWizard() {
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="setup-password">{t('password')}</Label>
-              <Input
+              <PasswordInput
                 id="setup-password"
-                type="password"
                 required
                 minLength={10}
                 value={password}

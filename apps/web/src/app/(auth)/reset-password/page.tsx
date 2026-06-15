@@ -8,8 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@helio/ui/components/card';
-import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
+import { PasswordInput } from '@helio/ui/components/password-input';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useState } from 'react';
@@ -46,9 +46,8 @@ function ResetPasswordForm() {
     <form className="grid gap-4" onSubmit={onSubmit}>
       <div className="grid gap-1.5">
         <Label htmlFor="reset-password">{t('newPassword')}</Label>
-        <Input
+        <PasswordInput
           id="reset-password"
-          type="password"
           required
           minLength={10}
           value={password}

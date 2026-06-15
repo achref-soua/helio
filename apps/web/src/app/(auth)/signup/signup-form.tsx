@@ -10,6 +10,7 @@ import {
 } from '@helio/ui/components/card';
 import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
+import { PasswordInput } from '@helio/ui/components/password-input';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -70,10 +71,9 @@ export function SignupForm() {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">{t('password')}</Label>
-            <Input
+            <PasswordInput
               id="password"
               name="password"
-              type="password"
               autoComplete="new-password"
               minLength={8}
               required
