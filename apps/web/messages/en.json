@@ -1172,7 +1172,8 @@
       "heading": "Title",
       "body": "Body",
       "ctaLabel": "Button label",
-      "ctaUrl": "Button URL"
+      "ctaUrl": "Button URL",
+      "colors": "Colors"
     },
     "preview": "Live preview",
     "previewTitleFallback": "Your headline",

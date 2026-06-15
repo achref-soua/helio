@@ -11,12 +11,22 @@ test('compose an in-app message, pause it, then delete it', async ({ page }) => 
   await page.getByTestId('in-app-name').fill('Trial nudge');
   await page.getByTestId('in-app-title').fill('Your trial ends soon');
   await page.getByLabel('Body').fill('Upgrade to keep your data.');
+  // Theme the message's button color via the palette editor.
+  await page
+    .getByTestId('in-app-palette-editor')
+    .getByRole('textbox', { name: 'Button' })
+    .fill('#ff0000');
   await page.getByTestId('in-app-submit').click();
   await expect(page.getByText('Message saved')).toBeVisible();
 
   const row = page.getByTestId('in-app-row').filter({ hasText: 'Trial nudge' });
   await expect(row).toBeVisible();
   await expect(row).toContainText('Live');
+  // The chosen palette is applied to the row preview as a CSS variable.
+  const primary = await row
+    .getByTestId('in-app-row-preview')
+    .evaluate((element) => getComputedStyle(element).getPropertyValue('--primary').trim());
+  expect(primary).toBe('#ff0000');
 
   await row.getByTestId('in-app-toggle').click();
   await expect(page.getByTestId('in-app-row').filter({ hasText: 'Trial nudge' })).toContainText(

@@ -22,6 +22,18 @@ export interface HelioClientOptions {
   maxQueueSize?: number;
 }
 
+/**
+ * The author-chosen colors for an in-app message. Every value is a `#hex`
+ * literal, re-validated on the server before it is sent, so it is safe to apply
+ * directly to inline styles when you render the message in your product.
+ */
+export interface InAppMessagePalette {
+  background: string;
+  text: string;
+  button: string;
+  accent: string;
+}
+
 /** One in-app message returned by inApp(), keyed by its delivery id. */
 export interface InAppMessage {
   deliveryId: string;
@@ -29,6 +41,8 @@ export interface InAppMessage {
   body: string;
   ctaLabel: string | null;
   ctaUrl: string | null;
+  /** Author-chosen colors; apply when rendering the message. */
+  palette: InAppMessagePalette;
 }
 
 interface QueuedEvent {

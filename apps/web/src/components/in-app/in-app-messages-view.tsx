@@ -1,5 +1,6 @@
 'use client';
 
+import { paletteSurfaceVars, resolvePalette, type SurfacePalette } from '@helio/core';
 import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
 import { Card, CardContent } from '@helio/ui/components/card';
@@ -17,9 +18,10 @@ import { Skeleton } from '@helio/ui/components/skeleton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppWindow, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { type CSSProperties, useState } from 'react';
 import { toast } from 'sonner';
 
+import { PaletteFields } from '@/components/palette-fields';
 import { PreviewShell } from '@/components/preview-shell';
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
 import { useTRPC } from '@/trpc/client';
@@ -34,6 +36,7 @@ interface EditingMessage {
   body: string;
   ctaLabel: string | null;
   ctaUrl: string | null;
+  palette: unknown;
 }
 
 export function InAppMessagesView() {
@@ -44,12 +47,19 @@ export function InAppMessagesView() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<EditingMessage | null>(null);
   // Controlled mirror of the dialog fields so the preview tracks typing.
-  const [draft, setDraft] = useState({ title: '', body: '', ctaLabel: '' });
+  const [draft, setDraft] = useState<{
+    title: string;
+    body: string;
+    ctaLabel: string;
+    palette: SurfacePalette;
+  }>({ title: '', body: '', ctaLabel: '', palette: resolvePalette(null, null) });
 
   const list = useQuery({
     ...trpc.inAppMessage.list.queryOptions({ workspaceId: workspaceId ?? '' }),
     enabled: !!workspaceId,
   });
+  const brandingQuery = useQuery(trpc.branding.get.queryOptions());
+  const brandColor = brandingQuery.data?.brandColor ?? null;
   const create = useMutation(trpc.inAppMessage.create.mutationOptions());
   const update = useMutation(trpc.inAppMessage.update.mutationOptions());
   const remove = useMutation(trpc.inAppMessage.remove.mutationOptions());
@@ -58,7 +68,7 @@ export function InAppMessagesView() {
 
   function openCreate() {
     setEditing(null);
-    setDraft({ title: '', body: '', ctaLabel: '' });
+    setDraft({ title: '', body: '', ctaLabel: '', palette: resolvePalette(null, brandColor) });
     setOpen(true);
   }
   function openEdit(message: EditingMessage) {
@@ -67,6 +77,7 @@ export function InAppMessagesView() {
       title: message.title,
       body: message.body,
       ctaLabel: message.ctaLabel ?? '',
+      palette: resolvePalette(message.palette, brandColor),
     });
     setOpen(true);
   }
@@ -89,9 +100,10 @@ export function InAppMessagesView() {
           ...fields,
           ctaLabel: fields.ctaLabel ?? null,
           ctaUrl: fields.ctaUrl ?? null,
+          palette: draft.palette,
         });
       } else {
-        await create.mutateAsync({ workspaceId, ...fields });
+        await create.mutateAsync({ workspaceId, ...fields, palette: draft.palette });
       }
       await invalidate();
       toast.success(t('saved'));
@@ -176,6 +188,7 @@ export function InAppMessagesView() {
                       body: message.body,
                       ctaLabel: message.ctaLabel,
                       ctaUrl: message.ctaUrl,
+                      palette: message.palette,
                     })
                   }
                   data-testid="in-app-edit"
@@ -192,10 +205,16 @@ export function InAppMessagesView() {
                   <Trash2 className="size-4" aria-hidden />
                 </Button>
               </div>
-              <div className="bg-muted/30 rounded-lg border border-dashed p-3">
-                <div className="bg-card grid gap-1 rounded-lg border p-3 shadow-lg">
+              <div
+                className="bg-muted/30 rounded-lg border border-dashed p-3"
+                style={
+                  paletteSurfaceVars(resolvePalette(message.palette, brandColor)) as CSSProperties
+                }
+                data-testid="in-app-row-preview"
+              >
+                <div className="bg-card text-foreground grid gap-1 rounded-lg border p-3 shadow-lg">
                   <p className="text-[13px] leading-snug font-semibold">{message.title}</p>
-                  <p className="text-muted-foreground text-xs leading-snug">{message.body}</p>
+                  <p className="text-xs leading-snug opacity-80">{message.body}</p>
                   {message.ctaLabel && (
                     <span className="bg-primary text-primary-foreground mt-1 w-fit rounded-md px-2.5 py-1 text-xs font-medium">
                       {message.ctaLabel}
@@ -282,6 +301,13 @@ export function InAppMessagesView() {
                   />
                 </div>
               </div>
+              <div className="grid gap-2" data-testid="in-app-palette-editor">
+                <Label>{t('fields.colors')}</Label>
+                <PaletteFields
+                  value={draft.palette}
+                  onChange={(palette) => setDraft((current) => ({ ...current, palette }))}
+                />
+              </div>
               <DialogFooter>
                 <Button type="submit" data-testid="in-app-submit">
                   {t('save')}
@@ -290,11 +316,14 @@ export function InAppMessagesView() {
             </form>
             <PreviewShell label={t('preview')} data-testid="in-app-preview">
               {/* The SDK paints this as a corner toast inside the host app. */}
-              <div className="bg-card grid gap-1 rounded-lg border p-3 shadow-lg">
+              <div
+                className="bg-card text-foreground grid gap-1 rounded-lg border p-3 shadow-lg"
+                style={paletteSurfaceVars(draft.palette) as CSSProperties}
+              >
                 <p className="text-[13px] leading-snug font-semibold">
                   {draft.title || t('previewTitleFallback')}
                 </p>
-                <p className="text-muted-foreground text-xs leading-snug">
+                <p className="text-xs leading-snug opacity-80">
                   {draft.body || t('previewBodyFallback')}
                 </p>
                 {draft.ctaLabel && (

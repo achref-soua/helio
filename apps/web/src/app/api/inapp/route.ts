@@ -1,3 +1,4 @@
+import { resolvePalette, type SurfacePalette } from '@helio/core';
 import { NextResponse } from 'next/server';
 
 import { authDb } from '@/lib/auth';
@@ -19,6 +20,8 @@ interface InAppMessagePayload {
   body: string;
   ctaLabel: string | null;
   ctaUrl: string | null;
+  /** Full, server-re-validated palette so hosts render on-brand colors. */
+  palette: SurfacePalette;
 }
 
 export function OPTIONS() {
@@ -51,11 +54,20 @@ export async function GET(request: Request) {
   });
   if (!contact) return empty;
 
+  // The workspace's brand color seeds the default for any message not themed.
+  const workspace = await authDb.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { organization: { select: { brandColor: true } } },
+  });
+  const brandColor = workspace?.organization.brandColor ?? null;
+
   const deliveries = await authDb.inAppDelivery.findMany({
     where: { contactId: contact.id, seenAt: null, message: { active: true } },
     select: {
       id: true,
-      message: { select: { title: true, body: true, ctaLabel: true, ctaUrl: true } },
+      message: {
+        select: { title: true, body: true, ctaLabel: true, ctaUrl: true, palette: true },
+      },
     },
     orderBy: { createdAt: 'asc' },
     take: 5,
@@ -66,6 +78,8 @@ export async function GET(request: Request) {
     body: delivery.message.body,
     ctaLabel: delivery.message.ctaLabel,
     ctaUrl: delivery.message.ctaUrl,
+    // Re-validated on the server: every value is a #hex literal.
+    palette: resolvePalette(delivery.message.palette, brandColor),
   }));
   return NextResponse.json({ messages }, { headers: CORS });
 }
