@@ -95,6 +95,18 @@ export {
   SUPPORTED_CURRENCIES,
 } from './currencies';
 export {
+  DASHBOARD_WIDGETS,
+  type DashboardLayout,
+  dashboardLayoutSchema,
+  type DashboardWidgetId,
+  type DashboardWidgetPref,
+  type DashboardWidgetSize,
+  dashboardWidgetSize,
+  defaultDashboardLayout,
+  isDashboardWidgetId,
+  normalizeDashboardLayout,
+} from './dashboard';
+export {
   STUDIO_MODELS,
   type StudioField,
   type StudioFieldType,

@@ -13,6 +13,7 @@ import { contactListRouter } from './contact-list';
 import { copilotRouter } from './copilot';
 import { credentialsRouter } from './credentials';
 import { crmRouter } from './crm';
+import { dashboardRouter } from './dashboard';
 import { deliverabilityRouter } from './deliverability';
 import { emailTemplateRouter } from './email-template';
 import { formRouter } from './form';
@@ -55,6 +56,7 @@ export const appRouter = router({
   workspace: workspaceRouter,
   setup: setupRouter,
   security: securityRouter,
+  dashboard: dashboardRouter,
   contact: contactRouter,
   contactList: contactListRouter,
   segment: segmentRouter,
