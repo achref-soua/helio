@@ -350,6 +350,7 @@ export {
   MAX_SQL_ROWS,
   type SqlGuardResult,
 } from './sql-guard';
+export { type AssertPublicUrlOptions, assertPublicUrl, isBlockedAddress, SsrfError } from './ssrf';
 export { SUPPORT_KINDS, type SupportKind, supportKindSchema } from './support';
 export {
   compareTasks,
