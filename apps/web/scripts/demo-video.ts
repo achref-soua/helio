@@ -150,10 +150,11 @@ function frauncesDataUri(): string | null {
 }
 
 /**
- * Bookend title card: the sun rises over a night sky, then the wordmark,
- * version, and repo follow — logo, version, URL, nothing else.
+ * Bookend title card: the sun rises over a night sky, then the wordmark and
+ * repo follow — logo, URL, nothing else. Intentionally version-less, so the
+ * film never dates itself.
  */
-async function titleCard(page: Page, opts: { version: string; dwellMs: number }): Promise<void> {
+async function titleCard(page: Page, opts: { dwellMs: number }): Promise<void> {
   const face = frauncesDataUri();
   await page.setContent(
     `<!doctype html><html><head>
@@ -173,11 +174,6 @@ async function titleCard(page: Page, opts: { version: string; dwellMs: number })
           font-size: 92px; font-weight: 600; letter-spacing: -.015em; line-height: 1;
           margin-top: 26px; animation: up .9s ease .5s both;
         }
-        .pill {
-          margin-top: 22px; padding: 8px 22px; border: 1px solid rgba(234,148,47,.55);
-          border-radius: 999px; color: #e8b36a; font-size: 17px; letter-spacing: .18em;
-          font-family: ui-sans-serif, system-ui, sans-serif; animation: up .9s ease .85s both;
-        }
         .thread {
           height: 1px; margin-top: 34px;
           background: linear-gradient(90deg, transparent, rgba(234,148,47,.8), transparent);
@@ -195,7 +191,6 @@ async function titleCard(page: Page, opts: { version: string; dwellMs: number })
       <div class="stage">
         <div class="sun">${SUN_SVG}</div>
         <div class="word">Helio</div>
-        <div class="pill">${opts.version}</div>
         <div class="thread"></div>
         <div class="url">github.com/achref-soua/helio</div>
       </div></body></html>`,
@@ -270,7 +265,7 @@ async function shoot(page: Page, showroom: Showroom): Promise<void> {
   const go = (route: string) => page.goto(`${BASE_URL}${route}`);
 
   // 00 — intro
-  await titleCard(page, { version: 'v2.0.0', dwellMs: 6_200 });
+  await titleCard(page, { dwellMs: 6_200 });
 
   // 01 — dashboard
   await go('/');
@@ -602,7 +597,7 @@ async function shoot(page: Page, showroom: Showroom): Promise<void> {
   await dwell(page, 6_500);
 
   // 16 — outro
-  await titleCard(page, { version: 'v2.0.0', dwellMs: 6_800 });
+  await titleCard(page, { dwellMs: 6_800 });
 }
 
 // ── output ─────────────────────────────────────────────────────────────
