@@ -90,7 +90,7 @@ const worker = await Worker.create({
           : undefined,
       ),
     ),
-    ...createWebhookActivities(),
+    ...createWebhookActivities({ allowPrivate: env.HELIO_ALLOW_PRIVATE_WEBHOOKS }),
   },
 });
 
