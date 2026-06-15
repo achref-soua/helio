@@ -1,3 +1,4 @@
+import { paletteSurfaceVars, resolvePalette } from '@helio/core';
 import { Button } from '@helio/ui/components/button';
 import {
   Card,
@@ -10,8 +11,8 @@ import { Input } from '@helio/ui/components/input';
 import { Label } from '@helio/ui/components/label';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
+import type { CSSProperties } from 'react';
 
-import { BrandStyle } from '@/components/brand-style';
 import { PoweredBy } from '@/components/powered-by';
 import { authDb } from '@/lib/auth';
 
@@ -37,6 +38,8 @@ export default async function HostedFormPage({
     select: {
       id: true,
       title: true,
+      // Per-form palette (re-validated below before it reaches `style=`).
+      palette: true,
       // White-label the public page with the owning org's branding.
       workspace: {
         select: {
@@ -50,10 +53,15 @@ export default async function HostedFormPage({
   // A real 404, not a 200 with sad text — crawlers and uptime checks care.
   if (!form) notFound();
   const brand = form.workspace.organization;
+  // Server-side re-validation: every value is a #hex literal or a brand-seeded
+  // default, so the inline style can never carry injected markup.
+  const palette = resolvePalette(form.palette, brand?.brandColor);
 
   return (
-    <main className="bg-muted/30 flex min-h-svh flex-col p-6">
-      <BrandStyle color={brand?.brandColor} />
+    <main
+      className="bg-background text-foreground flex min-h-svh flex-col p-6"
+      style={paletteSurfaceVars(palette) as CSSProperties}
+    >
       <div className="m-auto grid w-full max-w-md gap-4">
         {brand && (brand.brandName || brand.logo) && (
           <div className="flex items-center justify-center gap-2 font-semibold">
