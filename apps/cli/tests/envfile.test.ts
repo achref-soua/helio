@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { envKeys, envValue, fillTemplate, mergeTemplate } from '../src/lib/envfile';
+import {
+  composeProfiles,
+  envKeys,
+  envValue,
+  fillTemplate,
+  mergeTemplate,
+  setEnvValue,
+  withComposeProfile,
+} from '../src/lib/envfile';
 
 const TEMPLATE = `# ── Datastores ──
 POSTGRES_PASSWORD=__GENERATE_PASSWORD_PG__
@@ -66,5 +74,81 @@ describe('mergeTemplate', () => {
 describe('envKeys', () => {
   it('lists defined keys, ignoring comments', () => {
     expect([...envKeys('# A=1\nA=2\nB=3\n')]).toEqual(['A', 'B']);
+  });
+});
+
+describe('mergeTemplate (new required keys self-heal)', () => {
+  it('adds a brand-new required secret key with a generated value', () => {
+    const existing = 'APP_URL=https://crm.acme.com\n';
+    const template = `${existing}HELIO_UPDATE_SECRET=__GENERATE_HEX32_UPDATE__\n`;
+    const { content, added } = mergeTemplate(existing, template, 'v2.0.7');
+    expect(added).toEqual(['HELIO_UPDATE_SECRET']);
+    expect(envValue(content, 'HELIO_UPDATE_SECRET')).toMatch(/^[0-9a-f]{64}$/);
+    expect(envValue(content, 'APP_URL')).toBe('https://crm.acme.com');
+  });
+});
+
+describe('setEnvValue', () => {
+  it('replaces an existing definition in place, leaving the rest byte-identical', () => {
+    const { content, changed } = setEnvValue('A=1\nB=2\nC=3\n', 'B', '9');
+    expect(content).toBe('A=1\nB=9\nC=3\n');
+    expect(changed).toBe(true);
+  });
+
+  it('is a no-op when the value already matches', () => {
+    const before = 'A=1\nB=2\n';
+    const { content, changed } = setEnvValue(before, 'B', '2');
+    expect(content).toBe(before);
+    expect(changed).toBe(false);
+  });
+
+  it('appends a missing key under a single trailing newline', () => {
+    expect(setEnvValue('A=1\n', 'B', '2').content).toBe('A=1\nB=2\n');
+    expect(setEnvValue('A=1', 'B', '2').content).toBe('A=1\nB=2\n');
+  });
+});
+
+describe('composeProfiles', () => {
+  it('defaults to core when unset', () => {
+    expect(composeProfiles('A=1\n')).toEqual(['core']);
+  });
+
+  it('parses and trims a comma list', () => {
+    expect(composeProfiles('COMPOSE_PROFILES=core, update ,full\n')).toEqual([
+      'core',
+      'update',
+      'full',
+    ]);
+  });
+});
+
+describe('withComposeProfile', () => {
+  it('adds a profile that is missing', () => {
+    const { content, changed } = withComposeProfile('COMPOSE_PROFILES=core\n', 'update', true);
+    expect(composeProfiles(content)).toEqual(['core', 'update']);
+    expect(changed).toBe(true);
+  });
+
+  it('is a no-op when adding one already present', () => {
+    const before = 'COMPOSE_PROFILES=core,update\n';
+    expect(withComposeProfile(before, 'update', true)).toEqual({ content: before, changed: false });
+  });
+
+  it('removes a profile that is present', () => {
+    const { content, changed } = withComposeProfile(
+      'COMPOSE_PROFILES=core,update\n',
+      'update',
+      false,
+    );
+    expect(composeProfiles(content)).toEqual(['core']);
+    expect(changed).toBe(true);
+  });
+
+  it('is a no-op when removing one that is absent', () => {
+    const before = 'COMPOSE_PROFILES=core\n';
+    expect(withComposeProfile(before, 'update', false)).toEqual({
+      content: before,
+      changed: false,
+    });
   });
 });

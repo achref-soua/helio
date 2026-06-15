@@ -1736,7 +1736,7 @@
     "releaseNotes": "Read the release notes",
     "updateNow": "Update to {version}",
     "ownerOnly": "Only an owner can run the in-app update. You can also run \"helio update\" on the server.",
-    "terminalHint": "Update from the server with \"helio update\". One-click updates are turned off on this deployment.",
+    "terminalHint": "One-click updates aren't enabled here yet. Run this once on the server — it switches them on, and the Update button appears next time:",
     "upToDate": "You are on the latest release.",
     "check": "Check for updates",
     "genericError": "Something went wrong",

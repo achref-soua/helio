@@ -104,13 +104,16 @@ async function run(argv: string[]): Promise<number> {
   // One-click in-app updates ship on by default (the dashboard's Update
   // button); --no-inapp-update opts out, leaving only the terminal `helio
   // update`. On adds the `update` profile (the socket-holding sidecar — see
-  // SECURITY.md) and flips the dashboard toggle.
+  // SECURITY.md) and flips the dashboard toggle. Opting out writes the durable
+  // `off` sentinel so a later `helio update` respects the choice rather than
+  // self-healing the wiring back on.
   const inAppUpdate = !values['no-inapp-update'];
   const composeProfiles = inAppUpdate ? `${profile},update` : profile;
   let envContent = content.replace(/^COMPOSE_PROFILES=.*$/m, `COMPOSE_PROFILES=${composeProfiles}`);
-  if (inAppUpdate) {
-    envContent = envContent.replace(/^HELIO_INAPP_UPDATE=.*$/m, 'HELIO_INAPP_UPDATE=true');
-  }
+  envContent = envContent.replace(
+    /^HELIO_INAPP_UPDATE=.*$/m,
+    inAppUpdate ? 'HELIO_INAPP_UPDATE=true' : 'HELIO_INAPP_UPDATE=off',
+  );
   writeFileSync(paths.envFile, envContent);
   chmodSync(paths.envFile, 0o600);
   writeManifest(paths, { name: 'helio', version: manifest.version, files: manifest.files });

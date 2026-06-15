@@ -69,23 +69,28 @@ first, then migrate, and both are reversible from that backup.
 - **One click in the dashboard** — **Settings → Updates**, where an _owner_
   sees the running version, any newer release, and an **Update** button. Helio
   recreates the whole stack and the page reconnects when the new version is
-  live. This is on by default for a fresh install.
+  live. This is on by default for a fresh install, and `helio update`
+  **self-heals** the wiring — so installs that predate the feature gain the
+  button automatically after one terminal update.
 
 The one-click path runs a small **updater sidecar** — the only container that
 mounts the Docker socket, so it can recreate the stack. The dashboard never
 touches the socket: an owner's click only writes a secret-guarded request to a
 shared volume, and the sidecar runs nothing but the fixed `helio update`. It is
-optional and easy to turn off:
+optional and easy to turn off — but because `helio update` self-heals it back
+on, opting out is a **durable** choice (the sentinel `HELIO_INAPP_UPDATE=off`,
+not a bare `false`):
 
 ```bash
 # At install time: keep only the terminal `helio update`.
 helio install --no-inapp-update
 
-# On an existing install: hide the button and drop the sidecar (and its
-# socket) entirely, in ~/.helio/.env —
-HELIO_INAPP_UPDATE=false
-# and remove `update` from COMPOSE_PROFILES, then:
-helio down && helio up
+# On an existing install, opt out durably (records HELIO_INAPP_UPDATE=off and
+# drops the `update` profile and its socket):
+helio update --no-inapp-update
+
+# …and to turn one-click back on later:
+helio update --inapp-update
 ```
 
 See the [security policy](https://github.com/achref-soua/helio/blob/main/SECURITY.md)
