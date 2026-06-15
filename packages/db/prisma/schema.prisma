@@ -34,6 +34,12 @@ model Organization {
   /// for deal amounts and revenue throughout the dashboard, and as the default
   /// for new deals.
   currency              String   @default("USD")
+  /// GitHub repo (`owner/name`) that in-app bug reports are filed to. Null
+  /// falls back to HELIO_SUPPORT_REPO (the upstream repo by default).
+  supportRepo           String?  @map("support_repo")
+  /// Optional GitHub PAT (crypto-envelope sealed) for server-side issue
+  /// creation; without it, reports open a prefilled new-issue page instead.
+  supportToken          String?  @map("support_token")
   createdAt             DateTime @default(now()) @map("created_at")
 
   workspaces          Workspace[]
@@ -62,7 +68,6 @@ model Organization {
   bookingPages        BookingPage[]
   meetings            Meeting[]
   integrations        Integration[]
-  supportTickets      SupportTicket[]
   sendingDomains      SendingDomain[]
   landingPages        LandingPage[]
   widgets             Widget[]
@@ -612,6 +617,10 @@ model Form {
   name           String
   /// Shown as the page heading on the hosted form.
   title          String
+  /// Per-element color palette (background/text/button/accent) for the hosted
+  /// page — see @helio/core surfacePaletteSchema. Null falls back to the org
+  /// brand color at render.
+  palette        Json?
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -747,6 +756,9 @@ model Member {
   organizationId String   @map("organization_id")
   userId         String   @map("user_id")
   role           String   @default("member")
+  /// Per-member dashboard layout (widget order + visibility) — see @helio/core
+  /// dashboardLayoutSchema. Null falls back to the default layout.
+  dashboardLayout Json?   @map("dashboard_layout")
   createdAt      DateTime @default(now()) @map("created_at")
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -1252,43 +1264,6 @@ model Integration {
   @@map("integration")
 }
 
-enum SupportKind {
-  BUG
-  FEEDBACK
-  QUESTION
-
-  @@map("support_kind")
-}
-
-enum SupportStatus {
-  OPEN
-  RESOLVED
-
-  @@map("support_status")
-}
-
-/// A support / bug report filed from inside the app. Org-scoped and isolated
-/// by the standard RLS policy; admins triage and resolve them.
-model SupportTicket {
-  id             String        @id
-  organizationId String        @map("organization_id")
-  /// The reporting member's auth user id.
-  reporterId     String?       @map("reporter_id")
-  kind           SupportKind   @default(BUG)
-  subject        String
-  body           String
-  /// The page the report was filed from, captured for context.
-  url            String?
-  status         SupportStatus @default(OPEN)
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
-
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId, status])
-  @@map("support_ticket")
-}
-
 enum DomainStatus {
   PENDING
   VERIFIED
@@ -1356,6 +1331,9 @@ model LandingPage {
   title          String
   /// Ordered blocks — see @helio/core landingDocumentSchema.
   blocks         Json     @default("[]")
+  /// Per-element color palette (background/text/button/accent) — see @helio/core
+  /// surfacePaletteSchema. Null falls back to the org brand color at render.
+  palette        Json?
   published      Boolean  @default(false)
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
@@ -1388,6 +1366,9 @@ model Widget {
   body           String
   ctaLabel       String?    @map("cta_label")
   ctaUrl         String?    @map("cta_url")
+  /// Per-element color palette (background/text/button/accent) — see @helio/core
+  /// surfacePaletteSchema. Null falls back to the org brand color at render.
+  palette        Json?
   active         Boolean    @default(false)
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")
@@ -1412,6 +1393,9 @@ model InAppMessage {
   body           String
   ctaLabel       String?  @map("cta_label")
   ctaUrl         String?  @map("cta_url")
+  /// Per-element color palette (background/text/button/accent) — see @helio/core
+  /// surfacePaletteSchema. Null falls back to the org brand color at render.
+  palette        Json?
   active         Boolean  @default(true)
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")

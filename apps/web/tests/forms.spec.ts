@@ -35,6 +35,28 @@ test('create a hosted form and copy its link', async ({ page }) => {
   expect(publicPath).toMatch(/^\/f\/form_/);
 });
 
+test('theme the form palette and see it on the public page', async ({ page, browser }) => {
+  await page.goto('/forms');
+  const card = page.getByTestId('form-card');
+  await card.getByTestId('form-customize-toggle').click();
+  const editor = card.getByTestId('form-palette-editor');
+  await expect(editor).toBeVisible();
+  // The text input (not the native swatch) carries the role label.
+  await editor.getByTestId('palette-field-button').fill('#ff0000');
+  await editor.getByRole('button', { name: 'Save colors' }).click();
+  await expect(page.getByText('Colors saved')).toBeVisible();
+
+  // The public page applies the palette as a re-validated CSS variable.
+  const anonymous = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+  const visitor = await anonymous.newPage();
+  await visitor.goto(publicPath);
+  const primary = await visitor
+    .locator('main')
+    .evaluate((element) => getComputedStyle(element).getPropertyValue('--primary').trim());
+  expect(primary).toBe('#ff0000');
+  await anonymous.close();
+});
+
 test('a visitor signs up through the public page', async ({ browser }) => {
   // Fresh anonymous context: the hosted form needs no session.
   const anonymous = await browser.newContext({ storageState: { cookies: [], origins: [] } });

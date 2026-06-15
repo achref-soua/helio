@@ -95,6 +95,18 @@ export {
   SUPPORTED_CURRENCIES,
 } from './currencies';
 export {
+  DASHBOARD_WIDGETS,
+  type DashboardLayout,
+  dashboardLayoutSchema,
+  type DashboardWidgetId,
+  type DashboardWidgetPref,
+  type DashboardWidgetSize,
+  dashboardWidgetSize,
+  defaultDashboardLayout,
+  isDashboardWidgetId,
+  normalizeDashboardLayout,
+} from './dashboard';
+export {
   STUDIO_MODELS,
   type StudioField,
   type StudioFieldType,
@@ -165,6 +177,17 @@ export {
   parseGatewayApiKey,
   scopeAllows,
 } from './gateway-keys';
+export {
+  buildSupportIssue,
+  createGitHubIssue,
+  type FetchLike,
+  githubNewIssueUrl,
+  type GithubRepo,
+  parseGithubRepo,
+  type SupportIssue,
+  supportIssueLabels,
+  type SupportReportInput,
+} from './github-support';
 export { type Id, idTimestamp, isId, newId } from './id';
 export {
   CONNECTOR_MAPPING,
@@ -200,6 +223,15 @@ export {
   type LandingDocument,
   landingDocumentSchema,
 } from './landing';
+export {
+  defaultPalette,
+  PALETTE_KEYS,
+  type PaletteKey,
+  paletteSurfaceVars,
+  resolvePalette,
+  type SurfacePalette,
+  surfacePaletteSchema,
+} from './palette';
 export {
   can,
   minimumRoleFor,
@@ -314,14 +346,7 @@ export {
   MAX_SQL_ROWS,
   type SqlGuardResult,
 } from './sql-guard';
-export {
-  SUPPORT_KINDS,
-  SUPPORT_STATUSES,
-  type SupportKind,
-  supportKindSchema,
-  type SupportStatus,
-  supportStatusSchema,
-} from './support';
+export { SUPPORT_KINDS, type SupportKind, supportKindSchema } from './support';
 export {
   compareTasks,
   groupTasksByBucket,

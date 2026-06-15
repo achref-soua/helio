@@ -33,9 +33,11 @@ export const env = createEnv({
   // One-click in-app updates (Settings → Updates). Enabled in the self-host
   // bundle's `update` profile, where the updater sidecar shares the
   // update-state volume mounted at HELIO_UPDATE_STATE_DIR. The secret
-  // authorizes the dashboard's request to that sidecar.
+  // authorizes the dashboard's request to that sidecar. Only `true` enables it;
+  // `false` (not configured) and `off` (durable opt-out, set by
+  // `helio install/update --no-inapp-update`) both read as disabled.
   HELIO_INAPP_UPDATE: z
-    .enum(['true', 'false'])
+    .string()
     .default('false')
     .transform((value) => value === 'true'),
   HELIO_UPDATE_SECRET: z.string().optional(),
@@ -60,6 +62,9 @@ export const env = createEnv({
     .enum(['true', 'false'])
     .default('true')
     .transform((value) => value === 'true'),
+  // The GitHub repo (`owner/name`) that in-app bug reports are filed to when an
+  // org has not set its own. Defaults to the upstream repo.
+  HELIO_SUPPORT_REPO: z.string().min(1).default('achref-soua/helio'),
   // Per-replica abuse damping on the public, unauthenticated endpoints
   // (forms, booking, widget/in-app delivery, SCIM). Disable for load tests.
   PUBLIC_RATE_LIMITS_ENABLED: z

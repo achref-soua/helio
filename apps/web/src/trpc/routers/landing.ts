@@ -1,4 +1,4 @@
-import { landingDocumentSchema, newId } from '@helio/core';
+import { defaultPalette, landingDocumentSchema, newId, surfacePaletteSchema } from '@helio/core';
 import { type Prisma } from '@helio/db';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -30,6 +30,11 @@ export const landingRouter = router({
     .input(z.object({ workspaceId: z.string().min(1), title: z.string().trim().min(1).max(120) }))
     .mutation(async ({ ctx, input }) => {
       requirePermission(ctx.memberRole, 'landing:write');
+      // Seed the palette from the org brand color so a new page is on-brand.
+      const org = await ctx.tenantDb.organization.findUnique({
+        where: { id: ctx.organizationId },
+        select: { brandColor: true },
+      });
       const page = await ctx.tenantDb.landingPage.create({
         data: {
           id: newId('lp'),
@@ -37,6 +42,7 @@ export const landingRouter = router({
           workspaceId: input.workspaceId,
           title: input.title,
           blocks: [],
+          palette: defaultPalette(org?.brandColor),
         },
       });
       await writeAudit(ctx.tenantDb, {
@@ -55,6 +61,7 @@ export const landingRouter = router({
         id: z.string().min(1),
         title: z.string().trim().min(1).max(120).optional(),
         blocks: landingDocumentSchema.optional(),
+        palette: surfacePaletteSchema.optional(),
         published: z.boolean().optional(),
       }),
     )
@@ -67,6 +74,7 @@ export const landingRouter = router({
           title: rest.title,
           published: rest.published,
           ...(rest.blocks ? { blocks: rest.blocks as Prisma.InputJsonValue } : {}),
+          ...(rest.palette ? { palette: rest.palette as Prisma.InputJsonValue } : {}),
         },
       });
       if (count === 0) throw new TRPCError({ code: 'NOT_FOUND' });

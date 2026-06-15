@@ -1,4 +1,4 @@
-import { type WidgetPayload } from '@helio/core';
+import { resolvePalette, type WidgetPayload } from '@helio/core';
 import { NextResponse } from 'next/server';
 
 import { authDb } from '@/lib/auth';
@@ -26,15 +26,34 @@ export async function GET(request: Request) {
 
   const writeKey = await authDb.writeKey.findUnique({
     where: { key },
-    select: { workspaceId: true, revokedAt: true },
+    select: {
+      workspaceId: true,
+      revokedAt: true,
+      workspace: { select: { organization: { select: { brandColor: true } } } },
+    },
   });
   if (!writeKey || writeKey.revokedAt) return empty;
+  const brandColor = writeKey.workspace.organization.brandColor;
 
-  const widgets = await authDb.widget.findMany({
+  const rows = await authDb.widget.findMany({
     where: { workspaceId: writeKey.workspaceId, active: true },
-    select: { id: true, type: true, title: true, body: true, ctaLabel: true, ctaUrl: true },
+    select: {
+      id: true,
+      type: true,
+      title: true,
+      body: true,
+      ctaLabel: true,
+      ctaUrl: true,
+      palette: true,
+    },
     orderBy: { createdAt: 'desc' },
     take: 5,
   });
-  return NextResponse.json({ widgets: widgets satisfies WidgetPayload[] }, { headers: CORS });
+  // Re-validate each palette on the server: every value is a #hex literal, safe
+  // for the embed to drop straight into inline styles.
+  const widgets: WidgetPayload[] = rows.map(({ palette, ...rest }) => ({
+    ...rest,
+    palette: resolvePalette(palette, brandColor),
+  }));
+  return NextResponse.json({ widgets }, { headers: CORS });
 }

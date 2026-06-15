@@ -12,7 +12,13 @@ import {
   verifyBundle,
 } from '../lib/bundle';
 import { compose } from '../lib/docker';
-import { envValue, mergeTemplate } from '../lib/envfile';
+import {
+  composeProfiles,
+  envValue,
+  IN_APP_UPDATE_PROFILE,
+  mergeTemplate,
+  reconcileInAppUpdate,
+} from '../lib/envfile';
 import { waitForHttpOk } from '../lib/health';
 import { isSelfUpdateNeeded, selfUpdateBinary } from '../lib/self-update';
 import { helioHome, installPaths, isInstalled, readManifest, writeManifest } from '../lib/state';
@@ -29,6 +35,20 @@ function newerThan(candidate: string, current: string): boolean {
   return candidate !== current && candidate.replace(/^v/, '') > current.replace(/^v/, '');
 }
 
+/**
+ * Reconcile the one-click in-app-update wiring in `.env` (idempotent) and
+ * persist it. The caller drives the sidecar's lifecycle: the normal update's
+ * `down`/`up` already does so, and the already-current path handles it inline.
+ */
+function applyInAppHeal(
+  paths: ReturnType<typeof installPaths>,
+  flags: { optOut: boolean; optIn: boolean },
+): ReturnType<typeof reconcileInAppUpdate> {
+  const result = reconcileInAppUpdate(readFileSync(paths.envFile, 'utf8'), flags);
+  if (result.changed) writeFileSync(paths.envFile, result.content);
+  return result;
+}
+
 async function run(argv: string[]): Promise<number> {
   const { values } = parseArgs({
     args: argv,
@@ -37,10 +57,17 @@ async function run(argv: string[]): Promise<number> {
       'bundle-file': { type: 'string' },
       'no-backup': { type: 'boolean', default: false },
       'no-self-update': { type: 'boolean', default: false },
+      'no-inapp-update': { type: 'boolean', default: false },
+      'inapp-update': { type: 'boolean', default: false },
       force: { type: 'boolean', default: false },
       yes: { type: 'boolean', short: 'y', default: false },
     },
   });
+
+  const inAppFlags = {
+    optOut: values['no-inapp-update'],
+    optIn: values['inapp-update'],
+  };
 
   banner(CLI_VERSION, 'updating, with a safety backup first');
 
@@ -67,7 +94,26 @@ async function run(argv: string[]): Promise<number> {
     if (!tag.startsWith('v')) tag = `v${tag}`;
   }
   if (tag === current) {
-    say(`already on ${current}`);
+    // Still self-heal the one-click wiring: an operator already on the latest
+    // release can flip the dashboard's Update button on without waiting for the
+    // next one. The sidecar is brought up/down here since no swap happens.
+    const heal = applyInAppHeal(paths, inAppFlags);
+    if (heal.changed && heal.enabled) {
+      say('enabling one-click in-app updates…');
+      await compose(paths, ['up', '-d', '--wait', 'updater'], {
+        profiles: [IN_APP_UPDATE_PROFILE],
+      });
+      say(`already on ${current}; one-click updates are on (Settings → Updates)`);
+    } else if (heal.changed && heal.optedOut) {
+      await compose(paths, ['rm', '-sf', 'updater'], { profiles: [IN_APP_UPDATE_PROFILE] });
+      say(`already on ${current}; one-click updates are off`);
+    } else if (heal.optedOut) {
+      say(
+        `already on ${current} (one-click updates off — "helio update --inapp-update" to enable)`,
+      );
+    } else {
+      say(`already on ${current}`);
+    }
     return 0;
   }
   if (!newerThan(tag, current) && !values.force) {
@@ -116,9 +162,17 @@ async function run(argv: string[]): Promise<number> {
     say(`new settings appended to .env: ${merged.added.join(', ')}`);
   }
 
+  // Self-heal the one-click in-app-update wiring (after the template merge, so
+  // any secret it just added is reused, not duplicated). This is what flips the
+  // dashboard's Update button on for installs that predate it. The `up` below
+  // then starts the sidecar; the earlier `down` removed it if the user opted out.
+  const heal = applyInAppHeal(paths, inAppFlags);
+  if (heal.changed && heal.enabled) say('one-click in-app updates enabled (Settings → Updates)');
+  else if (heal.changed && heal.optedOut) say('one-click in-app updates disabled');
+
   // 4. Pull, migrate, start, verify.
   const env = readFileSync(paths.envFile, 'utf8');
-  const profiles = (envValue(env, 'COMPOSE_PROFILES') ?? 'core').split(',').filter(Boolean);
+  const profiles = composeProfiles(env);
   say('pulling the new images…');
   if ((await compose(paths, ['pull'], { profiles })) !== 0) fail('image pull failed');
   if ((await compose(paths, ['up', '-d', '--wait', 'postgres', 'redis', 'mailpit'])) !== 0) {

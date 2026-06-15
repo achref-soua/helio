@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import type { SurfacePalette } from './palette';
+
 /** The on-site widget kinds the embed can render. */
 export const WIDGET_TYPES = ['BANNER', 'POPUP'] as const;
 export type WidgetType = (typeof WIDGET_TYPES)[number];
@@ -13,6 +15,8 @@ export interface WidgetPayload {
   body: string;
   ctaLabel: string | null;
   ctaUrl: string | null;
+  /** Full, server-re-validated palette the embed paints with. */
+  palette: SurfacePalette;
 }
 
 /** The copy-paste `<script>` snippet that loads the embed for a write key. */

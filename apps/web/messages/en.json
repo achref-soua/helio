@@ -58,7 +58,9 @@
       "contacts": "Contacts",
       "activeJourneys": "Active journeys",
       "emailsSent": "Emails sent (14d)",
-      "opens": "Opens (14d)"
+      "opens": "Opens (14d)",
+      "openDeals": "Open deals",
+      "tasksDue": "Open tasks"
     },
     "series": {
       "events": "All events",
@@ -75,7 +77,56 @@
     "recentCampaignsTitle": "Recent campaigns",
     "recentCampaignsLink": "All campaigns",
     "recentCampaignsEmpty": "Nothing sent yet — your first campaign’s engagement lands here.",
-    "campaignNumbers": "{sends} sent · {opens} opens · {clicks} clicks"
+    "campaignNumbers": "{sends} sent · {opens} opens · {clicks} clicks",
+    "customize": "Customize",
+    "done": "Done",
+    "cancel": "Cancel",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "hide": "Hide",
+    "addWidgets": "Add widgets",
+    "addWidgetsHint": "Pick what to show on your dashboard.",
+    "allShown": "Every widget is already on your dashboard.",
+    "layoutSaved": "Dashboard saved",
+    "layoutError": "Could not save the dashboard",
+    "widgets": {
+      "contacts": "Contacts",
+      "activeJourneys": "Active journeys",
+      "emailsSent": "Emails sent",
+      "opens": "Opens",
+      "openDeals": "Open deals",
+      "tasksDue": "Open tasks",
+      "timeline": "Activity timeline",
+      "pipeline": "Sales pipeline",
+      "recentCampaigns": "Recent campaigns",
+      "audience": "Audience",
+      "channels": "Channels",
+      "quickLinks": "Quick links"
+    },
+    "audienceTitle": "Audience",
+    "audienceContacts": "Contacts",
+    "audienceLists": "Lists",
+    "audienceSegments": "Segments",
+    "channelsTitle": "Channels",
+    "channelsForms": "Forms",
+    "channelsLanding": "Landing pages",
+    "channelsWidgets": "Widgets",
+    "channelsInApp": "In-app",
+    "quickLinksTitle": "Quick links",
+    "quickLinks": {
+      "contacts": "Contacts",
+      "segments": "Segments",
+      "campaigns": "Campaigns",
+      "journeys": "Journeys",
+      "emails": "Emails",
+      "forms": "Forms",
+      "landing": "Landing",
+      "widgets": "Widgets",
+      "inApp": "In-app",
+      "deals": "Deals",
+      "tasks": "Tasks",
+      "insights": "Insights"
+    }
   },
   "onboarding": {
     "title": "Create your organization",
@@ -767,7 +818,12 @@
     "emptyTitle": "No forms yet",
     "emptyBody": "Host a signup page and grow your audience.",
     "preview": "Preview",
-    "hidePreview": "Hide preview"
+    "hidePreview": "Hide preview",
+    "colors": "Colors",
+    "hideColors": "Hide colors",
+    "colorsHint": "Theme this form. New forms start from your brand color.",
+    "saveColors": "Save colors",
+    "paletteSaved": "Colors saved"
   },
   "hostedForm": {
     "subtitle": "Sign up to hear from us.",
@@ -995,27 +1051,31 @@
   "support": {
     "open": "Report a bug or send feedback",
     "title": "Report a bug or send feedback",
-    "subtitle": "Tell us what happened. We capture the page you're on for context.",
+    "subtitle": "Tell us what happened. We capture the page you are on for context.",
+    "subtitleRepo": "Files a GitHub issue on {repo}, with the page you are on for context.",
     "kind": "Type",
     "subject": "Subject",
     "body": "Details",
     "send": "Send",
     "sending": "Sending…",
-    "sent": "Thanks — your report was sent",
+    "reported": "Reported on GitHub",
+    "openingGithub": "Opening GitHub…",
+    "viewOnGithub": "View on GitHub",
     "genericError": "Something went wrong. Please try again.",
-    "panelTitle": "Support inbox",
-    "panelSubtitle": "Bug reports and feedback filed by your team.",
-    "panelEmpty": "No reports yet.",
-    "resolved": "Marked resolved",
-    "resolveLabel": "Resolve {subject}",
+    "panelTitle": "Bug reports → GitHub",
+    "panelSubtitle": "In-app reports become issues on a GitHub repository.",
+    "repoLabel": "Repository (owner/name)",
+    "repoHint": "Leave blank to use the default ({repo}).",
+    "tokenLabel": "GitHub token (optional)",
+    "tokenHint": "Stored encrypted. With a token (scope: issues), reports are created as issues automatically; without one, a prefilled new-issue page opens instead.",
+    "tokenConfigured": "Token set",
+    "removeToken": "Remove token",
+    "saveTarget": "Save",
+    "saved": "Saved",
     "kinds": {
       "BUG": "Bug",
       "FEEDBACK": "Feedback",
       "QUESTION": "Question"
-    },
-    "statuses": {
-      "OPEN": "Open",
-      "RESOLVED": "Resolved"
     }
   },
   "tour": {
@@ -1104,7 +1164,9 @@
     },
     "preview": "Live preview",
     "previewFormCta": "Subscribe",
-    "copyLink": "Copy link"
+    "copyLink": "Copy link",
+    "colors": "Colors",
+    "colorsHint": "Theme this page. New pages start from your brand color."
   },
   "hostedLanding": {
     "notFound": "This page does not exist or is not published.",
@@ -1142,7 +1204,8 @@
     },
     "preview": "Live preview",
     "previewTitleFallback": "Your headline",
-    "previewBodyFallback": "Your message appears here as visitors will see it."
+    "previewBodyFallback": "Your message appears here as visitors will see it.",
+    "colors": "Colors"
   },
   "inApp": {
     "title": "In-app messages",
@@ -1165,7 +1228,8 @@
       "heading": "Title",
       "body": "Body",
       "ctaLabel": "Button label",
-      "ctaUrl": "Button URL"
+      "ctaUrl": "Button URL",
+      "colors": "Colors"
     },
     "preview": "Live preview",
     "previewTitleFallback": "Your headline",
@@ -1263,7 +1327,7 @@
     "guide": {
       "title": "Usage guide",
       "subtitle": "How to get things done in Helio, feature by feature. New here? The 30-second tour is the fastest start.",
-      "support": "Stuck or found a bug? Use the life buoy in the top bar — reports land in your support inbox under Settings.",
+      "support": "Stuck or found a bug? Use the life buoy in the top bar — reports open a GitHub issue (admins set the repo under Settings → Maintenance).",
       "sections": {
         "contacts": {
           "title": "Bring in your audience",
@@ -1736,7 +1800,7 @@
     "releaseNotes": "Read the release notes",
     "updateNow": "Update to {version}",
     "ownerOnly": "Only an owner can run the in-app update. You can also run \"helio update\" on the server.",
-    "terminalHint": "Update from the server with \"helio update\". One-click updates are turned off on this deployment.",
+    "terminalHint": "One-click updates aren't enabled here yet. Run this once on the server — it switches them on, and the Update button appears next time:",
     "upToDate": "You are on the latest release.",
     "check": "Check for updates",
     "genericError": "Something went wrong",
@@ -1768,5 +1832,11 @@
     "save": "Save currency",
     "saved": "Currency updated",
     "genericError": "Something went wrong"
+  },
+  "palette": {
+    "background": "Background",
+    "text": "Text",
+    "button": "Button",
+    "accent": "Accent"
   }
 }
