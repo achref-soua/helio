@@ -36,15 +36,27 @@ class ScopedConnection:
 
 
 class Database:
-    """An asyncpg pool over the RLS-bound app connection."""
+    """An asyncpg pool over the RLS-bound app connection.
 
-    def __init__(self, dsn: str) -> None:
+    ``statement_cache_size=0`` makes the pool safe behind a transaction-mode
+    pooler (PgBouncer): server-side prepared statements don't survive across
+    pooled transactions. The default (asyncpg's 100) is kept for direct
+    connections, where caching is a small win.
+    """
+
+    def __init__(self, dsn: str, *, statement_cache_size: int = 100) -> None:
         self._dsn = dsn
+        self._statement_cache_size = statement_cache_size
         self._pool: asyncpg.Pool | None = None
 
     async def connect(self) -> None:
         if self._pool is None:
-            self._pool = await asyncpg.create_pool(self._dsn, min_size=1, max_size=8)
+            self._pool = await asyncpg.create_pool(
+                self._dsn,
+                min_size=1,
+                max_size=8,
+                statement_cache_size=self._statement_cache_size,
+            )
 
     async def close(self) -> None:
         if self._pool is not None:
