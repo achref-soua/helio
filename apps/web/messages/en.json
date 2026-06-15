@@ -1109,7 +1109,9 @@
     },
     "preview": "Live preview",
     "previewFormCta": "Subscribe",
-    "copyLink": "Copy link"
+    "copyLink": "Copy link",
+    "colors": "Colors",
+    "colorsHint": "Theme this page. New pages start from your brand color."
   },
   "hostedLanding": {
     "notFound": "This page does not exist or is not published.",

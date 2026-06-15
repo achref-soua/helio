@@ -5,6 +5,9 @@ import {
   LANDING_BLOCK_TYPES,
   type LandingBlock,
   type LandingBlockType,
+  paletteSurfaceVars,
+  resolvePalette,
+  type SurfacePalette,
 } from '@helio/core';
 import { Badge } from '@helio/ui/components/badge';
 import { Button } from '@helio/ui/components/button';
@@ -16,9 +19,10 @@ import { cn } from '@helio/ui/lib/utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, Copy, LayoutTemplate, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { type CSSProperties, useState } from 'react';
 import { toast } from 'sonner';
 
+import { PaletteFields } from '@/components/palette-fields';
 import { PreviewShell } from '@/components/preview-shell';
 import { useActiveWorkspaceId } from '@/components/workspace-switcher';
 import { useTRPC } from '@/trpc/client';
@@ -111,17 +115,21 @@ function LandingEditor({ id, onClose }: { id: string; onClose: () => void }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const pageQuery = useQuery(trpc.landing.get.queryOptions({ id }));
+  const brandingQuery = useQuery(trpc.branding.get.queryOptions());
   const update = useMutation(trpc.landing.update.mutationOptions());
 
   const [seeded, setSeeded] = useState(false);
   const [title, setTitle] = useState('');
   const [blocks, setBlocks] = useState<LandingBlock[]>([]);
+  const [palette, setPalette] = useState<SurfacePalette | null>(null);
 
   const page = pageQuery.data;
-  if (page && !seeded) {
+  // Wait for both the page and the brand color so the palette seeds correctly.
+  if (page && brandingQuery.isSuccess && !seeded) {
     setSeeded(true);
     setTitle(page.title);
     setBlocks((page.blocks as unknown as LandingBlock[]) ?? []);
+    setPalette(resolvePalette(page.palette, brandingQuery.data?.brandColor));
   }
 
   function addBlock(type: LandingBlockType) {
@@ -147,7 +155,13 @@ function LandingEditor({ id, onClose }: { id: string; onClose: () => void }) {
 
   async function save(published?: boolean) {
     try {
-      await update.mutateAsync({ id, title: title.trim(), blocks, published });
+      await update.mutateAsync({
+        id,
+        title: title.trim(),
+        blocks,
+        published,
+        ...(palette ? { palette } : {}),
+      });
       await queryClient.invalidateQueries(trpc.landing.get.pathFilter());
       await queryClient.invalidateQueries(trpc.landing.list.pathFilter());
       toast.success(
@@ -219,6 +233,14 @@ function LandingEditor({ id, onClose }: { id: string; onClose: () => void }) {
         )}
       </div>
 
+      {palette && (
+        <div className="grid gap-2 rounded-md border p-3" data-testid="landing-palette-editor">
+          <Label>{t('colors')}</Label>
+          <p className="text-muted-foreground text-xs">{t('colorsHint')}</p>
+          <PaletteFields value={palette} onChange={setPalette} />
+        </div>
+      )}
+
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <div className="grid gap-4">
           <div className="grid gap-2" data-testid="landing-blocks">
@@ -282,7 +304,12 @@ function LandingEditor({ id, onClose }: { id: string; onClose: () => void }) {
           </div>
         </div>
 
-        <LandingPreview blocks={blocks} formCta={t('previewFormCta')} label={t('preview')} />
+        <LandingPreview
+          blocks={blocks}
+          palette={palette}
+          formCta={t('previewFormCta')}
+          label={t('preview')}
+        />
       </div>
     </div>
   );
@@ -291,16 +318,21 @@ function LandingEditor({ id, onClose }: { id: string; onClose: () => void }) {
 /** The hosted /p page, mirrored live: same wash, same centered article. */
 function LandingPreview({
   blocks,
+  palette,
   label,
   formCta,
 }: {
   blocks: LandingBlock[];
+  palette: SurfacePalette | null;
   label: string;
   formCta: string;
 }) {
   return (
     <PreviewShell label={label} data-testid="landing-preview" className="p-0 lg:sticky lg:top-20">
-      <div className="bg-background overflow-hidden rounded-lg">
+      <div
+        className="bg-background text-foreground overflow-hidden rounded-lg"
+        style={palette ? (paletteSurfaceVars(palette) as CSSProperties) : undefined}
+      >
         <div className="from-primary/10 bg-linear-to-b to-transparent to-50% px-5 py-8">
           <article className="mx-auto flex w-full max-w-md flex-col items-center gap-4 text-center">
             {blocks.map((block, index) => {

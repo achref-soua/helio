@@ -1,10 +1,10 @@
-import { type LandingBlock } from '@helio/core';
+import { type LandingBlock, paletteSurfaceVars, resolvePalette } from '@helio/core';
 import { Button } from '@helio/ui/components/button';
 import { Input } from '@helio/ui/components/input';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
+import type { CSSProperties } from 'react';
 
-import { BrandStyle } from '@/components/brand-style';
 import { PoweredBy } from '@/components/powered-by';
 import { authDb } from '@/lib/auth';
 
@@ -27,6 +27,7 @@ export default async function PublicLandingPage({
     select: {
       id: true,
       blocks: true,
+      palette: true,
       published: true,
       workspace: {
         select: {
@@ -44,10 +45,14 @@ export default async function PublicLandingPage({
 
   const blocks = (page.blocks as unknown as LandingBlock[]) ?? [];
   const firstHeading = blocks.findIndex((block) => block.type === 'heading');
+  // Server-side re-validation: every value is a #hex literal or a brand default.
+  const palette = resolvePalette(page.palette, brand?.brandColor);
 
   return (
-    <main className="flex min-h-svh flex-col">
-      <BrandStyle color={brand?.brandColor} />
+    <main
+      className="bg-background text-foreground flex min-h-svh flex-col"
+      style={paletteSurfaceVars(palette) as CSSProperties}
+    >
       {/* A soft brand-tinted wash so even a two-block page reads designed. */}
       <div className="from-primary/10 flex flex-1 items-center justify-center bg-linear-to-b to-transparent to-50% px-6 py-16">
         <article className="flex w-full max-w-2xl flex-col items-center gap-6 text-center">
