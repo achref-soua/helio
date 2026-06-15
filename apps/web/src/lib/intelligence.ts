@@ -11,11 +11,15 @@ import { env } from './env';
  * down or unconfigured.
  */
 async function call<T>(path: string, body: unknown): Promise<T> {
+  const headers: Record<string, string> = { 'content-type': 'application/json' };
+  // Authenticate to the intelligence service so its /v1 surface — which trusts
+  // the org id we forward — can't be driven by anyone else on the network.
+  if (env.INTEL_SERVICE_TOKEN) headers['x-helio-service-token'] = env.INTEL_SERVICE_TOKEN;
   let response: Response;
   try {
     response = await fetch(`${env.INTELLIGENCE_URL}${path}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers,
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(60_000),
     });

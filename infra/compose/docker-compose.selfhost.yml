@@ -110,6 +110,7 @@ services:
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
       CLICKHOUSE_DB: ${CLICKHOUSE_DB:-helio}
       INTELLIGENCE_URL: http://intelligence:8000
+      INTEL_SERVICE_TOKEN: ${INTEL_SERVICE_TOKEN:-}
       # Admin → Health checks (service-DNS targets inside the network).
       API_URL: http://api:4000
       INGEST_URL: http://ingest:4100
@@ -183,6 +184,7 @@ services:
       INTEL_MODELS_PATH: /var/lib/helio/models
       # LAN model servers are the normal self-host case.
       INTEL_ALLOW_PRIVATE_MODEL_ENDPOINTS: 'true'
+      INTEL_SERVICE_TOKEN: ${INTEL_SERVICE_TOKEN:-}
     volumes:
       - models-data:/var/lib/helio/models
     depends_on:

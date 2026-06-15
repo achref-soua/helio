@@ -17,6 +17,13 @@ class Settings(BaseSettings):
     log_level: str = "info"
     service_name: str = "intelligence"
 
+    # Shared service token. The /v1 surface trusts the organization id its
+    # caller forwards (the dashboard authenticates the user first), so an
+    # unauthenticated caller that reached this service could read any tenant's
+    # data through the AI plane. When set, every /v1 request must present a
+    # matching X-Helio-Service-Token; unset leaves it open for local dev.
+    service_token: SecretStr = SecretStr("")
+
     # Domain data: the RLS-bound app connection (helio_app role). Every
     # copilot read runs inside a transaction that sets app.org_id, so the
     # database physically prevents cross-organization access — the copilot
