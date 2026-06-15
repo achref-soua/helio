@@ -15,6 +15,11 @@ test('build a landing page, publish it, and capture a signup', async ({ page }) 
   await page.getByTestId('landing-add-form').click();
   await page.getByTestId('landing-blocks').getByRole('textbox').first().fill('Join the beta');
 
+  // Theme the page's button color via the palette editor.
+  const paletteEditor = page.getByTestId('landing-palette-editor');
+  await expect(paletteEditor).toBeVisible();
+  await paletteEditor.getByRole('textbox', { name: 'Button' }).fill('#00aa55');
+
   await page.getByTestId('landing-save').click();
   await expect(page.getByText('Saved')).toBeVisible();
   await page.getByTestId('landing-publish').click();
@@ -28,6 +33,11 @@ test('build a landing page, publish it, and capture a signup', async ({ page }) 
 
   await page.goto(path!);
   await expect(page.getByRole('heading', { name: 'Join the beta' })).toBeVisible();
+  // The chosen palette is applied as a re-validated CSS variable.
+  const primary = await page
+    .locator('main')
+    .evaluate((element) => getComputedStyle(element).getPropertyValue('--primary').trim());
+  expect(primary).toBe('#00aa55');
   const form = page.getByTestId('landing-form');
   await form.getByPlaceholder('you@example.com').fill('lead@example.com');
   await form.getByRole('button', { name: 'Sign up' }).click();

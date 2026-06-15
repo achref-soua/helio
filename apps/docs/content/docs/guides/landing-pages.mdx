@@ -22,6 +22,15 @@ Reorder blocks with the up/down controls (keyboard-friendly, no drag needed)
 and edit each block inline. The blocks are validated on save, so a button or
 image with an incomplete URL won't publish.
 
+## Colors
+
+Each page has its own palette — **background**, **text**, **button**, and
+**accent** — edited beside the live preview, which updates as you type. New
+pages start from your [brand color](/docs/guides/white-labeling); every value
+is re-validated on the server before it reaches the published page, so it can
+only ever be a `#hex` literal. Pages created before this feature fall back to
+the brand color until you theme them.
+
 ## Publish & capture
 
 Hit **Publish** to make the page live at `/p/<id>` — the public URL is
