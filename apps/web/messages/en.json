@@ -1000,27 +1000,31 @@
   "support": {
     "open": "Report a bug or send feedback",
     "title": "Report a bug or send feedback",
-    "subtitle": "Tell us what happened. We capture the page you're on for context.",
+    "subtitle": "Tell us what happened. We capture the page you are on for context.",
+    "subtitleRepo": "Files a GitHub issue on {repo}, with the page you are on for context.",
     "kind": "Type",
     "subject": "Subject",
     "body": "Details",
     "send": "Send",
     "sending": "Sending…",
-    "sent": "Thanks — your report was sent",
+    "reported": "Reported on GitHub",
+    "openingGithub": "Opening GitHub…",
+    "viewOnGithub": "View on GitHub",
     "genericError": "Something went wrong. Please try again.",
-    "panelTitle": "Support inbox",
-    "panelSubtitle": "Bug reports and feedback filed by your team.",
-    "panelEmpty": "No reports yet.",
-    "resolved": "Marked resolved",
-    "resolveLabel": "Resolve {subject}",
+    "panelTitle": "Bug reports → GitHub",
+    "panelSubtitle": "In-app reports become issues on a GitHub repository.",
+    "repoLabel": "Repository (owner/name)",
+    "repoHint": "Leave blank to use the default ({repo}).",
+    "tokenLabel": "GitHub token (optional)",
+    "tokenHint": "Stored encrypted. With a token (scope: issues), reports are created as issues automatically; without one, a prefilled new-issue page opens instead.",
+    "tokenConfigured": "Token set",
+    "removeToken": "Remove token",
+    "saveTarget": "Save",
+    "saved": "Saved",
     "kinds": {
       "BUG": "Bug",
       "FEEDBACK": "Feedback",
       "QUESTION": "Question"
-    },
-    "statuses": {
-      "OPEN": "Open",
-      "RESOLVED": "Resolved"
     }
   },
   "tour": {
@@ -1272,7 +1276,7 @@
     "guide": {
       "title": "Usage guide",
       "subtitle": "How to get things done in Helio, feature by feature. New here? The 30-second tour is the fastest start.",
-      "support": "Stuck or found a bug? Use the life buoy in the top bar — reports land in your support inbox under Settings.",
+      "support": "Stuck or found a bug? Use the life buoy in the top bar — reports open a GitHub issue (admins set the repo under Settings → Maintenance).",
       "sections": {
         "contacts": {
           "title": "Bring in your audience",

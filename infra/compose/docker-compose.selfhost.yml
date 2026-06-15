@@ -95,6 +95,7 @@ services:
       HELIO_ENCRYPTION_KEY: ${HELIO_ENCRYPTION_KEY}
       HELIO_ENCRYPTION_KEY_PREVIOUS: ${HELIO_ENCRYPTION_KEY_PREVIOUS:-}
       HELIO_UPDATE_CHECK: ${HELIO_UPDATE_CHECK:-true}
+      HELIO_SUPPORT_REPO: ${HELIO_SUPPORT_REPO:-achref-soua/helio}
       # One-click in-app updates: when true (with the `update` profile), the
       # owner can update from Settings → Updates. The shared secret lets the
       # dashboard authorize its request to the updater sidecar.

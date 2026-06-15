@@ -34,6 +34,12 @@ model Organization {
   /// for deal amounts and revenue throughout the dashboard, and as the default
   /// for new deals.
   currency              String   @default("USD")
+  /// GitHub repo (`owner/name`) that in-app bug reports are filed to. Null
+  /// falls back to HELIO_SUPPORT_REPO (the upstream repo by default).
+  supportRepo           String?  @map("support_repo")
+  /// Optional GitHub PAT (crypto-envelope sealed) for server-side issue
+  /// creation; without it, reports open a prefilled new-issue page instead.
+  supportToken          String?  @map("support_token")
   createdAt             DateTime @default(now()) @map("created_at")
 
   workspaces          Workspace[]
@@ -62,7 +68,6 @@ model Organization {
   bookingPages        BookingPage[]
   meetings            Meeting[]
   integrations        Integration[]
-  supportTickets      SupportTicket[]
   sendingDomains      SendingDomain[]
   landingPages        LandingPage[]
   widgets             Widget[]
@@ -1254,43 +1259,6 @@ model Integration {
   @@unique([provider, externalId])
   @@index([organizationId])
   @@map("integration")
-}
-
-enum SupportKind {
-  BUG
-  FEEDBACK
-  QUESTION
-
-  @@map("support_kind")
-}
-
-enum SupportStatus {
-  OPEN
-  RESOLVED
-
-  @@map("support_status")
-}
-
-/// A support / bug report filed from inside the app. Org-scoped and isolated
-/// by the standard RLS policy; admins triage and resolve them.
-model SupportTicket {
-  id             String        @id
-  organizationId String        @map("organization_id")
-  /// The reporting member's auth user id.
-  reporterId     String?       @map("reporter_id")
-  kind           SupportKind   @default(BUG)
-  subject        String
-  body           String
-  /// The page the report was filed from, captured for context.
-  url            String?
-  status         SupportStatus @default(OPEN)
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
-
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId, status])
-  @@map("support_ticket")
 }
 
 enum DomainStatus {

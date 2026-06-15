@@ -165,6 +165,17 @@ export {
   parseGatewayApiKey,
   scopeAllows,
 } from './gateway-keys';
+export {
+  buildSupportIssue,
+  createGitHubIssue,
+  type FetchLike,
+  githubNewIssueUrl,
+  type GithubRepo,
+  parseGithubRepo,
+  type SupportIssue,
+  supportIssueLabels,
+  type SupportReportInput,
+} from './github-support';
 export { type Id, idTimestamp, isId, newId } from './id';
 export {
   CONNECTOR_MAPPING,
@@ -323,14 +334,7 @@ export {
   MAX_SQL_ROWS,
   type SqlGuardResult,
 } from './sql-guard';
-export {
-  SUPPORT_KINDS,
-  SUPPORT_STATUSES,
-  type SupportKind,
-  supportKindSchema,
-  type SupportStatus,
-  supportStatusSchema,
-} from './support';
+export { SUPPORT_KINDS, type SupportKind, supportKindSchema } from './support';
 export {
   compareTasks,
   groupTasksByBucket,
