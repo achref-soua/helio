@@ -1,6 +1,6 @@
 'use client';
 
-import { buildSupportIssue, githubNewIssueUrl, SUPPORT_KINDS, type SupportKind } from '@helio/core';
+import { SUPPORT_KINDS, type SupportKind } from '@helio/core';
 import { Button } from '@helio/ui/components/button';
 import {
   Dialog,
@@ -25,7 +25,7 @@ import { useTRPC } from '@/trpc/client';
 const FIELD_CLASS =
   'border-input bg-transparent dark:bg-input/30 rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
 
-/** Globally-available "Report a bug / send feedback" entry point — files to GitHub. */
+/** Globally-available "Report a bug / send feedback" entry point — files to GitHub + email. */
 export function ReportDialog() {
   const t = useTranslations('support');
   const trpc = useTRPC();
@@ -37,7 +37,6 @@ export function ReportDialog() {
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!cfg) return;
     const form = new FormData(event.currentTarget);
     const input = {
       kind: String(form.get('kind')) as SupportKind,
@@ -46,42 +45,27 @@ export function ReportDialog() {
       url: typeof window === 'undefined' ? undefined : window.location.pathname,
     };
 
-    if (cfg.hasToken) {
-      // A PAT is configured: create the issue server-side, then offer a link.
-      report
-        .mutateAsync(input)
-        .then((result) => {
+    // The report is filed entirely server-side (GitHub issue + email); we just
+    // confirm, linking the created issue when there is one.
+    report
+      .mutateAsync(input)
+      .then((result) => {
+        if (result.created && result.url) {
+          const issueUrl = result.url;
           toast.success(t('reported'), {
             action: {
               label: t('viewOnGithub'),
-              onClick: () => window.open(result.url, '_blank', 'noopener,noreferrer'),
+              onClick: () => window.open(issueUrl, '_blank', 'noopener,noreferrer'),
             },
           });
-          setOpen(false);
-        })
-        .catch((error: unknown) => {
-          toast.error(error instanceof Error ? error.message : t('genericError'));
-        });
-      return;
-    }
-
-    // No token: open a prefilled new-issue page in a new tab (no server call).
-    // Opened synchronously from the click so the browser does not block it.
-    const issue = buildSupportIssue({
-      kind: input.kind,
-      subject: input.subject,
-      body: input.body,
-      pageUrl: input.url,
-      reporterEmail: cfg.reporterEmail,
-      version: cfg.version,
-    });
-    window.open(
-      githubNewIssueUrl({ owner: cfg.owner, repo: cfg.repo }, issue),
-      '_blank',
-      'noopener,noreferrer',
-    );
-    toast.success(t('openingGithub'));
-    setOpen(false);
+        } else {
+          toast.success(t('sent'));
+        }
+        setOpen(false);
+      })
+      .catch((error: unknown) => {
+        toast.error(error instanceof Error ? error.message : t('genericError'));
+      });
   }
 
   return (

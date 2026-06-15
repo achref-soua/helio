@@ -65,6 +65,14 @@ export const env = createEnv({
   // The GitHub repo (`owner/name`) that in-app bug reports are filed to when an
   // org has not set its own. Defaults to the upstream repo.
   HELIO_SUPPORT_REPO: z.string().min(1).default('achref-soua/helio'),
+  // Deployment-wide GitHub PAT (scope: issues) used to file in-app bug reports
+  // as issues server-side when an org has not set its own under Settings →
+  // Maintenance. Without any token, reports are delivered by email only.
+  HELIO_SUPPORT_TOKEN: z.string().optional(),
+  // Where in-app bug reports are emailed when an org has not set its own
+  // recipient. Falls back to MAIL_FROM, so a report is never dropped (Mailpit
+  // in dev).
+  HELIO_SUPPORT_EMAIL: z.string().email().optional(),
   // Per-replica abuse damping on the public, unauthenticated endpoints
   // (forms, booking, widget/in-app delivery, SCIM). Disable for load tests.
   PUBLIC_RATE_LIMITS_ENABLED: z

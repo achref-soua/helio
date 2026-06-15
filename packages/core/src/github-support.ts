@@ -1,11 +1,12 @@
 import type { SupportKind } from './support';
 
 /**
- * Turning in-app bug reports into GitHub issues. All of this is pure and
- * unit-tested: parsing the target repo, templating the issue title/body, the
- * prefilled new-issue URL (when no token is configured), and the authenticated
- * create call (with an injected `fetch`, so it stubs cleanly). The web layer
- * only resolves config and decrypts the token.
+ * Turning in-app bug reports into GitHub issues and a support notification
+ * email. All of this is pure and unit-tested: resolving the target repo and
+ * notification recipient, templating the issue title/body and the email, the
+ * prefilled new-issue URL, and the authenticated create call (with an injected
+ * `fetch`, so it stubs cleanly). The web layer only reads config, decrypts the
+ * token, and sends the mail.
  */
 
 export interface GithubRepo {
@@ -20,6 +21,36 @@ export function parseGithubRepo(input: string | null | undefined): GithubRepo | 
   const match = /^([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))\/([A-Za-z0-9._-]{1,100})$/.exec(trimmed);
   if (!match) return null;
   return { owner: match[1]!, repo: match[2]!.replace(/\.git$/, '') };
+}
+
+/**
+ * The effective target repo for an org: its own override, else the deployment
+ * default (`HELIO_SUPPORT_REPO`). Throws if neither is a valid `owner/name` —
+ * the deployment default is validated at startup, so in practice this resolves.
+ */
+export function resolveSupportRepo(
+  orgRepo: string | null | undefined,
+  deploymentRepo: string | null | undefined,
+): GithubRepo {
+  const repo = parseGithubRepo(orgRepo) ?? parseGithubRepo(deploymentRepo);
+  if (!repo) {
+    throw new Error('No valid support repository configured (set HELIO_SUPPORT_REPO)');
+  }
+  return repo;
+}
+
+/**
+ * Who a support notification is emailed to: the org's own inbox, else the
+ * deployment-wide one (`HELIO_SUPPORT_EMAIL`), else the deployment's own From
+ * identity (`MAIL_FROM`) as a last resort — so a report is never silently
+ * dropped (in dev that lands in Mailpit).
+ */
+export function resolveSupportRecipient(
+  orgEmail: string | null | undefined,
+  deploymentEmail: string | null | undefined,
+  fallbackFrom: string,
+): string {
+  return orgEmail?.trim() || deploymentEmail?.trim() || fallbackFrom;
 }
 
 /** The label(s) for a report kind: a bug stays `bug`, the rest are enhancements. */
@@ -64,7 +95,38 @@ export function buildSupportIssue(input: SupportReportInput): SupportIssue {
   };
 }
 
-/** A prefilled `…/issues/new` URL — the no-token path opens this in a new tab. */
+export interface SupportNotification {
+  subject: string;
+  text: string;
+}
+
+/**
+ * Template a report into a plain-text notification email for the support inbox.
+ * Mirrors the issue's context block and links the created GitHub issue when one
+ * exists. Pure: the web layer resolves the recipient and sends it through the
+ * org's email identity (Mailpit in dev).
+ */
+export function buildSupportNotificationEmail(
+  input: SupportReportInput & { issueUrl?: string | null },
+): SupportNotification {
+  const kindLabel = input.kind.charAt(0) + input.kind.slice(1).toLowerCase();
+  const lines = [
+    input.body.trim(),
+    '',
+    '---',
+    `Kind: ${kindLabel}`,
+    input.reporterEmail ? `Reporter: ${input.reporterEmail}` : null,
+    input.pageUrl ? `Page: ${input.pageUrl}` : null,
+    input.version ? `Helio version: ${input.version}` : null,
+    input.issueUrl ? `GitHub issue: ${input.issueUrl}` : null,
+  ].filter((line): line is string => line !== null);
+  return {
+    subject: `[Helio] ${kindLabel}: ${input.subject.trim()}`,
+    text: lines.join('\n'),
+  };
+}
+
+/** A prefilled `…/issues/new` URL — used as the last-resort manual fallback. */
 export function githubNewIssueUrl(repo: GithubRepo, issue: SupportIssue): string {
   const params = new URLSearchParams({
     title: issue.title,
