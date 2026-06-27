@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { openDialog } from './dialog';
+
 // Outbound webhooks: an admin registers an endpoint (signing secret revealed
 // once), subscribes it to an event, disables and re-enables it, then deletes
 // it. Signing and durable delivery are covered by @helio/core and the worker
@@ -12,7 +14,7 @@ test('register a webhook endpoint, toggle it, then delete it', async ({ page }) 
   const panel = page.getByTestId('webhooks-panel');
   await expect(panel).toBeVisible();
 
-  await panel.getByTestId('webhook-create').click();
+  await openDialog(panel.getByTestId('webhook-create'), page.getByTestId('webhook-url'));
   await page.getByTestId('webhook-url').fill(url);
   await page.getByTestId('webhook-event-deal.won').check();
   await page.getByTestId('webhook-submit').click();
