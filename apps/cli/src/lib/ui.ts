@@ -149,3 +149,36 @@ export async function confirmTyped(question: string, word: string): Promise<bool
     rl.close();
   }
 }
+
+export interface MenuItem {
+  key: string;
+  label: string;
+}
+
+/**
+ * A numbered menu. Prints the choices, reads a number (re-prompting on bad
+ * input), and returns the chosen item's key — or null if the user quits with
+ * "q" or an empty line, or there is no terminal to read from.
+ */
+export async function select(title: string, items: MenuItem[]): Promise<string | null> {
+  if (!process.stdin.isTTY) return null;
+  say('');
+  say(bold(title));
+  items.forEach((item, index) => say(`  ${sun(String(index + 1).padStart(2))}  ${item.label}`));
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    for (;;) {
+      const answer = (await rl.question(`\n  choose 1-${items.length}, or q to quit: `))
+        .trim()
+        .toLowerCase();
+      if (answer === 'q' || answer === 'quit') return null;
+      const choice = Number(answer);
+      if (Number.isInteger(choice) && choice >= 1 && choice <= items.length) {
+        return items[choice - 1]!.key;
+      }
+      warn(`enter a number from 1 to ${items.length} (or q to quit)`);
+    }
+  } finally {
+    rl.close();
+  }
+}
