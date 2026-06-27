@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto';
 
 import { expect, type Page, test } from '@playwright/test';
+
 import { openDialog } from './dialog';
 
 // TOTP enrollment and challenge, end to end on a dedicated user: enable in
