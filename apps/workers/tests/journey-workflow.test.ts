@@ -96,12 +96,16 @@ describe('journeyRunWorkflow', () => {
       'jny_1',
       'contact_1',
       'tpl_welcome',
+      'run_1',
+      'welcome',
     );
     expect(activities.sendJourneyEmail).toHaveBeenNthCalledWith(
       2,
       'jny_1',
       'contact_1',
       'tpl_upsell',
+      'run_1',
+      'upsell',
     );
     expect(activities.evaluateCondition).toHaveBeenCalledTimes(1);
     expect(activities.completeRun).toHaveBeenCalledWith('run_1');
@@ -308,7 +312,7 @@ describe('journeyRunWorkflow v2 nodes', () => {
       sendJourneyInApp,
     } as Partial<JourneyActivities>);
     await runV2(activities);
-    expect(sendJourneyInApp).toHaveBeenCalledWith('contact_2', 'iam_1');
+    expect(sendJourneyInApp).toHaveBeenCalledWith('contact_2', 'iam_1', 'run_2', 'ia');
   });
 
   it('defers the send while quiet hours are active (time-skipped)', async () => {

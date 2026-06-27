@@ -121,9 +121,9 @@ describe('journey activities + trigger enrollment against Postgres', () => {
 
   it('sendJourneyEmail records FAILED and rethrows when delivery fails', async () => {
     provider.failFor.add('ada@example.com');
-    await expect(activities.sendJourneyEmail(journeyId, adaId, templateId)).rejects.toThrowError(
-      /delivery refused/,
-    );
+    await expect(
+      activities.sendJourneyEmail(journeyId, adaId, templateId, 'run_fail', 'n1'),
+    ).rejects.toThrowError(/delivery refused/);
     provider.failFor.clear();
     const failed = await prisma.emailSend.findFirst({
       where: { contactId: adaId, status: 'FAILED' },
@@ -133,7 +133,7 @@ describe('journey activities + trigger enrollment against Postgres', () => {
   });
 
   it('sendJourneyEmail renders, tracks, and records the send', async () => {
-    const result = await activities.sendJourneyEmail(journeyId, adaId, templateId);
+    const result = await activities.sendJourneyEmail(journeyId, adaId, templateId, 'run_ok', 'n1');
     expect(result).toEqual({ sent: true });
     const mail = provider.sent.at(-1)!;
     expect(mail.to).toBe('ada@example.com');
@@ -148,9 +148,44 @@ describe('journey activities + trigger enrollment against Postgres', () => {
   });
 
   it('sendJourneyEmail skips suppressed contacts without a send row', async () => {
-    const result = await activities.sendJourneyEmail(journeyId, goneId, templateId);
+    const result = await activities.sendJourneyEmail(
+      journeyId,
+      goneId,
+      templateId,
+      'run_supp',
+      'n1',
+    );
     expect(result).toEqual({ sent: false });
     expect(await prisma.emailSend.count({ where: { contactId: goneId } })).toBe(0);
+  });
+
+  it('sendJourneyEmail is idempotent across Temporal retries (one send, one row)', async () => {
+    // A retry of the SAME run+node — the exact double-send a transient DB
+    // error or activity timeout would trigger — must deliver nothing new.
+    await prisma.emailSend.deleteMany({ where: { contactId: adaId } });
+    const before = provider.sent.length;
+    const first = await activities.sendJourneyEmail(
+      journeyId,
+      adaId,
+      templateId,
+      'run_idem',
+      'n_idem',
+    );
+    const second = await activities.sendJourneyEmail(
+      journeyId,
+      adaId,
+      templateId,
+      'run_idem',
+      'n_idem',
+    );
+    expect(first).toEqual({ sent: true });
+    expect(second).toEqual({ sent: true });
+    expect(provider.sent.length).toBe(before + 1);
+    const sends = await prisma.emailSend.findMany({ where: { contactId: adaId } });
+    expect(sends).toHaveLength(1);
+    expect(sends[0]!.status).toBe('SENT');
+    // Leaves exactly one SENT row for ada — the later sendGate test relies on
+    // that ("ada has 1 SENT mail from earlier tests"), so no trailing cleanup.
   });
 
   it('evaluateCondition answers against live contact data', async () => {

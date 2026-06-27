@@ -55,7 +55,13 @@ export async function journeyRunWorkflow(input: JourneyRunInput): Promise<{ step
           );
           if (gate > 0) await sleep(gate);
           if (gate !== -1) {
-            await activities.sendJourneyEmail(input.journeyId, input.contactId, node.templateId);
+            await activities.sendJourneyEmail(
+              input.journeyId,
+              input.contactId,
+              node.templateId,
+              input.runId,
+              node.id,
+            );
           }
           currentId = nextNodeId(definition, node.id);
           break;
@@ -106,7 +112,7 @@ export async function journeyRunWorkflow(input: JourneyRunInput): Promise<{ step
           currentId = nextNodeId(definition, node.id);
           break;
         case 'send_in_app':
-          await activities.sendJourneyInApp(input.contactId, node.messageId);
+          await activities.sendJourneyInApp(input.contactId, node.messageId, input.runId, node.id);
           currentId = nextNodeId(definition, node.id);
           break;
         case 'end':

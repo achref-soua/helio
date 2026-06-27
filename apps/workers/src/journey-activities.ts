@@ -1,11 +1,10 @@
-import { createHmac } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 
 import {
   clickRedirectUrl,
   type EmailDocument,
   type FrequencyCap,
   mintUnsubscribeToken,
-  newId,
   openPixelUrl,
   type QuietHours,
   quietHoursDelayMs,
@@ -32,6 +31,19 @@ export interface LoadedJourney {
 }
 
 /**
+ * A deterministic delivery id for a journey node's send. One contact's pass
+ * through one send node always maps to the same id, so a Temporal activity
+ * retry claims the same row instead of creating a new one — that is what
+ * keeps journey sends idempotent (no double-send) across retries, timeouts,
+ * and worker restarts. Derived (not the raw ids) so it is short and URL-safe
+ * for the open/click tracking that embeds it.
+ */
+function journeyDeliveryId(prefix: 'snd' | 'iad', runId: string, nodeId: string): string {
+  const digest = createHash('sha256').update(`${runId} ${nodeId}`).digest('hex').slice(0, 32);
+  return `${prefix}_${digest}`;
+}
+
+/**
  * Journey activities (ADR-0012). One contact per workflow, so sends are
  * single-recipient; suppression is re-checked at every send.
  */
@@ -52,11 +64,18 @@ export function createJourneyActivities(
       return journey;
     },
 
-    /** Render + deliver one journey email. Skips suppressed contacts. */
+    /**
+     * Render + deliver one journey email. Skips suppressed contacts.
+     * Idempotent under Temporal retries: the send row is claimed on a
+     * deterministic (runId, nodeId) id, so an already-SENT row short-circuits
+     * — a retry after a delivered send is a no-op, never a second send.
+     */
     async sendJourneyEmail(
       journeyId: string,
       contactId: string,
       templateId: string,
+      runId: string,
+      nodeId: string,
     ): Promise<{ sent: boolean }> {
       const contact = await prisma.contact.findUnique({ where: { id: contactId } });
       if (!contact || contact.status !== 'ACTIVE') return { sent: false };
@@ -64,9 +83,14 @@ export function createJourneyActivities(
         where: { id: templateId },
       });
 
-      const send = await prisma.emailSend.create({
-        data: {
-          id: newId('snd'),
+      // Atomically claim or recover the row for this node's send. An existing
+      // SENT row means a prior attempt already delivered to this contact.
+      const sendId = journeyDeliveryId('snd', runId, nodeId);
+      const send = await prisma.emailSend.upsert({
+        where: { id: sendId },
+        update: {},
+        create: {
+          id: sendId,
           organizationId: contact.organizationId,
           workspaceId: contact.workspaceId,
           contactId,
@@ -74,6 +98,7 @@ export function createJourneyActivities(
           subject: template.subject,
         },
       });
+      if (send.status === 'SENT') return { sent: true };
       try {
         const token = await mintUnsubscribeToken(config.unsubscribeSecret, contact.id);
         const unsubscribe = unsubscribeUrl(config.appUrl, token);
@@ -296,7 +321,12 @@ export function createJourneyActivities(
      * provider: delivery is a row the SDK drains. No-ops when the contact is
      * suppressed or the message is missing/paused.
      */
-    async sendJourneyInApp(contactId: string, messageId: string): Promise<{ queued: number }> {
+    async sendJourneyInApp(
+      contactId: string,
+      messageId: string,
+      runId: string,
+      nodeId: string,
+    ): Promise<{ queued: number }> {
       const contact = await prisma.contact.findUnique({ where: { id: contactId } });
       if (!contact || contact.status !== 'ACTIVE') return { queued: 0 };
       const message = await prisma.inAppMessage.findFirst({
@@ -304,9 +334,12 @@ export function createJourneyActivities(
         select: { id: true },
       });
       if (!message) return { queued: 0 };
-      await prisma.inAppDelivery.create({
-        data: {
-          id: newId('iad'),
+      // Deterministic id → a retry re-queues nothing; the row already exists.
+      await prisma.inAppDelivery.upsert({
+        where: { id: journeyDeliveryId('iad', runId, nodeId) },
+        update: {},
+        create: {
+          id: journeyDeliveryId('iad', runId, nodeId),
           organizationId: contact.organizationId,
           workspaceId: contact.workspaceId,
           messageId: message.id,
