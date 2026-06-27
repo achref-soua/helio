@@ -13,9 +13,9 @@ import dynamic from 'next/dynamic';
 // dynamic() infers each panel's prop types from its named export, so the typed
 // call sites in page.tsx keep full type-checking.
 
-export const AboutPanel = dynamic(() =>
-  import('./about-panel').then((m) => ({ default: m.AboutPanel })),
-);
+// NB: AboutPanel is intentionally NOT here. It's a server component (it awaits
+// getTranslations); dynamic-importing it from this 'use client' module would
+// render it in the client tree and throw. page.tsx imports it directly.
 export const AnalyticsPanel = dynamic(() =>
   import('./analytics-panel').then((m) => ({ default: m.AnalyticsPanel })),
 );

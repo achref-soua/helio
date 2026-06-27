@@ -9,12 +9,17 @@ import { auth } from '@/lib/auth';
 // Importing them statically put every panel's JS in the route's first-load
 // bundle, so a weak machine had to download, parse, and hydrate all of them
 // before any single panel — e.g. clicking "Create" in one — became responsive.
-// The panels are now lazy client boundaries (see ./panels): the server-rendered
-// HTML is identical (no UI/UX change, no skeleton flash on load), but each panel
-// is its own async chunk, so React hydrates them independently and prioritizes
-// the one you interact with first. Measured win: docs/perf/settings-code-split.md.
+// The interactive panels are now lazy client boundaries (see ./panels): the
+// server-rendered HTML is identical (no UI/UX change, no skeleton flash), but
+// each is its own async chunk, so React hydrates them independently and
+// prioritizes the one you interact with. Measured: docs/perf/settings-code-split.md.
+//
+// AboutPanel is the lone SERVER panel (it awaits getTranslations) — it must stay
+// a direct server import. Routing it through ./panels (a 'use client' module)
+// would render it in the client tree and throw "getTranslations is not supported
+// in Client Components", breaking the page. Its client cost is ~zero anyway.
+import { AboutPanel } from './about-panel';
 import {
-  AboutPanel,
   AnalyticsPanel,
   ApiKeysPanel,
   BackupsPanel,
