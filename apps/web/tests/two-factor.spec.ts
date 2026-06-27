@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto';
 
 import { expect, type Page, test } from '@playwright/test';
+import { openDialog } from './dialog';
 
 // TOTP enrollment and challenge, end to end on a dedicated user: enable in
 // Settings (QR + backup codes + first verification), sign back in through
@@ -95,7 +96,7 @@ test('enroll in TOTP 2FA, sign in through the challenge, burn a backup code, dis
   //    verify a real code (activation happens only after this verifies).
   await page.goto('/settings');
   await expect(page.getByTestId('security-panel')).toBeVisible();
-  await page.getByTestId('twofa-enable').click();
+  await openDialog(page.getByTestId('twofa-enable'), page.getByTestId('twofa-password'));
   await page.getByTestId('twofa-password').fill(PASSWORD);
   await page.getByTestId('twofa-continue').click();
 
