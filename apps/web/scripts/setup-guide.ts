@@ -256,10 +256,10 @@ function buildHtml(): string {
 
     <p>When the installer says <b>“Helio is up,”</b> open your browser to
       <code>http://localhost:3000</code>.</p>
-    <div class="callout"><b>Two install sizes.</b> The installer asks whether you want <b>core</b>
-      (the dashboard, API, and AI copilot — lighter, ~2.5 GB of memory) or <b>full</b> (adds email
-      sending, event tracking, and analytics — ~8 GB). Start with core and move up later if you
-      like; nothing is lost.</div>
+    <div class="callout"><b>Two install sizes.</b> By default the installer sets up <b>core</b>
+      (the dashboard, API, and AI copilot — lighter, ~2.5 GB of memory), which is right for most
+      people. The <b>full</b> stack (~8 GB) adds email sending, event tracking, and analytics; to
+      choose it, add <code>--full</code> to the command. You can move up later; nothing is lost.</div>
 
     <p class="kicker">Step 2</p>
     <h2>First-run setup</h2>

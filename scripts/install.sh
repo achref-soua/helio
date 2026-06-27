@@ -311,6 +311,40 @@ cmd_status() {
   http_ok "$url/api/healthz" && say "dashboard answering at $url" || say "dashboard not answering at $url"
 }
 
+cmd_backup() {
+  [ -f "$MANIFEST_FILE" ] || die "no installation at $HELIO_HOME"
+  compose run --rm backup run manual
+  say "backup written to $HELIO_HOME/backups"
+}
+
+cmd_restore() {
+  [ -f "$MANIFEST_FILE" ] || die "no installation at $HELIO_HOME"
+  file="${1:-}"
+  [ -n "$file" ] || die "usage: $0 restore <backup-file>  (see $HELIO_HOME/backups)"
+  warn "Restoring REPLACES the current database with the backup — anything newer is lost."
+  if [ -t 0 ] && [ "${HELIO_YES:-}" != "1" ]; then
+    printf 'Type "restore" to continue: '; read -r reply
+    [ "$reply" = "restore" ] || { warn "aborted — nothing was changed"; exit 1; }
+  fi
+  compose run --rm backup restore "$file"
+}
+
+cmd_doctor() {
+  healthy=1
+  if have docker && docker info >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    ok "Docker is installed, running, and has Compose v2"
+  else warn "Docker is not ready (install it / start the daemon)"; healthy=0; fi
+  if have openssl; then ok "openssl present (secret generation)"; else warn "openssl missing"; healthy=0; fi
+  if [ -f "$MANIFEST_FILE" ]; then
+    say "   installed: Helio $(manifest_version) at $HELIO_HOME (profile: $(get_env COMPOSE_PROFILES))"
+    url=$(get_env APP_URL); [ -n "$url" ] || url="http://localhost:3000"
+    http_ok "$url/api/healthz" && ok "dashboard answering at $url" || { warn "dashboard not answering at $url ('$0 status' for detail)"; healthy=0; }
+  else
+    say "   not installed here — run: $0 install"
+  fi
+  [ "$healthy" = "1" ] && ok "all checks passed" || { warn "some checks failed (see above)"; return 1; }
+}
+
 # Offline self-check: secret kinds produce the expected shapes and the template
 # fills with no markers left. Run: ./install.sh selftest
 cmd_selftest() {
@@ -351,12 +385,12 @@ PROFILE=core
 CMD=''
 while [ $# -gt 0 ]; do
   case "$1" in
-    install|update|uninstall|start|stop|status|logs|selftest) CMD="$1"; shift ;;
+    install|update|uninstall|start|stop|status|logs|backup|restore|doctor|selftest) CMD="$1"; shift ;;
     --full) PROFILE=full; shift ;;
     --version) VERSION="${2:-}"; shift 2 ;;
     --yes|-y) HELIO_YES=1; shift ;;
     --purge-data) PURGE=--purge-data; shift ;;
-    *) if [ "${CMD:-}" = logs ]; then break; else die "unknown option: $1"; fi ;;
+    *) if [ "${CMD:-}" = logs ] || [ "${CMD:-}" = restore ]; then break; else die "unknown option: $1"; fi ;;
   esac
 done
 
@@ -368,6 +402,9 @@ case "${CMD:-}" in
   stop)      cmd_stop ;;
   status)    cmd_status ;;
   logs)      cmd_logs "$@" ;;
+  backup)    cmd_backup ;;
+  restore)   cmd_restore "$@" ;;
+  doctor)    cmd_doctor ;;
   selftest)  cmd_selftest ;;
   '')        if [ -t 0 ]; then menu; else cmd_install; fi ;;
 esac
