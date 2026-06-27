@@ -186,7 +186,9 @@ export {
   buildSupportIssue,
   buildSupportNotificationEmail,
   createGitHubIssue,
+  fetchGitHubIssue,
   type FetchLike,
+  type GithubIssueState,
   githubNewIssueUrl,
   type GithubRepo,
   parseGithubRepo,
@@ -196,6 +198,8 @@ export {
   supportIssueLabels,
   type SupportNotification,
   type SupportReportInput,
+  type SupportReportStatus,
+  supportStatusFromIssue,
 } from './github-support';
 export { type Id, idTimestamp, isId, newId } from './id';
 export {
