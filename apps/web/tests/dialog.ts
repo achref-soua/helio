@@ -32,3 +32,19 @@ export async function fillStable(field: Locator, value: string): Promise<void> {
     await expect(field).toHaveValue(value, { timeout: 500 });
   }).toPass({ timeout: 30_000 });
 }
+
+/**
+ * Toggle a switch and wait for its effect (e.g. a save toast). Same hydration
+ * race, but `.check()` is idempotent — a no-op when the DOM already shows
+ * checked — so a single retry can't re-fire React's onChange. Force a real
+ * transition (uncheck → check) each attempt until the effect appears.
+ */
+export async function checkUntil(toggle: Locator, appears: Locator): Promise<void> {
+  await expect(async () => {
+    if (!(await appears.isVisible())) {
+      if (await toggle.isChecked()) await toggle.uncheck();
+      await toggle.check();
+    }
+    await expect(appears).toBeVisible({ timeout: 1_500 });
+  }).toPass({ timeout: 30_000 });
+}
