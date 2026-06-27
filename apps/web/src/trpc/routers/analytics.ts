@@ -17,6 +17,34 @@ import { getClickHouse } from '@/lib/clickhouse';
 
 import { orgProcedure, requirePermission, router } from '../init';
 
+/** Just the slice of the RLS-scoped tenant client this guard needs. */
+type TenantWorkspaceLookup = {
+  workspace: {
+    findUnique(args: {
+      where: { id: string };
+      select: { id: true };
+    }): Promise<{ id: string } | null>;
+  };
+};
+
+/**
+ * Confirm the workspace belongs to the caller's org before any ClickHouse
+ * read. ClickHouse has no row-level security, so a raw `workspace_id` filter
+ * is the *only* thing scoping these queries — without this check a member of
+ * one org could read another org's event analytics by passing its workspace
+ * id. The RLS-scoped `tenantDb` returns the row only when it is ours.
+ */
+async function requireOwnedWorkspace(
+  tenantDb: TenantWorkspaceLookup,
+  workspaceId: string,
+): Promise<void> {
+  const workspace = await tenantDb.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { id: true },
+  });
+  if (!workspace) throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
+}
+
 interface DailyRow {
   day: string;
   type: string;
@@ -61,6 +89,7 @@ export const analyticsRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
+      await requireOwnedWorkspace(ctx.tenantDb, input.workspaceId);
       const [contacts, activeJourneys, sends] = await Promise.all([
         ctx.tenantDb.contact.count({ where: { workspaceId: input.workspaceId } }),
         ctx.tenantDb.journey.count({
@@ -119,7 +148,8 @@ export const analyticsRouter = router({
   /** Open/click engagement per campaign, for the campaign cards. */
   campaignEngagement: orgProcedure
     .input(z.object({ workspaceId: z.string().min(1) }))
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      await requireOwnedWorkspace(ctx.tenantDb, input.workspaceId);
       try {
         const result = await getClickHouse().query({
           query: `
@@ -175,7 +205,8 @@ export const analyticsRouter = router({
    * completed each step, in sequence, within the conversion window. Person
    * identity coalesces user_id then anonymous_id.
    */
-  funnel: orgProcedure.input(funnelInputSchema).query(async ({ input }) => {
+  funnel: orgProcedure.input(funnelInputSchema).query(async ({ ctx, input }) => {
+    await requireOwnedWorkspace(ctx.tenantDb, input.workspaceId);
     const stepParams = Object.fromEntries(input.steps.map((step, index) => [`s${index}`, step]));
     const conditions = input.steps.map((_, index) => `event = {s${index}:String}`).join(', ');
     const inList = input.steps.map((_, index) => `{s${index}:String}`).join(', ');
@@ -217,7 +248,8 @@ export const analyticsRouter = router({
    * share still active at each later week. Distinct (person, week) first, so a
    * busy week counts once.
    */
-  retention: orgProcedure.input(retentionInputSchema).query(async ({ input }) => {
+  retention: orgProcedure.input(retentionInputSchema).query(async ({ ctx, input }) => {
+    await requireOwnedWorkspace(ctx.tenantDb, input.workspaceId);
     try {
       const result = await getClickHouse().query({
         query: `
@@ -258,6 +290,7 @@ export const analyticsRouter = router({
    * Postgres; unknown ids (deleted campaigns) keep their id as the label.
    */
   attribution: orgProcedure.input(attributionInputSchema).query(async ({ ctx, input }) => {
+    await requireOwnedWorkspace(ctx.tenantDb, input.workspaceId);
     // Isolate the ClickHouse read so a PG enrichment error isn't reported as
     // "no analytics store"; null means ClickHouse is unavailable.
     const converterRows = await (async (): Promise<AttributionConverterRow[] | null> => {

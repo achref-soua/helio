@@ -1,7 +1,7 @@
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 
-import type { RedisLike } from '../types';
+import type { GatewayEnv, RedisLike } from '../types';
 
 const TTL_SECONDS = 60 * 60 * 24;
 
@@ -11,7 +11,7 @@ const TTL_SECONDS = 60 * 60 * 24;
  * verbatim instead of re-executing the handler.
  */
 export function idempotency(redis: RedisLike) {
-  return createMiddleware(async (c, next) => {
+  return createMiddleware<GatewayEnv>(async (c, next) => {
     if (c.req.method !== 'POST') {
       await next();
       return;
@@ -25,7 +25,11 @@ export function idempotency(redis: RedisLike) {
       throw new HTTPException(400, { message: 'idempotency key too long' });
     }
 
-    const storageKey = `idempotency:${c.req.path}:${key}`;
+    // Scope the key to the tenant: Idempotency-Key values are client-chosen
+    // and often semantic (e.g. "order-123"), so two orgs would otherwise
+    // collide on the same path — leaking org A's cached response to org B and
+    // silently dropping org B's write. apiKeyAuth runs first, so org is set.
+    const storageKey = `idempotency:${c.get('organizationId')}:${c.req.path}:${key}`;
     const stored = await redis.get(storageKey);
     if (stored) {
       const { status, body } = JSON.parse(stored) as { status: number; body: string };
