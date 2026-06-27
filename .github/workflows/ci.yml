@@ -3,10 +3,18 @@
 # journey double-send reached a release. This runs on every PR into develop/
 # main and on every push to them, so regressions are caught before merge.
 #
-# Mirrors `task verify` exactly (format, lint, typecheck, TS tests, then the
-# Python checks). The heavier Playwright e2e is intentionally out of this gate
-# — like `task verify`, which keeps `verify:e2e` separate — because it needs
-# the full running stack; run it with `task verify:e2e`.
+# The `verify` and `python` jobs mirror `task verify` (format, lint, typecheck,
+# TS tests, then the Python checks). The `e2e` job runs the Playwright suite
+# against a real core stack (Postgres + Redis + Mailpit) — it used to be out of
+# CI entirely, which is exactly how a red e2e suite reached a release.
+#
+# e2e runs on every PR but is NON-BLOCKING for now: it's not in the branch
+# ruleset's required checks, so a red shard surfaces the failure without blocking
+# the merge. A few heavy /settings dialog specs still flake (Playwright clicks a
+# control before React attaches its handler) — a retry-until-open test helper is
+# the follow-up; once the suite is reliably green, add the `e2e` shards to the
+# develop/main required-status-checks ruleset to promote it to a blocking gate.
+# Locally it stays `task verify:e2e`.
 name: ci
 
 on:
@@ -67,3 +75,72 @@ jobs:
       - name: Python SDK — lint, types, tests
         working-directory: packages/sdk-py
         run: uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
+
+  e2e:
+    runs-on: ubuntu-latest
+    # Shard the serial suite across parallel runners. The single-worker run took
+    # ~20 min, and the contention made heavy /settings dialogs flake; sharding
+    # cuts wall-clock and per-runner load. Each shard brings up its own stack and
+    # truncates its own DB in global setup, so they're fully isolated.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    env:
+      # Admin owns DDL; the app connects as the RLS-bound helio_app role the
+      # migration creates (dev-default password). These match .env.example, which
+      # the compose stack below uses, so the app and the datastores agree.
+      DATABASE_ADMIN_URL: postgresql://helio:helio_dev_password@localhost:5432/helio
+      DATABASE_URL: postgresql://helio_app:helio_app@localhost:5432/helio
+      MAILPIT_UI_PORT: '8025'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Bring the core stack up via the project's OWN compose so the containers
+      # are named exactly as locally (helio-postgres-1, …): several specs assert
+      # DB state with `docker exec helio-postgres-1 psql`, which GitHub Actions
+      # `services:` can't satisfy. Mirrors `task verify:e2e` (which needs `task up`).
+      - name: Start the core stack (Postgres + Redis + Mailpit)
+        run: docker compose --env-file .env.example -f infra/compose/docker-compose.yml --profile core up -d --wait
+      # Ephemeral per-run secrets — nothing sensitive lives in the workflow.
+      # Lengths satisfy the env schema (auth >= 32, unsubscribe >= 24); the
+      # base64 key lets the credential-vault specs exercise their real path.
+      - name: Generate ephemeral e2e secrets
+        run: |
+          {
+            echo "BETTER_AUTH_SECRET=$(openssl rand -hex 32)"
+            echo "UNSUBSCRIBE_SECRET=$(openssl rand -hex 24)"
+            echo "HELIO_ENCRYPTION_KEY=$(openssl rand -base64 32)"
+          } >> "$GITHUB_ENV"
+      - name: Apply the database schema
+        run: pnpm --filter @helio/db exec prisma migrate deploy
+      - name: Build the web app
+        # next start serves whatever build is on disk, so build current code.
+        # env.ts validates the runtime schema at build time (it's imported when
+        # collecting page data), so provide build-time placeholders — the real
+        # values are read at runtime by next start. Build directly via pnpm (db
+        # first, then web; ui/core are transpiled from source) rather than turbo,
+        # mirroring infra/docker/web.Dockerfile so the build env is unfiltered.
+        run: |
+          pnpm --filter @helio/db build
+          BETTER_AUTH_SECRET=build-time-placeholder-secret-000000 \
+          DATABASE_URL=postgresql://build:build@localhost:5432/build \
+          DATABASE_ADMIN_URL=postgresql://build:build@localhost:5432/build \
+          UNSUBSCRIBE_SECRET=build-time-placeholder-secret-000000 \
+            pnpm --filter @helio/web build
+      - name: Install the Playwright browser
+        run: pnpm --filter @helio/web exec playwright install --with-deps chromium
+      - name: Run e2e shard ${{ matrix.shard }}/4 (Playwright boots the app on :3100)
+        run: cd apps/web && CI=1 pnpm test:e2e --shard=${{ matrix.shard }}/4
+      - name: Upload the Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-shard-${{ matrix.shard }}
+          path: apps/web/test-results
+          retention-days: 7
