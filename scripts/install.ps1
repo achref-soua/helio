@@ -218,6 +218,9 @@ function Cmd-Install {
   Step "Downloading Helio $tag"; Download-Bundle $tag
   Step "Generating this install's secrets"
   Fill-Env (Join-Path $HelioHome '.env.template') $EnvFile
+  # Serve the dashboard at a public address (domain / VM IP) when set — logins
+  # check the request origin, so a remote install must use its real URL.
+  if ($env:HELIO_APP_URL) { Set-Env 'APP_URL' $env:HELIO_APP_URL }
   Set-Env 'COMPOSE_PROFILES' $(if ($Full) { 'full' } else { 'core' })
   Copy-Item (Join-Path $HelioHome 'manifest.json') $ManifestFile -Force -ErrorAction SilentlyContinue
   Ok "configuration written to $EnvFile (keep this file with your backups)"

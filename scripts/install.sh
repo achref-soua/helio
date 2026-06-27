@@ -307,6 +307,10 @@ cmd_install() {
   step "Downloading Helio $tag"; download_bundle "$tag"
   step "Generating this install's secrets"
   fill_env "$HELIO_HOME/.env.template" "$ENV_FILE"
+  # Reach the dashboard at a public address (cloud VM IP, or your domain) instead
+  # of localhost — dashboard logins check the request origin, so a remote install
+  # must serve its real URL. Set HELIO_APP_URL before installing.
+  [ -n "${HELIO_APP_URL:-}" ] && set_env APP_URL "$HELIO_APP_URL" || true
   set_env COMPOSE_PROFILES "$PROFILE"
   cp "$HELIO_HOME/manifest.json" "$MANIFEST_FILE" 2>/dev/null || true
   ok "configuration written to $ENV_FILE (keep this file with your backups)"
