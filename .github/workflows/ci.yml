@@ -6,8 +6,15 @@
 # The `verify` and `python` jobs mirror `task verify` (format, lint, typecheck,
 # TS tests, then the Python checks). The `e2e` job runs the Playwright suite
 # against a real core stack (Postgres + Redis + Mailpit) — it used to be out of
-# the gate, which is exactly how a red e2e suite reached a release, so it gates
-# now too. Locally it stays `task verify:e2e`.
+# CI entirely, which is exactly how a red e2e suite reached a release.
+#
+# e2e runs on every PR but is NON-BLOCKING for now: it's not in the branch
+# ruleset's required checks, so a red shard surfaces the failure without blocking
+# the merge. A few heavy /settings dialog specs still flake (Playwright clicks a
+# control before React attaches its handler) — a retry-until-open test helper is
+# the follow-up; once the suite is reliably green, add the `e2e` shards to the
+# develop/main required-status-checks ruleset to promote it to a blocking gate.
+# Locally it stays `task verify:e2e`.
 name: ci
 
 on:
