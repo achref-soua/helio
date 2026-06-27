@@ -1,0 +1,13 @@
+# Deliberate, justified Trivy exceptions. Each entry names a CVE that is
+# present in an image but provably not reachable in Helio's usage, with the
+# condition under which it should be re-evaluated. This is read automatically
+# by the Trivy scan in .github/workflows/release.yml.
+
+# CVE-2025-68121 — Go crypto/tls "incorrect certificate validation".
+# Carried only by the `gosu` v1.19 binary that the upstream postgres:16-alpine
+# base image bundles as its privilege-drop helper (su-exec is symlinked to it).
+# gosu opens no network/TLS connections, so the affected crypto/tls path is
+# dead code in that binary — not exploitable, independent of the backup target.
+# No rebuilt upstream base is published yet. Re-evaluate (and drop this line)
+# once postgres:16-alpine ships a gosu built with Go >= 1.24.13.
+CVE-2025-68121
