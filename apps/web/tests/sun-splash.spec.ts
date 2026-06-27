@@ -20,7 +20,7 @@ async function signUpFreshUser(page: Page, request: APIRequestContext): Promise<
   await page.goto('/signup');
   await page.getByLabel('Name').fill('Sunset Tester');
   await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill('correct-horse-battery');
+  await page.getByLabel('Password', { exact: true }).fill('correct-horse-battery');
   await page.getByRole('button', { name: 'Sign up' }).click();
   await expect(page.getByText('Check your email')).toBeVisible();
 

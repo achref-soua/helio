@@ -19,7 +19,7 @@ setup('sign up and verify via Mailpit', async ({ page, request }) => {
   if (page.url().includes('/setup')) {
     await page.getByLabel('Your name').fill('E2E Operator');
     await page.getByLabel('Email').fill(email);
-    await page.getByLabel('Password').fill('correct-horse-battery');
+    await page.getByLabel('Password', { exact: true }).fill('correct-horse-battery');
     await page.getByLabel('Organization name').fill('E2E Org');
     // The suite owns its data — no sample workspace.
     await page.getByTestId('setup-seed').uncheck();
@@ -34,7 +34,7 @@ setup('sign up and verify via Mailpit', async ({ page, request }) => {
 
   await page.getByLabel('Name').fill('E2E Operator');
   await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill('correct-horse-battery');
+  await page.getByLabel('Password', { exact: true }).fill('correct-horse-battery');
   await page.getByRole('button', { name: 'Sign up' }).click();
   await expect(page.getByText('Check your email')).toBeVisible();
 
