@@ -9,10 +9,11 @@
 #   irm https://raw.githubusercontent.com/achref-soua/helio/main/scripts/install.ps1 | iex
 #   # or, downloaded:  .\install.ps1 [install|update|uninstall|start|stop|status] [-Full] [-Version vX.Y.Z] [-Yes]
 param(
-  [ValidateSet('install','update','uninstall','start','stop','status','menu')]
+  [ValidateSet('install','update','uninstall','start','stop','status','backup','restore','doctor','menu')]
   [string]$Command = 'menu',
   [switch]$Full,
   [string]$Version,
+  [string]$File,
   [switch]$Yes,
   [switch]$PurgeData
 )
@@ -218,6 +219,32 @@ function Cmd-Status {
   Compose ps
 }
 
+function Cmd-Backup {
+  if (-not (Test-Path $ManifestFile)) { Die "no installation at $HelioHome" }
+  Compose run --rm backup run manual
+  Say "backup written to $HelioHome\backups"
+}
+
+function Cmd-Restore {
+  if (-not (Test-Path $ManifestFile)) { Die "no installation at $HelioHome" }
+  if (-not $File) { Die "usage: .\install.ps1 restore -File <backup-file>  (see $HelioHome\backups)" }
+  Warn 'Restoring REPLACES the current database with the backup - anything newer is lost.'
+  if (-not $Yes) { if ((Read-Host 'Type "restore" to continue') -ne 'restore') { Warn 'aborted'; exit 1 } }
+  Compose run --rm backup restore $File
+}
+
+function Cmd-Doctor {
+  $healthy = $true
+  if ((Get-Command docker -ErrorAction SilentlyContinue)) { docker info *> $null; if ($LASTEXITCODE -eq 0) { Ok 'Docker is installed and running' } else { Warn 'Docker daemon not running'; $healthy = $false } }
+  else { Warn 'Docker not installed'; $healthy = $false }
+  if (Test-Path $ManifestFile) {
+    Say "   installed: Helio $(Manifest-Version) at $HelioHome (profile: $(Get-Env 'COMPOSE_PROFILES'))"
+    $url = (Get-Env 'APP_URL'); if (-not $url) { $url = 'http://localhost:3000' }
+    try { Invoke-WebRequest "$url/api/healthz" -UseBasicParsing -TimeoutSec 4 | Out-Null; Ok "dashboard answering at $url" } catch { Warn "dashboard not answering at $url"; $healthy = $false }
+  } else { Say "   not installed here - run: .\install.ps1 install" }
+  if ($healthy) { Ok 'all checks passed' } else { Warn 'some checks failed (see above)' }
+}
+
 function Cmd-Menu {
   Write-Host ''; Write-Host 'Helio - self-hosted, one script' -ForegroundColor White
   if (Test-Path $ManifestFile) {
@@ -241,5 +268,8 @@ switch ($Command) {
   'start'     { Cmd-Start }
   'stop'      { Cmd-Stop }
   'status'    { Cmd-Status }
+  'backup'    { Cmd-Backup }
+  'restore'   { Cmd-Restore }
+  'doctor'    { Cmd-Doctor }
   default     { Cmd-Menu }
 }
