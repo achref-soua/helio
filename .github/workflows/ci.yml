@@ -3,10 +3,11 @@
 # journey double-send reached a release. This runs on every PR into develop/
 # main and on every push to them, so regressions are caught before merge.
 #
-# Mirrors `task verify` exactly (format, lint, typecheck, TS tests, then the
-# Python checks). The heavier Playwright e2e is intentionally out of this gate
-# — like `task verify`, which keeps `verify:e2e` separate — because it needs
-# the full running stack; run it with `task verify:e2e`.
+# The `verify` and `python` jobs mirror `task verify` (format, lint, typecheck,
+# TS tests, then the Python checks). The `e2e` job runs the Playwright suite
+# against a real core stack (Postgres + Redis + Mailpit) — it used to be out of
+# the gate, which is exactly how a red e2e suite reached a release, so it gates
+# now too. Locally it stays `task verify:e2e`.
 name: ci
 
 on:
@@ -67,3 +68,76 @@ jobs:
       - name: Python SDK — lint, types, tests
         working-directory: packages/sdk-py
         run: uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
+
+  e2e:
+    runs-on: ubuntu-latest
+    # The core stack the suite needs. No spec touches ClickHouse/Temporal/
+    # Redpanda (analytics degrade gracefully) and copilot.spec asserts the
+    # graceful path when the AI service is absent, so the intelligence plane
+    # is deliberately not started here.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: helio
+          POSTGRES_PASSWORD: helio_dev_password
+          POSTGRES_DB: helio
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U helio -d helio"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+      mailpit:
+        image: axllent/mailpit:v1.21.8
+        ports:
+          - 1025:1025
+          - 8025:8025
+    env:
+      # Admin owns DDL; the app connects as the RLS-bound helio_app role that
+      # the migration creates (dev-default password). Matches the local .env.
+      DATABASE_ADMIN_URL: postgresql://helio:helio_dev_password@localhost:5432/helio
+      DATABASE_URL: postgresql://helio_app:helio_app@localhost:5432/helio
+      MAILPIT_UI_PORT: '8025'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Ephemeral per-run secrets — nothing sensitive lives in the workflow.
+      # Lengths satisfy the env schema (auth >= 32, unsubscribe >= 24); the
+      # base64 key lets the credential-vault specs exercise their real path.
+      - name: Generate ephemeral e2e secrets
+        run: |
+          {
+            echo "BETTER_AUTH_SECRET=$(openssl rand -hex 32)"
+            echo "UNSUBSCRIBE_SECRET=$(openssl rand -hex 24)"
+            echo "HELIO_ENCRYPTION_KEY=$(openssl rand -base64 32)"
+          } >> "$GITHUB_ENV"
+      - name: Apply the database schema
+        run: pnpm --filter @helio/db exec prisma migrate deploy
+      - name: Build the web app
+        # next start serves whatever build is on disk, so build current code.
+        run: pnpm turbo build --filter=@helio/web
+      - name: Install the Playwright browser
+        run: pnpm --filter @helio/web exec playwright install --with-deps chromium
+      - name: Wait for Mailpit
+        run: timeout 60 sh -c 'until curl -sf -o /dev/null http://localhost:8025; do sleep 2; done'
+      - name: Run e2e (Playwright boots the app on :3100)
+        run: cd apps/web && CI=1 pnpm test:e2e
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/test-results
+          retention-days: 7
