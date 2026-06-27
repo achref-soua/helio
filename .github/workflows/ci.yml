@@ -71,37 +71,18 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
-    # The core stack the suite needs. No spec touches ClickHouse/Temporal/
-    # Redpanda (analytics degrade gracefully) and copilot.spec asserts the
-    # graceful path when the AI service is absent, so the intelligence plane
-    # is deliberately not started here.
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_USER: helio
-          POSTGRES_PASSWORD: helio_dev_password
-          POSTGRES_DB: helio
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U helio -d helio"
-          --health-interval 10s --health-timeout 5s --health-retries 10
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s --health-timeout 5s --health-retries 10
-      mailpit:
-        image: axllent/mailpit:v1.21.8
-        ports:
-          - 1025:1025
-          - 8025:8025
+    # Shard the serial suite across parallel runners. The single-worker run took
+    # ~20 min, and the contention made heavy /settings dialogs flake; sharding
+    # cuts wall-clock and per-runner load. Each shard brings up its own stack and
+    # truncates its own DB in global setup, so they're fully isolated.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     env:
-      # Admin owns DDL; the app connects as the RLS-bound helio_app role that
-      # the migration creates (dev-default password). Matches the local .env.
+      # Admin owns DDL; the app connects as the RLS-bound helio_app role the
+      # migration creates (dev-default password). These match .env.example, which
+      # the compose stack below uses, so the app and the datastores agree.
       DATABASE_ADMIN_URL: postgresql://helio:helio_dev_password@localhost:5432/helio
       DATABASE_URL: postgresql://helio_app:helio_app@localhost:5432/helio
       MAILPIT_UI_PORT: '8025'
@@ -113,6 +94,12 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Bring the core stack up via the project's OWN compose so the containers
+      # are named exactly as locally (helio-postgres-1, …): several specs assert
+      # DB state with `docker exec helio-postgres-1 psql`, which GitHub Actions
+      # `services:` can't satisfy. Mirrors `task verify:e2e` (which needs `task up`).
+      - name: Start the core stack (Postgres + Redis + Mailpit)
+        run: docker compose --env-file .env.example -f infra/compose/docker-compose.yml --profile core up -d --wait
       # Ephemeral per-run secrets — nothing sensitive lives in the workflow.
       # Lengths satisfy the env schema (auth >= 32, unsubscribe >= 24); the
       # base64 key lets the credential-vault specs exercise their real path.
@@ -141,14 +128,12 @@ jobs:
             pnpm --filter @helio/web build
       - name: Install the Playwright browser
         run: pnpm --filter @helio/web exec playwright install --with-deps chromium
-      - name: Wait for Mailpit
-        run: timeout 60 sh -c 'until curl -sf -o /dev/null http://localhost:8025; do sleep 2; done'
-      - name: Run e2e (Playwright boots the app on :3100)
-        run: cd apps/web && CI=1 pnpm test:e2e
-      - name: Upload Playwright report on failure
+      - name: Run e2e shard ${{ matrix.shard }}/4 (Playwright boots the app on :3100)
+        run: cd apps/web && CI=1 pnpm test:e2e --shard=${{ matrix.shard }}/4
+      - name: Upload the Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-shard-${{ matrix.shard }}
           path: apps/web/test-results
           retention-days: 7
