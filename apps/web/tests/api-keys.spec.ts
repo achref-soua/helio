@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { openDialog } from './dialog';
+
 // Public REST API keys: an admin creates a key (revealed once), sees it
 // listed by its prefix, and revokes it. The gateway-side verification of
 // these keys is covered by the @helio/api contract test.
@@ -11,7 +13,7 @@ test('create an API key, see it listed, then revoke it', async ({ page }) => {
   const panel = page.getByTestId('api-keys-panel');
   await expect(panel).toBeVisible();
 
-  await panel.getByTestId('api-key-create').click();
+  await openDialog(panel.getByTestId('api-key-create'), page.getByTestId('api-key-name'));
   await page.getByTestId('api-key-name').fill(name);
   await page.getByTestId('api-key-submit').click();
 
@@ -32,7 +34,10 @@ test('create an API key, see it listed, then revoke it', async ({ page }) => {
 
 test('a scoped key shows its grants in the list', async ({ page }) => {
   await page.goto('/settings');
-  await page.getByRole('button', { name: 'Create key' }).click();
+  await openDialog(
+    page.getByRole('button', { name: 'Create key' }),
+    page.getByTestId('api-key-name'),
+  );
   await page.getByTestId('api-key-name').fill('Read-only reporting');
   await page.getByRole('checkbox', { name: /contacts:read/ }).check();
   await page.getByTestId('api-key-submit').click();

@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { openDialog } from './dialog';
+
 /**
  * The credential vault end to end: store an SMTP credential (secrets
  * sealed server-side), see only masks come back, verify it against the
@@ -13,7 +15,10 @@ test('admin stores, verifies, and removes an smtp credential', async ({ page }) 
   await expect(panel.getByText('Provider credentials')).toBeVisible();
 
   // Add: Email sending → SMTP.
-  await panel.getByLabel('Add a Email sending credential').click();
+  await openDialog(
+    panel.getByLabel('Add a Email sending credential'),
+    page.getByRole('option', { name: 'SMTP', exact: true }),
+  );
   await page.getByRole('option', { name: 'SMTP', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Name', { exact: true }).fill('Local Mailpit');

@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { openDialog } from './dialog';
+
 // Enterprise SSO administration: an org admin registers an OIDC provider,
 // sees it listed with its callback URL, and removes it. The IdP endpoints
 // are pinned manually (skip discovery) so the flow needs no live identity
@@ -19,7 +21,7 @@ test('register an OIDC provider, see it listed, then remove it', async ({ page }
   const panel = page.getByTestId('sso-panel');
   await expect(panel).toBeVisible();
 
-  await panel.getByTestId('sso-add').click();
+  await openDialog(panel.getByTestId('sso-add'), page.getByTestId('sso-domain'));
   await page.getByTestId('sso-domain').fill(domain);
   await page.getByTestId('sso-provider-id').fill(providerId);
   await page.getByTestId('sso-issuer').fill('https://idp.example.com');

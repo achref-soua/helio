@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { openDialog } from './dialog';
+
 // SCIM 2.0 provisioning: an admin mints a bearer token, then an identity
 // provider (here, Playwright's request context) lists, creates, and
 // deactivates members through /scim/v2 — authenticated only by the token.
@@ -10,8 +12,7 @@ test('mint a SCIM token and drive provisioning through /scim/v2', async ({ page,
   // 1. Generate the token in the dashboard and capture the one-time reveal.
   await page.goto('/settings');
   await expect(page.getByTestId('scim-panel')).toBeVisible();
-  await page.getByTestId('scim-generate').click();
-  await expect(page.getByTestId('scim-token')).toBeVisible();
+  await openDialog(page.getByTestId('scim-generate'), page.getByTestId('scim-token'));
   const token = (await page.getByTestId('scim-token').textContent())?.trim();
   expect(token).toMatch(/^scim_/);
   await page.getByRole('button', { name: 'Done' }).click();
