@@ -4,6 +4,7 @@ import { contactEmailSchema, newId } from '@helio/core';
 import { redirect } from 'next/navigation';
 
 import { authDb } from '@/lib/auth';
+import { checkPublicRateLimit } from '@/lib/public-rate-limit';
 
 /**
  * Landing-page form capture: upsert the email into the page's workspace, the
@@ -14,6 +15,11 @@ export async function submitLandingForm(formData: FormData): Promise<void> {
   const pageId = String(formData.get('pageId') ?? '');
   const parsedEmail = contactEmailSchema.safeParse(String(formData.get('email') ?? ''));
   const back = `/p/${encodeURIComponent(pageId)}?ok=1`;
+
+  // Throttle anonymous submissions the same way hosted forms do — a blocked
+  // one gets the same thank-you redirect, revealing nothing.
+  const limit = await checkPublicRateLimit('form');
+  if (!limit.allowed) redirect(back);
 
   const page = await authDb.landingPage.findUnique({ where: { id: pageId } });
   if (!page || !page.published || !parsedEmail.success) redirect(back);

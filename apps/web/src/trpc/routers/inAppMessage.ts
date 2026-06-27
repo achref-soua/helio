@@ -7,7 +7,15 @@ import { writeAudit } from '@/lib/audit';
 
 import { orgProcedure, requirePermission, router } from '../init';
 
-const ctaUrlSchema = z.string().trim().url().max(2000);
+// http(s) only: the in-app/widget client assigns this straight to an anchor's
+// href in plain DOM, so a `javascript:`/`data:` URL would be stored XSS on the
+// customer's own site. Zod's .url() alone accepts those schemes.
+const ctaUrlSchema = z
+  .string()
+  .trim()
+  .url()
+  .max(2000)
+  .refine((value) => /^https?:\/\//i.test(value), 'URL must be http(s)');
 
 /**
  * In-app messages shown inside the customer's product to identified visitors.

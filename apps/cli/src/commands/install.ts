@@ -1,4 +1,3 @@
-import { spawn } from 'node:child_process';
 import { chmodSync, copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
@@ -14,6 +13,7 @@ import {
 import { compose, detectDocker } from '../lib/docker';
 import { envValue, fillTemplate } from '../lib/envfile';
 import { waitForHttpOk } from '../lib/health';
+import { openBrowser } from '../lib/open';
 import { writeWindowsDesktopShortcut } from '../lib/shortcut';
 import {
   alreadyInstalledMessage,
@@ -24,13 +24,6 @@ import {
 } from '../lib/state';
 import { banner, bold, dim, fail, ok, prompt, say, step, sun, warn } from '../lib/ui';
 import { CLI_VERSION, registerCommand } from '../registry';
-
-function openBrowser(url: string): void {
-  const command =
-    process.platform === 'win32' ? 'cmd' : process.platform === 'darwin' ? 'open' : 'xdg-open';
-  const args = process.platform === 'win32' ? ['/c', 'start', '', url] : [url];
-  spawn(command, args, { stdio: 'ignore', detached: true }).unref();
-}
 
 async function run(argv: string[]): Promise<number> {
   const { values } = parseArgs({

@@ -25,7 +25,7 @@ async function signupAndVerify(page: Page, request: APIRequestContext, email: st
   await page.goto('/signup');
   await page.getByLabel('Name').fill('Invited Member');
   await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill('correct-horse-battery');
+  await page.getByLabel('Password', { exact: true }).fill('correct-horse-battery');
   await page.getByRole('button', { name: 'Sign up' }).click();
   await expect(page.getByText('Check your email')).toBeVisible();
   const verifyLink = await mailLink(request, email, /https?:\/\/\S+verify-email\S+/);

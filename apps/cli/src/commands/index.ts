@@ -8,5 +8,6 @@ import './backup';
 import './doctor';
 import './install';
 import './lifecycle';
+import './menu';
 import './rotate-key';
 import './update';

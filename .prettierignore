@@ -14,3 +14,7 @@ LICENSE
 .scratch/
 # Helm chart templates are Go templates, not valid YAML — Prettier can't parse them.
 infra/helm/*/templates/
+# Generated OWASP ZAP scan reports.
+docs/security/zap-baseline.html
+docs/security/zap-baseline.json
+docs/security/zap-baseline.md

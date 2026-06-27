@@ -1,0 +1,69 @@
+# Pull-request and trunk CI — the automated form of `task verify`. Until now
+# the only gate was running that locally, which is how a red e2e suite and a
+# journey double-send reached a release. This runs on every PR into develop/
+# main and on every push to them, so regressions are caught before merge.
+#
+# Mirrors `task verify` exactly (format, lint, typecheck, TS tests, then the
+# Python checks). The heavier Playwright e2e is intentionally out of this gate
+# — like `task verify`, which keeps `verify:e2e` separate — because it needs
+# the full running stack; run it with `task verify:e2e`.
+name: ci
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+# A newer push to the same ref cancels the in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Format
+        run: pnpm format:check
+      - name: Lint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      # Includes the Testcontainers integration tests; the runner's Docker
+      # daemon backs them. The Temporal tests use the in-process time-skipping
+      # environment, so no external services are needed.
+      - name: Test
+        run: pnpm test
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      # The intelligence RLS data-isolation tests build their schema by shelling
+      # out to `pnpm --filter @helio/db exec prisma migrate deploy` against a
+      # Testcontainers Postgres, so this job needs node + pnpm too.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Intelligence — lint, types, tests
+        working-directory: apps/intelligence
+        run: uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
+      - name: Python SDK — lint, types, tests
+        working-directory: packages/sdk-py
+        run: uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest

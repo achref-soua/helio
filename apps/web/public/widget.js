@@ -64,7 +64,10 @@
     body.textContent = widget.body;
     el.appendChild(body);
 
-    if (widget.ctaUrl && widget.ctaLabel) {
+    // Only ever follow http(s) — defence in depth against a stored
+    // `javascript:`/`data:` CTA running in the host page (the schema rejects
+    // them too).
+    if (widget.ctaUrl && widget.ctaLabel && /^https?:\/\//i.test(widget.ctaUrl)) {
       var cta = document.createElement('a');
       cta.href = widget.ctaUrl;
       cta.textContent = widget.ctaLabel;
