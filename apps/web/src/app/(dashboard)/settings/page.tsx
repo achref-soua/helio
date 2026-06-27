@@ -5,24 +5,34 @@ import type { ReactNode } from 'react';
 
 import { auth } from '@/lib/auth';
 
-import { AboutPanel } from './about-panel';
-import { AnalyticsPanel } from './analytics-panel';
-import { ApiKeysPanel } from './api-keys-panel';
-import { BackupsPanel } from './backups-panel';
-import { BrandingPanel } from './branding-panel';
-import { ChurnModelPanel } from './churn-model-panel';
-import { CredentialsPanel } from './credentials-panel';
-import { CurrencyPanel } from './currency-panel';
-import { DeliverabilityPanel } from './deliverability-panel';
-import { IntegrationsPanel } from './integrations-panel';
-import { MembersPanel } from './members-panel';
-import { PasswordPolicyPanel } from './password-policy-panel';
-import { ScimPanel } from './scim-panel';
-import { SecurityPanel } from './security-panel';
-import { SsoPanel } from './sso-panel';
-import { SupportPanel } from './support-panel';
-import { UpdatesPanel } from './updates-panel';
-import { WebhooksPanel } from './webhooks-panel';
+// /settings is one long page that renders ~19 interactive client panels at once.
+// Importing them statically put every panel's JS in the route's first-load
+// bundle, so a weak machine had to download, parse, and hydrate all of them
+// before any single panel — e.g. clicking "Create" in one — became responsive.
+// The panels are now lazy client boundaries (see ./panels): the server-rendered
+// HTML is identical (no UI/UX change, no skeleton flash on load), but each panel
+// is its own async chunk, so React hydrates them independently and prioritizes
+// the one you interact with first. Measured win: docs/perf/settings-code-split.md.
+import {
+  AboutPanel,
+  AnalyticsPanel,
+  ApiKeysPanel,
+  BackupsPanel,
+  BrandingPanel,
+  ChurnModelPanel,
+  CredentialsPanel,
+  CurrencyPanel,
+  DeliverabilityPanel,
+  IntegrationsPanel,
+  MembersPanel,
+  PasswordPolicyPanel,
+  ScimPanel,
+  SecurityPanel,
+  SsoPanel,
+  SupportPanel,
+  UpdatesPanel,
+  WebhooksPanel,
+} from './panels';
 
 /**
  * One labelled band of related settings. The cards still flow two-up on wide
