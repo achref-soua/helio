@@ -38,6 +38,26 @@ Pick the **core** profile (default, ~2.5 GB RAM: dashboard, REST API, AI
 copilot) or **full** (adds campaign sending, event ingestion, tracking, and
 analytics — recommended on ≥ 8 GB hosts; switch later with `helio up --full`).
 
+### If Docker won't cooperate
+
+Docker is the only prerequisite, and it's where most install problems happen.
+The installer (and `helio doctor`) now diagnoses the common cases and fixes the
+safe ones for you:
+
+- **Linux — "permission denied" on the socket.** You're not in the `docker`
+  group yet. The installer adds you and tells you to log out and back in (or run
+  `newgrp docker`) so it takes effect — that one re-login is unavoidable.
+- **Linux — daemon not running.** The installer starts it
+  (`sudo systemctl start docker`); `helio doctor` offers to as well.
+- **Windows — WSL2 missing.** Docker Desktop needs it. The installer offers to
+  run `wsl --install` for you; **reboot**, then re-run the install command.
+- **Windows — virtualization is off.** Docker can't run without CPU
+  virtualization. Reboot into your BIOS/UEFI and enable
+  _Virtualization / Intel VT-x / SVM Mode_ (under CPU or Advanced), then re-run.
+
+When in doubt, run `helio doctor` — it reports exactly what's wrong and the
+command to fix it.
+
 ### Operating it
 
 | Command             | What it does                                                             |

@@ -156,6 +156,8 @@ The installer is a plain script — nothing for antivirus or SmartScreen to flag
 
 Everything lives under `~/.helio` (compose file, `.env` with your secrets, backups). The default **core** profile (~2.5 GB RAM) runs the dashboard, REST API, and AI service; `helio up --full` adds campaign sending, event ingestion, tracking, and analytics for bigger hosts. Mail goes to the bundled [Mailpit](https://mailpit.axllent.org/) test inbox until an organization connects its real provider under **Settings → Provider credentials** — so you can explore without sending anyone anything.
 
+Docker is where most install problems happen, so the installer (and `helio doctor`) diagnoses the common ones and fixes the safe cases automatically — Linux socket permissions and a stopped daemon, and on Windows a missing WSL2 backend (it offers to run `wsl --install`) or CPU virtualization disabled in the BIOS. If an install stalls, run `helio doctor`: it names exactly what's wrong and the command to fix it. See [`self-hosting.mdx`](apps/docs/content/docs/self-hosting.mdx) for the full list.
+
 ## Develop from source
 
 ```bash
