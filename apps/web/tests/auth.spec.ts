@@ -13,7 +13,7 @@ test.describe('anonymous access', () => {
   test('login rejects bad credentials with feedback', async ({ page }) => {
     await page.goto('/login');
     await page.getByLabel('Email').fill('nobody@example.com');
-    await page.getByLabel('Password').fill('wrong-password-123');
+    await page.getByLabel('Password', { exact: true }).fill('wrong-password-123');
     await page.getByRole('button', { name: 'Log in' }).click();
     // Sonner toast surfaces the auth error; we stay on the login page.
     await expect(page).toHaveURL(/\/login$/);
@@ -22,7 +22,7 @@ test.describe('anonymous access', () => {
 
   test('the password field can be revealed and hidden', async ({ page }) => {
     await page.goto('/login');
-    const password = page.getByLabel('Password');
+    const password = page.getByLabel('Password', { exact: true });
     await password.fill('hunter2');
     await expect(password).toHaveAttribute('type', 'password');
     await page.getByRole('button', { name: 'Show password' }).click();

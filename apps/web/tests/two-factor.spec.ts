@@ -44,7 +44,7 @@ function totp(secretBase32: string, atMs = Date.now()): string {
 async function login(page: Page, email: string) {
   await page.goto('/login');
   await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill(PASSWORD);
+  await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
   await page.getByRole('button', { name: 'Log in' }).click();
 }
 
@@ -59,7 +59,7 @@ test('enroll in TOTP 2FA, sign in through the challenge, burn a backup code, dis
   await page.goto('/signup');
   await page.getByLabel('Name').fill('TwoFA Tester');
   await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill(PASSWORD);
+  await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
   await page.getByRole('button', { name: 'Sign up' }).click();
   await expect(page.getByText('Check your email')).toBeVisible();
 

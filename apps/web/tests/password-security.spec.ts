@@ -37,7 +37,7 @@ test.describe('forgot & reset', () => {
     await page.goto('/signup');
     await page.getByLabel('Name').fill('Reset Tester');
     await page.getByLabel('Email').fill(email);
-    await page.getByLabel('Password').fill('first-password-was-fine-1');
+    await page.getByLabel('Password', { exact: true }).fill('first-password-was-fine-1');
     await page.getByRole('button', { name: 'Sign up' }).click();
     await expect(page.getByText('Check your email')).toBeVisible();
 
@@ -122,7 +122,7 @@ test.describe('forced rotation', () => {
     await page.goto('/signup');
     await page.getByLabel('Name').fill('Rotate Tester');
     await page.getByLabel('Email').fill(email);
-    await page.getByLabel('Password').fill('correct-horse-battery');
+    await page.getByLabel('Password', { exact: true }).fill('correct-horse-battery');
     await page.getByRole('button', { name: 'Sign up' }).click();
     await expect(page.getByText('Check your email')).toBeVisible();
     let link: string | undefined;

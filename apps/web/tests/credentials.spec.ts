@@ -19,10 +19,10 @@ test('admin stores, verifies, and removes an smtp credential', async ({ page }) 
   await dialog.getByLabel('Name', { exact: true }).fill('Local Mailpit');
   await dialog.getByLabel('Host', { exact: true }).fill('localhost');
   await dialog.getByLabel('Port', { exact: true }).fill(smtpPort);
-  await dialog.getByLabel('From email').fill('gate@helio.test');
+  await dialog.getByLabel('From email', { exact: true }).fill('gate@helio.test');
   // A secret without a username: stored and masked, but the probe uses
   // an unauthenticated connection (Mailpit accepts any).
-  await dialog.getByLabel('SMTP password').fill('not-a-real-secret');
+  await dialog.getByLabel('SMTP password', { exact: true }).fill('not-a-real-secret');
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
 
   const row = panel.locator('li', { hasText: 'Local Mailpit' });
@@ -44,7 +44,7 @@ test('admin stores, verifies, and removes an smtp credential', async ({ page }) 
   // Editing without re-entering the secret keeps it stored.
   await row.getByRole('button', { name: 'Edit' }).click();
   const editDialog = page.getByRole('dialog');
-  await expect(editDialog.getByLabel('SMTP password')).toHaveAttribute(
+  await expect(editDialog.getByLabel('SMTP password', { exact: true })).toHaveAttribute(
     'placeholder',
     /Stored \(••••cret\)/,
   );
