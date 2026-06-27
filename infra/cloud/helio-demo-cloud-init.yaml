@@ -1,0 +1,52 @@
+#cloud-config
+# Helio — public "try it" DEMO on a cloud VM.
+#
+# Paste this whole file as the VM's user-data (DigitalOcean, Hetzner, EC2, …).
+# On first boot it installs Helio and installs a cron that resets the demo to a
+# known "golden" snapshot every 6 hours — so visitors can click around freely
+# and any changes (or abuse) are wiped on the next reset. Mail stays in the
+# bundled test inbox: a demo never sends real email.
+#
+# ONE-TIME setup after first boot (makes the golden snapshot the reset restores):
+#   1. Open  http://<server-ip>:3000  and sign up the demo admin — use the
+#      throwaway credentials you'll publish (e.g. demo@helio.test / demo-helio).
+#   2. On the setup screen, click "load sample data" so the demo has content.
+#   3. SSH in and capture that state as the golden snapshot the cron restores:
+#        ~/.helio/helio backup
+#        cp ~/.helio/backups/$(ls -t ~/.helio/backups | head -1) ~/.helio/backups/demo-golden.dump
+#   Until that file exists the reset cron is a safe no-op.
+#
+# See the "Running a public demo" guide in docs for the full walkthrough,
+# the recommended VM size (4 GB), and the guardrails checklist.
+package_update: true
+packages:
+  - curl
+  - ca-certificates
+write_files:
+  - path: /usr/local/bin/helio-demo-reset
+    permissions: '0755'
+    content: |
+      #!/bin/sh
+      # Restore the demo to its golden snapshot, discarding visitor changes.
+      # A safe no-op until the operator has created backups/demo-golden.dump.
+      set -eu
+      H="${HELIO_HOME:-$HOME/.helio}"
+      if [ ! -f "$H/backups/demo-golden.dump" ]; then
+        echo "$(date -u +%FT%TZ) no golden snapshot yet — skipping reset"
+        exit 0
+      fi
+      echo "$(date -u +%FT%TZ) resetting demo to golden snapshot"
+      HELIO_YES=1 "$H/helio" restore demo-golden.dump
+runcmd:
+  - |
+    set -eu
+    # Serve the dashboard at the VM's public IP so demo logins work.
+    PUBLIC_IP="$(curl -fsS --max-time 10 https://api.ipify.org 2>/dev/null \
+      || curl -fsS --max-time 10 https://ifconfig.me 2>/dev/null \
+      || hostname -I | awk '{print $1}')"
+    export HELIO_APP_URL="http://${PUBLIC_IP}:3000"
+    export HELIO_YES=1 HELIO_NO_BROWSER=1
+    curl -fsSL https://github.com/achref-soua/helio/releases/latest/download/install.sh | sh
+    # Reset the demo to its golden snapshot every 6 hours (no-op until one exists).
+    ( crontab -l 2>/dev/null | grep -v helio-demo-reset; \
+      echo "0 */6 * * * /usr/local/bin/helio-demo-reset >> $HOME/.helio/demo-reset.log 2>&1" ) | crontab -

@@ -41,6 +41,37 @@ die()  { printf 'error: %s\n' "$1" >&2; exit 1; }
 # ── small helpers ───────────────────────────────────────────────────────────
 have() { command -v "$1" >/dev/null 2>&1; }
 
+# Run a command as root: directly if we already are, else via sudo, else fail.
+as_root() {
+  if [ "$(id -u)" = 0 ]; then "$@"
+  elif have sudo; then sudo "$@"
+  else return 1; fi
+}
+
+# Classify why `docker info` failed from its stderr. Echoes: perm | daemon | other.
+# (Drives a precise message + the right repair instead of a generic "start Docker".)
+classify_docker_error() {
+  case "$1" in
+    *"permission denied"*|*"connect: permission denied"*|*"dial unix"*"permission denied"*) printf 'perm' ;;
+    *"Cannot connect to the Docker daemon"*|*"Is the docker daemon running"*|*"daemon is not running"*) printf 'daemon' ;;
+    *) printf 'other' ;;
+  esac
+}
+
+# Try to start the Docker daemon (Linux systemd/SysV). 0 if docker responds after.
+start_docker_daemon() {
+  as_root systemctl start docker 2>/dev/null || as_root service docker start 2>/dev/null || return 1
+  i=0; while [ "$i" -lt 15 ]; do docker info >/dev/null 2>&1 && return 0; i=$((i + 1)); sleep 1; done
+  return 1
+}
+
+# Add the invoking (non-root) user to the docker group so it can reach the socket.
+add_to_docker_group() {
+  u=$(id -un)
+  [ "$u" != root ] || return 1
+  as_root usermod -aG docker "$u" 2>/dev/null
+}
+
 fetch() { # url dest
   if have curl; then curl -fsSL "$1" -o "$2" || die "download failed: $1"
   elif have wget; then wget -qO "$2" "$1" || die "download failed: $1"
@@ -155,13 +186,45 @@ ensure_docker() {
         fi
         fetch "https://get.docker.com" "$HELIO_HOME/get-docker.sh" || die "could not download the Docker installer"
         sh "$HELIO_HOME/get-docker.sh" || die "Docker installation failed"
+        # get.docker.com starts the daemon, but this user still needs the
+        # docker group for socket access — the perm branch below handles re-login.
+        add_to_docker_group || true
         ;;
       Darwin) die "Install Docker Desktop (https://docs.docker.com/desktop/setup/install/mac-install/) or OrbStack, start it, then re-run." ;;
       *) die "Install Docker, then re-run: https://docs.docker.com/engine/install/" ;;
     esac
   fi
-  docker info >/dev/null 2>&1 || die "Docker is installed but its daemon isn't running — start Docker, then re-run."
-  docker compose version >/dev/null 2>&1 || die "Docker Compose v2 (the 'docker compose' plugin) is missing."
+  # Daemon reachable? If not, diagnose precisely and repair the safe cases.
+  if ! docker info >/dev/null 2>&1; then
+    err=$(docker info 2>&1 || true)
+    case "$(classify_docker_error "$err")" in
+      daemon)
+        case "$(uname -s)" in
+          Linux)
+            warn "Docker's daemon isn't running — starting it (needs sudo)…"
+            start_docker_daemon || die "Couldn't start the Docker daemon. Start it (sudo systemctl start docker) and re-run." ;;
+          Darwin)
+            warn "Docker Desktop isn't running — opening it…"
+            open -a Docker >/dev/null 2>&1 || open -a OrbStack >/dev/null 2>&1 || true
+            i=0; while [ "$i" -lt 30 ]; do docker info >/dev/null 2>&1 && break; i=$((i + 1)); sleep 2; done
+            docker info >/dev/null 2>&1 || die "Docker Desktop didn't come up — open it from Applications, wait for 'Engine running', then re-run." ;;
+          *) die "Docker's daemon isn't running — start Docker, then re-run." ;;
+        esac ;;
+      perm)
+        if [ "$(uname -s)" = Linux ]; then
+          if add_to_docker_group; then
+            die "Added you to the 'docker' group. Log out and back in (or run: newgrp docker) so it applies, then re-run this install."
+          else
+            die "Can't reach the Docker socket (permission denied). Run: sudo usermod -aG docker $(id -un) — then log out and back in, and re-run."
+          fi
+        else
+          die "Can't reach Docker (permission denied) — start Docker and re-run."
+        fi ;;
+      *)
+        die "Docker isn't responding. Start Docker, then re-run. (details: $(printf '%s' "$err" | head -1))" ;;
+    esac
+  fi
+  docker compose version >/dev/null 2>&1 || die "Docker Compose v2 (the 'docker compose' plugin) is missing — install it: https://docs.docker.com/compose/install/"
 }
 
 compose() { ( cd "$HELIO_HOME" && docker compose --file "$COMPOSE_FILE" --env-file "$ENV_FILE" "$@" ); }
@@ -244,6 +307,10 @@ cmd_install() {
   step "Downloading Helio $tag"; download_bundle "$tag"
   step "Generating this install's secrets"
   fill_env "$HELIO_HOME/.env.template" "$ENV_FILE"
+  # Reach the dashboard at a public address (cloud VM IP, or your domain) instead
+  # of localhost — dashboard logins check the request origin, so a remote install
+  # must serve its real URL. Set HELIO_APP_URL before installing.
+  [ -n "${HELIO_APP_URL:-}" ] && set_env APP_URL "$HELIO_APP_URL" || true
   set_env COMPOSE_PROFILES "$PROFILE"
   cp "$HELIO_HOME/manifest.json" "$MANIFEST_FILE" 2>/dev/null || true
   ok "configuration written to $ENV_FILE (keep this file with your backups)"
@@ -311,6 +378,68 @@ cmd_status() {
   http_ok "$url/api/healthz" && say "dashboard answering at $url" || say "dashboard not answering at $url"
 }
 
+cmd_backup() {
+  [ -f "$MANIFEST_FILE" ] || die "no installation at $HELIO_HOME"
+  compose run --rm backup run manual
+  say "backup written to $HELIO_HOME/backups"
+}
+
+cmd_restore() {
+  [ -f "$MANIFEST_FILE" ] || die "no installation at $HELIO_HOME"
+  file="${1:-}"
+  [ -n "$file" ] || die "usage: $0 restore <backup-file>  (see $HELIO_HOME/backups)"
+  warn "Restoring REPLACES the current database with the backup — anything newer is lost."
+  if [ -t 0 ] && [ "${HELIO_YES:-}" != "1" ]; then
+    printf 'Type "restore" to continue: '; read -r reply
+    [ "$reply" = "restore" ] || { warn "aborted — nothing was changed"; exit 1; }
+  fi
+  compose run --rm backup restore "$file"
+}
+
+cmd_doctor() {
+  healthy=1
+  if ! have docker; then
+    warn "Docker is not installed."
+    say "   fix: re-run '$0 install' (it can install Docker for you) — https://docs.docker.com/engine/install/"
+    healthy=0
+  elif ! docker info >/dev/null 2>&1; then
+    err=$(docker info 2>&1 || true)
+    case "$(classify_docker_error "$err")" in
+      daemon)
+        warn "Docker is installed but its daemon isn't running."
+        if [ "$(uname -s)" = Linux ] && have systemctl && { [ "$(id -u)" = 0 ] || have sudo; }; then
+          if [ -t 0 ]; then
+            printf 'Start the Docker daemon now? (needs sudo) [Y/n]: '; read -r r
+            case "$r" in n|N) say "   fix: sudo systemctl start docker" ;; *) start_docker_daemon && ok "daemon started" || warn "couldn't start it — try: sudo systemctl start docker" ;; esac
+          else say "   fix: sudo systemctl start docker"; fi
+        elif [ "$(uname -s)" = Darwin ]; then say "   fix: open Docker Desktop and wait for 'Engine running'"
+        else say "   fix: start the Docker daemon"; fi
+        docker info >/dev/null 2>&1 || healthy=0 ;;
+      perm)
+        warn "Docker is installed but you can't reach it (permission denied)."
+        say "   fix: sudo usermod -aG docker $(id -un)  — then log out and back in"
+        healthy=0 ;;
+      *)
+        warn "Docker isn't responding: $(printf '%s' "$err" | head -1)"; healthy=0 ;;
+    esac
+  elif ! docker compose version >/dev/null 2>&1; then
+    warn "Docker is running but Compose v2 is missing."
+    say "   fix: install the docker-compose plugin — https://docs.docker.com/compose/install/"
+    healthy=0
+  else
+    ok "Docker is installed, running, and has Compose v2"
+  fi
+  if have openssl; then ok "openssl present (secret generation)"; else warn "openssl missing"; healthy=0; fi
+  if [ -f "$MANIFEST_FILE" ]; then
+    say "   installed: Helio $(manifest_version) at $HELIO_HOME (profile: $(get_env COMPOSE_PROFILES))"
+    url=$(get_env APP_URL); [ -n "$url" ] || url="http://localhost:3000"
+    http_ok "$url/api/healthz" && ok "dashboard answering at $url" || { warn "dashboard not answering at $url ('$0 status' for detail)"; healthy=0; }
+  else
+    say "   not installed here — run: $0 install"
+  fi
+  [ "$healthy" = "1" ] && ok "all checks passed" || { warn "some checks failed (see above)"; return 1; }
+}
+
 # Offline self-check: secret kinds produce the expected shapes and the template
 # fills with no markers left. Run: ./install.sh selftest
 cmd_selftest() {
@@ -325,6 +454,10 @@ cmd_selftest() {
   grep -q '__GENERATE_' "$out" && die "selftest: markers left unfilled" || true
   grep -q '^D=$' "$out" || die "selftest: VAPID should be empty"
   rm -f "$tmpl" "$out"
+  # docker-error classifier maps real daemon output to the right repair path
+  [ "$(classify_docker_error 'Got permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock')" = perm ] || die "selftest: perm not classified"
+  [ "$(classify_docker_error 'Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?')" = daemon ] || die "selftest: daemon not classified"
+  [ "$(classify_docker_error 'request returned 500 Internal Server Error')" = other ] || die "selftest: other not classified"
   ok "selftest passed"
 }
 
@@ -351,12 +484,12 @@ PROFILE=core
 CMD=''
 while [ $# -gt 0 ]; do
   case "$1" in
-    install|update|uninstall|start|stop|status|logs|selftest) CMD="$1"; shift ;;
+    install|update|uninstall|start|stop|status|logs|backup|restore|doctor|selftest) CMD="$1"; shift ;;
     --full) PROFILE=full; shift ;;
     --version) VERSION="${2:-}"; shift 2 ;;
     --yes|-y) HELIO_YES=1; shift ;;
     --purge-data) PURGE=--purge-data; shift ;;
-    *) if [ "${CMD:-}" = logs ]; then break; else die "unknown option: $1"; fi ;;
+    *) if [ "${CMD:-}" = logs ] || [ "${CMD:-}" = restore ]; then break; else die "unknown option: $1"; fi ;;
   esac
 done
 
@@ -368,6 +501,9 @@ case "${CMD:-}" in
   stop)      cmd_stop ;;
   status)    cmd_status ;;
   logs)      cmd_logs "$@" ;;
+  backup)    cmd_backup ;;
+  restore)   cmd_restore "$@" ;;
+  doctor)    cmd_doctor ;;
   selftest)  cmd_selftest ;;
   '')        if [ -t 0 ]; then menu; else cmd_install; fi ;;
 esac

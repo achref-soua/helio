@@ -1,0 +1,37 @@
+# Deliberate, justified Trivy exceptions. Each entry names a CVE that is
+# present in an image but provably not reachable in Helio's usage, with the
+# condition under which it should be re-evaluated. This is read automatically
+# by the Trivy scan in .github/workflows/release.yml.
+
+# CVE-2025-68121 — Go crypto/tls "incorrect certificate validation during TLS
+# session resumption". Reaches Helio in two upstream binaries, neither of which
+# exercises the affected path:
+#   - backup image: the `gosu` v1.19 privilege-drop helper bundled by
+#     postgres:16-alpine (su-exec symlinks to it). gosu opens no network/TLS
+#     connections, so the crypto/tls code is dead in that binary.
+#   - updater image: the Docker CLI's own Go stdlib (docker:28-cli). The updater
+#     drives `docker compose` against the LOCAL daemon over a Unix socket (no
+#     TLS); registry pulls run in the daemon, not the CLI, so the CLI's TLS
+#     session-resumption path is not reached.
+# No rebuilt upstream bases ship a fixed Go yet. Re-evaluate (and drop this line)
+# once postgres:16-alpine's gosu and docker:28-cli are built with Go >= 1.24.13.
+CVE-2025-68121
+
+# CVE-2026-33186 — grpc-go authz "authorization bypass via improper HTTP/2 path
+# validation". Carried by google.golang.org/grpc (v1.74.2) linked into the
+# Docker CLI in the updater image (docker:28-cli). The flaw is in grpc-go's
+# server-side authorization interceptor (google.golang.org/grpc/authz); the
+# updater's Docker CLI acts only as a gRPC CLIENT to the local daemon/BuildKit
+# over a Unix socket and runs no authz-protected gRPC server (and pulls rather
+# than builds images), so the vulnerable interceptor is never invoked. Re-evaluate
+# (and drop this line) once docker:28-cli ships grpc-go >= 1.79.3.
+CVE-2026-33186
+
+# CVE-2026-31789 — OpenSSL "heap buffer overflow on 32-bit systems from a large
+# X.509 certificate". Carried by libcrypto3/libssl3 (3.5.4-r0) in the Docker
+# CLI's Alpine base (docker:28-cli) in the updater image. The overflow is, per
+# the advisory, specific to 32-bit builds; Helio's images are built and run on
+# 64-bit targets (amd64 / arm64) only, where the affected path does not trigger.
+# Re-evaluate (and drop this line) once docker:28-cli's Alpine base ships
+# openssl >= 3.5.6-r0.
+CVE-2026-31789

@@ -9,10 +9,11 @@
 #   irm https://raw.githubusercontent.com/achref-soua/helio/main/scripts/install.ps1 | iex
 #   # or, downloaded:  .\install.ps1 [install|update|uninstall|start|stop|status] [-Full] [-Version vX.Y.Z] [-Yes]
 param(
-  [ValidateSet('install','update','uninstall','start','stop','status','menu')]
+  [ValidateSet('install','update','uninstall','start','stop','status','backup','restore','doctor','menu')]
   [string]$Command = 'menu',
   [switch]$Full,
   [string]$Version,
+  [string]$File,
   [switch]$Yes,
   [switch]$PurgeData
 )
@@ -80,7 +81,53 @@ function Manifest-Version {
   ((Get-Content -Raw $ManifestFile | ConvertFrom-Json).version)
 }
 
+# True if Docker is installed AND its daemon answers.
+function Test-DockerReady {
+  if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { return $false }
+  $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+  docker info *> $null; $ok = ($LASTEXITCODE -eq 0)
+  $ErrorActionPreference = $eap
+  return $ok
+}
+
+# True if CPU virtualization (VT-x/AMD-V) is available to the OS. Docker Desktop
+# can't run without it — and it's the #1 silent Windows failure (off in BIOS).
+function Test-Virtualization {
+  try {
+    $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction Stop
+    if ($cs.HypervisorPresent) { return $true }   # a hypervisor is already up => virt is on
+    $cpu = Get-CimInstance Win32_Processor -ErrorAction Stop | Select-Object -First 1
+    if ($null -eq $cpu.VirtualizationFirmwareEnabled) { return $true }  # unknown => don't block
+    return [bool]$cpu.VirtualizationFirmwareEnabled
+  } catch { return $true }  # can't tell => don't block the install
+}
+
+# True if WSL2 is installed and usable (Docker Desktop's required backend).
+function Test-WSL2 {
+  if (-not (Get-Command wsl -ErrorAction SilentlyContinue)) { return $false }
+  $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+  wsl --status *> $null; $ok = ($LASTEXITCODE -eq 0)
+  $ErrorActionPreference = $eap
+  return $ok
+}
+
 function Ensure-Docker {
+  # Prerequisites Docker can't run without — check before touching anything.
+  if (-not (Test-DockerReady)) {
+    if (-not (Test-Virtualization)) {
+      Die 'Hardware virtualization (VT-x / AMD-V) is OFF — Docker cannot run without it. Reboot into your PC''s BIOS/UEFI, enable "Virtualization" / "Intel VT-x" / "SVM Mode" (usually under CPU or Advanced), save, then re-run this command.'
+    }
+    if (-not (Test-WSL2)) {
+      Say 'Docker Desktop needs WSL2 (Windows Subsystem for Linux) — a one-time setup.'
+      $ans = if ($Yes) { 'y' } else { Read-Host 'Install WSL2 now? A reboot is required afterwards. [Y/n]' }
+      if ($ans -eq '' -or $ans -match '^[Yy]') {
+        wsl --install --no-distribution
+        Die 'WSL2 is installing. REBOOT Windows now, then re-run this command to finish setting up Helio.'
+      } else {
+        Die 'WSL2 is required. Run "wsl --install" in an admin PowerShell, reboot, then re-run this command.'
+      }
+    }
+  }
   if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     Say 'Helio runs on Docker Desktop - a one-time, free app install.'
     $winget = Get-Command winget -ErrorAction SilentlyContinue
@@ -104,7 +151,20 @@ function Ensure-Docker {
       Die 'Install Docker Desktop from https://www.docker.com/products/docker-desktop/ then re-run this command.'
     }
   }
-  docker info *> $null; if ($LASTEXITCODE -ne 0) { Die 'Docker is installed but its daemon is not running - start Docker Desktop, then re-run.' }
+  if (-not (Test-DockerReady)) {
+    # Installed but the engine is stopped — start Docker Desktop and wait for it.
+    $desktop = Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe'
+    if (Test-Path $desktop) {
+      Warn 'Docker is installed but its engine is stopped — starting Docker Desktop…'
+      Start-Process $desktop
+      $deadline = (Get-Date).AddMinutes(3)
+      while ((Get-Date) -lt $deadline) { if (Test-DockerReady) { break }; Start-Sleep -Seconds 5 }
+    }
+    if (-not (Test-DockerReady)) {
+      if (-not (Test-WSL2)) { Die 'Docker can''t start because WSL2 is missing — run "wsl --install" in an admin PowerShell, reboot, then re-run.' }
+      Die 'Docker is installed but its engine did not start — open Docker Desktop, wait until it says "Engine running", then re-run.'
+    }
+  }
   docker compose version *> $null; if ($LASTEXITCODE -ne 0) { Die "Docker Compose v2 is missing." }
 }
 
@@ -158,6 +218,9 @@ function Cmd-Install {
   Step "Downloading Helio $tag"; Download-Bundle $tag
   Step "Generating this install's secrets"
   Fill-Env (Join-Path $HelioHome '.env.template') $EnvFile
+  # Serve the dashboard at a public address (domain / VM IP) when set — logins
+  # check the request origin, so a remote install must use its real URL.
+  if ($env:HELIO_APP_URL) { Set-Env 'APP_URL' $env:HELIO_APP_URL }
   Set-Env 'COMPOSE_PROFILES' $(if ($Full) { 'full' } else { 'core' })
   Copy-Item (Join-Path $HelioHome 'manifest.json') $ManifestFile -Force -ErrorAction SilentlyContinue
   Ok "configuration written to $EnvFile (keep this file with your backups)"
@@ -218,6 +281,44 @@ function Cmd-Status {
   Compose ps
 }
 
+function Cmd-Backup {
+  if (-not (Test-Path $ManifestFile)) { Die "no installation at $HelioHome" }
+  Compose run --rm backup run manual
+  Say "backup written to $HelioHome\backups"
+}
+
+function Cmd-Restore {
+  if (-not (Test-Path $ManifestFile)) { Die "no installation at $HelioHome" }
+  if (-not $File) { Die "usage: .\install.ps1 restore -File <backup-file>  (see $HelioHome\backups)" }
+  Warn 'Restoring REPLACES the current database with the backup - anything newer is lost.'
+  if (-not $Yes) { if ((Read-Host 'Type "restore" to continue') -ne 'restore') { Warn 'aborted'; exit 1 } }
+  Compose run --rm backup restore $File
+}
+
+function Cmd-Doctor {
+  $healthy = $true
+  if (Test-DockerReady) {
+    Ok 'Docker is installed and running'
+  } elseif (Get-Command docker -ErrorAction SilentlyContinue) {
+    Warn 'Docker is installed but its engine is not running.'
+    Say '   fix: open Docker Desktop and wait until it says "Engine running"'
+    if (-not (Test-WSL2)) { Say '   also: WSL2 is missing — run "wsl --install", reboot' }
+    $healthy = $false
+  } else {
+    Warn 'Docker is not installed.'
+    if (-not (Test-Virtualization)) { Say '   first: enable CPU virtualization (VT-x / AMD-V / SVM) in your BIOS/UEFI' }
+    if (-not (Test-WSL2)) { Say '   then: install WSL2 — run "wsl --install", reboot' }
+    Say '   then: re-run ".\install.ps1 install" (it installs Docker Desktop for you)'
+    $healthy = $false
+  }
+  if (Test-Path $ManifestFile) {
+    Say "   installed: Helio $(Manifest-Version) at $HelioHome (profile: $(Get-Env 'COMPOSE_PROFILES'))"
+    $url = (Get-Env 'APP_URL'); if (-not $url) { $url = 'http://localhost:3000' }
+    try { Invoke-WebRequest "$url/api/healthz" -UseBasicParsing -TimeoutSec 4 | Out-Null; Ok "dashboard answering at $url" } catch { Warn "dashboard not answering at $url"; $healthy = $false }
+  } else { Say "   not installed here - run: .\install.ps1 install" }
+  if ($healthy) { Ok 'all checks passed' } else { Warn 'some checks failed (see above)' }
+}
+
 function Cmd-Menu {
   Write-Host ''; Write-Host 'Helio - self-hosted, one script' -ForegroundColor White
   if (Test-Path $ManifestFile) {
@@ -241,5 +342,8 @@ switch ($Command) {
   'start'     { Cmd-Start }
   'stop'      { Cmd-Stop }
   'status'    { Cmd-Status }
+  'backup'    { Cmd-Backup }
+  'restore'   { Cmd-Restore }
+  'doctor'    { Cmd-Doctor }
   default     { Cmd-Menu }
 }

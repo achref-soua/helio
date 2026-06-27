@@ -2,11 +2,15 @@ import {
   buildSupportIssue,
   buildSupportNotificationEmail,
   createGitHubIssue,
+  fetchGitHubIssue,
+  type GithubRepo,
   helioVersion,
+  newId,
   parseGithubRepo,
   resolveSupportRecipient,
   resolveSupportRepo,
   supportKindSchema,
+  supportStatusFromIssue,
 } from '@helio/core';
 import { trace } from '@opentelemetry/api';
 import { TRPCError } from '@trpc/server';
@@ -33,6 +37,20 @@ import { orgProcedure, requirePermission, router } from '../init';
 function recordNonFatal(error: unknown) {
   trace.getActiveSpan()?.recordException(error instanceof Error ? error : new Error(String(error)));
 }
+
+/** The GitHub token for issue ops: the org's sealed PAT, else the deployment's. */
+async function resolveSupportToken(
+  organizationId: string,
+  sealedToken: string | null | undefined,
+): Promise<string | null> {
+  if (sealedToken && vaultReady()) {
+    return openRowSecret(organizationId, organizationId, 'supportToken', sealedToken);
+  }
+  return env.HELIO_SUPPORT_TOKEN ?? null;
+}
+
+/** Only re-poll GitHub for a report's status at most this often. */
+const STATUS_SYNC_INTERVAL_MS = 10 * 60 * 1000;
 
 export const supportRouter = router({
   /** Drives the report dialog and the settings panel: target repo + recipient. */
@@ -164,16 +182,7 @@ export const supportRouter = router({
       //    record it and still fall through to the email notification.
       let issueUrl: string | null = null;
       let issueNumber: number | null = null;
-      const orgToken =
-        org?.supportToken && vaultReady()
-          ? await openRowSecret(
-              ctx.organizationId,
-              ctx.organizationId,
-              'supportToken',
-              org.supportToken,
-            )
-          : null;
-      const token = orgToken ?? env.HELIO_SUPPORT_TOKEN ?? null;
+      const token = await resolveSupportToken(ctx.organizationId, org?.supportToken);
       if (token) {
         try {
           const created = await createGitHubIssue(fetch, {
@@ -217,6 +226,25 @@ export const supportRouter = router({
         });
       }
 
+      // 3) Record the report so the filer can track its status (see myReports).
+      //    The issue/email already went out, so a persistence hiccup is logged,
+      //    not surfaced — the submission still counts as successful.
+      try {
+        await ctx.tenantDb.supportReport.create({
+          data: {
+            id: newId('sr'),
+            organizationId: ctx.organizationId,
+            userId: ctx.session.user.id,
+            kind: input.kind,
+            subject: input.subject,
+            issueNumber,
+            issueUrl,
+          },
+        });
+      } catch (error) {
+        recordNonFatal(error);
+      }
+
       await writeAudit(ctx.tenantDb, {
         organizationId: ctx.organizationId,
         actorId: ctx.session.user.id,
@@ -227,4 +255,72 @@ export const supportRouter = router({
       });
       return { created: Boolean(issueUrl), url: issueUrl, emailed };
     }),
+
+  /**
+   * The reports the current user filed, newest first, with their live status.
+   * Issue-backed reports are re-synced from GitHub (open → SUBMITTED, closed →
+   * RESOLVED/DECLINED) at most every {@link STATUS_SYNC_INTERVAL_MS}; without a
+   * token (email-only deployments) they stay SUBMITTED. The dashboard pairs this
+   * with `updates.check` to nudge "a fix shipped — update to install it".
+   */
+  myReports: orgProcedure.query(async ({ ctx }) => {
+    const reports = await ctx.tenantDb.supportReport.findMany({
+      where: { userId: ctx.session.user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 25,
+    });
+
+    // Re-sync the issue-backed, not-recently-synced reports from GitHub. One
+    // GET per stale report (a user has a handful); failures leave status as-is.
+    const now = Date.now();
+    const stale = reports.filter(
+      (r) =>
+        r.issueNumber !== null &&
+        (r.syncedAt === null || now - r.syncedAt.getTime() > STATUS_SYNC_INTERVAL_MS),
+    );
+    if (stale.length > 0) {
+      const org = await ctx.tenantDb.organization.findUnique({
+        where: { id: ctx.organizationId },
+        select: { supportRepo: true, supportToken: true },
+      });
+      const token = await resolveSupportToken(ctx.organizationId, org?.supportToken);
+      if (token) {
+        let repo: GithubRepo | null = null;
+        try {
+          repo = resolveSupportRepo(org?.supportRepo ?? null, env.HELIO_SUPPORT_REPO);
+        } catch (error) {
+          recordNonFatal(error);
+        }
+        if (repo) {
+          for (const report of stale) {
+            const issue = await fetchGitHubIssue(fetch, {
+              token,
+              repo,
+              number: report.issueNumber!,
+            });
+            if (!issue) continue;
+            const status = supportStatusFromIssue(issue.state, issue.stateReason);
+            const resolvedAt =
+              status === 'RESOLVED' ? (report.resolvedAt ?? new Date()) : report.resolvedAt;
+            await ctx.tenantDb.supportReport.update({
+              where: { id: report.id },
+              data: { status, resolvedAt, syncedAt: new Date() },
+            });
+            report.status = status;
+            report.resolvedAt = resolvedAt;
+          }
+        }
+      }
+    }
+
+    return reports.map((report) => ({
+      id: report.id,
+      kind: report.kind,
+      subject: report.subject,
+      status: report.status,
+      issueUrl: report.issueUrl,
+      createdAt: report.createdAt,
+      resolvedAt: report.resolvedAt,
+    }));
+  }),
 });

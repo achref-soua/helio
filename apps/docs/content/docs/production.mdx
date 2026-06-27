@@ -10,12 +10,41 @@ and managed datastores.
 
 ## Choosing a topology
 
-| Topology          | Good for                 | How                                         |
-| ----------------- | ------------------------ | ------------------------------------------- |
-| Docker Compose    | A single VM / evaluation | `docker compose --profile full up -d`       |
-| Kubernetes (Helm) | Production, scaling, HA  | the `helio` Helm chart + managed datastores |
+| Topology          | Good for                 | How                                            |
+| ----------------- | ------------------------ | ---------------------------------------------- |
+| Cloud VM          | The fastest hosted start | paste the cloud-init file when creating the VM |
+| Docker Compose    | A single VM / evaluation | `docker compose --profile full up -d`          |
+| Kubernetes (Helm) | Production, scaling, HA  | the `helio` Helm chart + managed datastores    |
 
-The rest of this page walks through the Kubernetes path on a managed cloud.
+The cloud-VM path is below; the rest of this page walks through the Kubernetes
+path on a managed cloud.
+
+## Deploy on a cloud VM (one paste)
+
+The lowest-friction hosted deploy: spin up a Linux VM at any provider
+(DigitalOcean, Hetzner, Vultr, Linode, AWS EC2, Google Cloud, Azure, …) and
+paste one file into its **User data** / **Cloud-init** / **Startup script** box.
+On first boot the VM installs Docker and Helio and serves the dashboard at
+`http://<your-server-ip>:3000` — no SSH, no Docker knowledge.
+
+1. Create a VM. **4 GB RAM** for the default `core` profile, **8 GB** for
+   `--full`. Ubuntu or Debian is the smoothest base.
+2. Paste
+   [`infra/cloud/helio-cloud-init.yaml`](https://github.com/achref-soua/helio/blob/main/infra/cloud/helio-cloud-init.yaml)
+   as the instance's user data. It detects the VM's public IP, sets `APP_URL`
+   to it (so logins work — the dashboard checks the request origin), and runs
+   the installer non-interactively.
+3. Open inbound **TCP 3000** (dashboard) — and **4000** if you use the REST API
+   — in the provider's firewall / security group.
+4. Browse to `http://<your-server-ip>:3000` and create the first account; it
+   becomes the administrator. (First boot takes a few minutes while images
+   pull.)
+
+Manage it afterwards over SSH like any install: `~/.helio/helio status | logs |
+update | stop`. To put it behind a domain with HTTPS, point an A record at the
+VM, terminate TLS with a reverse proxy (Caddy/nginx/Traefik) or the provider's
+load balancer, and set `HELIO_APP_URL=https://your-domain` before installing (or
+edit `APP_URL` in `~/.helio/.env` and run `~/.helio/helio stop && ~/.helio/helio start`).
 
 ## Managed-cloud walkthrough
 
@@ -174,9 +203,41 @@ incident quick checks — live in the
 
 ## Running a public demo
 
-To host a try-it-yourself instance, deploy the chart with the bundled eval
-datastores and the [demo seed](/docs/self-hosting) enabled. A ready-made
-overlay lives at
+A try-it-yourself instance lets people explore Helio before self-hosting. The
+trick to a _public_ demo is that visitors must be able to break things without
+breaking it for the next visitor — so a demo resets itself to a known state on a
+schedule, and never sends real email.
+
+### On a single VM (one paste)
+
+The fastest path. Paste
+[`infra/cloud/helio-demo-cloud-init.yaml`](https://github.com/achref-soua/helio/blob/main/infra/cloud/helio-demo-cloud-init.yaml)
+as a Linux VM's user-data (4 GB RAM is plenty for the demo's `core` profile). On
+first boot it installs Helio and installs a cron that restores a **golden
+snapshot** every 6 hours.
+
+The reset reuses Helio's own backup/restore (a full `pg_dump` / `pg_restore`),
+so the snapshot captures everything — the demo login and the sample data
+included — and a restore reverts any visitor changes. One-time setup after the
+VM is up:
+
+1. Open `http://<server-ip>:3000` and **sign up the demo admin** with the
+   throwaway credentials you'll publish (e.g. `demo@helio.test` / `demo-helio`).
+2. On the setup screen, **load sample data** so the demo has content.
+3. Capture that state as the golden snapshot the cron restores:
+
+   ```bash
+   ~/.helio/helio backup
+   cp ~/.helio/backups/$(ls -t ~/.helio/backups | head -1) ~/.helio/backups/demo-golden.dump
+   ```
+
+Until `demo-golden.dump` exists the reset is a safe no-op, so there's no rush.
+Adjust the cadence by editing the VM's crontab (`helio-demo-reset` runs the
+restore). To refresh the demo's content later, repeat step 3.
+
+### On Kubernetes (Helm)
+
+Deploy the chart with the bundled eval datastores. A ready-made overlay lives at
 [`infra/helm/helio/values-demo.yaml`](https://github.com/achref-soua/helio/blob/main/infra/helm/helio/values-demo.yaml):
 
 ```bash
@@ -186,8 +247,12 @@ helm install helio-demo ./infra/helm/helio \
   --set secrets.data.BETTER_AUTH_SECRET="$(openssl rand -hex 32)"
 ```
 
+Reset it on a schedule by restoring a golden snapshot (a `CronJob` running the
+backup image's `restore`) or by redeploying.
+
 <Callout type="warn">
-  A public demo is internet-exposed and shared. Run it in an isolated namespace, reset it on a
-  schedule (re-run the idempotent seed, or redeploy), keep the AI provider key out of it unless you
-  intend to pay for usage, and never point a demo at production datastores.
+  A public demo is internet-exposed and shared. Keep it isolated (its own VM / namespace), reset it
+  on a schedule, leave email on the bundled test inbox (no provider configured = no real sends),
+  keep the AI provider key out of it unless you intend to pay for usage, and never point a demo at
+  production datastores.
 </Callout>

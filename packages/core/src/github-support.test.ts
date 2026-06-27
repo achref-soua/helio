@@ -4,11 +4,13 @@ import {
   buildSupportIssue,
   buildSupportNotificationEmail,
   createGitHubIssue,
+  fetchGitHubIssue,
   githubNewIssueUrl,
   parseGithubRepo,
   resolveSupportRecipient,
   resolveSupportRepo,
   supportIssueLabels,
+  supportStatusFromIssue,
 } from './github-support';
 
 describe('parseGithubRepo', () => {
@@ -172,5 +174,59 @@ describe('createGitHubIssue', () => {
     await expect(createGitHubIssue(fetchImpl, { token: 'bad', repo, issue })).rejects.toThrow(
       /401.*Bad credentials/,
     );
+  });
+});
+
+describe('supportStatusFromIssue', () => {
+  it('keeps an open issue SUBMITTED', () => {
+    expect(supportStatusFromIssue('open', null)).toBe('SUBMITTED');
+  });
+
+  it('maps a closed-completed (or reasonless close) issue to RESOLVED', () => {
+    expect(supportStatusFromIssue('closed', 'completed')).toBe('RESOLVED');
+    expect(supportStatusFromIssue('closed', null)).toBe('RESOLVED');
+  });
+
+  it('maps a closed-not-planned issue to DECLINED', () => {
+    expect(supportStatusFromIssue('closed', 'not_planned')).toBe('DECLINED');
+  });
+});
+
+describe('fetchGitHubIssue', () => {
+  const repo = { owner: 'acme', repo: 'widgets' };
+
+  it('reads the issue state with the GET issues API', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        state: 'closed',
+        state_reason: 'completed',
+        html_url: 'https://github.com/acme/widgets/issues/7',
+      }),
+    } as Response);
+    const result = await fetchGitHubIssue(fetchImpl, { token: 'ghp_x', repo, number: 7 });
+    expect(result).toEqual({
+      state: 'closed',
+      stateReason: 'completed',
+      url: 'https://github.com/acme/widgets/issues/7',
+    });
+    const [url, init] = fetchImpl.mock.calls[0]!;
+    expect(url).toBe('https://api.github.com/repos/acme/widgets/issues/7');
+    expect(init.method).toBe('GET');
+    expect((init.headers as Record<string, string>).authorization).toBe('Bearer ghp_x');
+  });
+
+  it('returns null on a 404 (deleted issue) without throwing', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 404 } as Response);
+    await expect(
+      fetchGitHubIssue(fetchImpl, { token: 'ghp_x', repo, number: 9 }),
+    ).resolves.toBeNull();
+  });
+
+  it('returns null when fetch throws (network/rate-limit)', async () => {
+    const fetchImpl = vi.fn().mockRejectedValue(new Error('ECONNRESET'));
+    await expect(
+      fetchGitHubIssue(fetchImpl, { token: 'ghp_x', repo, number: 9 }),
+    ).resolves.toBeNull();
   });
 });

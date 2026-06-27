@@ -83,8 +83,41 @@ model Organization {
   companies           Company[]
   importJobs          ImportJob[]
   emailAssets         EmailAsset[]
+  supportReports      SupportReport[]
 
   @@map("organization")
+}
+
+/// A bug report / feedback item a user filed from the dashboard. The report
+/// itself lives as a GitHub issue (the source of truth); this row links the
+/// filer to it so they can track its status, which is synced from the issue's
+/// open/closed state. Email-only deployments (no GitHub token) keep the row at
+/// SUBMITTED. Tenant-scoped and RLS-isolated.
+model SupportReport {
+  id             String    @id
+  organizationId String    @map("organization_id")
+  /// The auth user who filed it (auth-owned id; no cross-schema FK, like audit_log).
+  userId         String    @map("user_id")
+  /// SupportKind: BUG | IDEA | QUESTION.
+  kind           String
+  subject        String
+  /// The GitHub issue this became, when a token was available to create one.
+  issueNumber    Int?      @map("issue_number")
+  issueUrl       String?   @map("issue_url")
+  /// SUBMITTED | RESOLVED | DECLINED — synced from the issue's state.
+  status         String    @default("SUBMITTED")
+  /// When the issue was closed (resolved), so the dashboard can tell the filer a
+  /// newer release carrying the fix is available to install.
+  resolvedAt     DateTime? @map("resolved_at")
+  /// Last time the status was synced from GitHub (a rate-limit guard).
+  syncedAt       DateTime? @map("synced_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, userId])
+  @@map("support_report")
 }
 
 /// One local backup run (instance-level — no tenant column). Written by

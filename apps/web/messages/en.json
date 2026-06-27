@@ -1074,6 +1074,13 @@
     "removeToken": "Remove token",
     "saveTarget": "Save",
     "saved": "Saved",
+    "yourReports": "Your reports",
+    "status": {
+      "SUBMITTED": "Submitted",
+      "RESOLVED": "Resolved",
+      "DECLINED": "Declined"
+    },
+    "updateAvailable": "Fixed — update to {version} to install it",
     "kinds": {
       "BUG": "Bug",
       "FEEDBACK": "Feedback",
