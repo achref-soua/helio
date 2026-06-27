@@ -46,8 +46,11 @@ Self-hosted deployments are configured by their operators; misconfiguration of a
 | Connection pooling   | Optional PgBouncer (transaction mode) is safe by design: the tenant id is set transaction-locally and was verified to never leak across pooled connections (ADR-0022)                                                          |
 | Rate limiting & CNI  | The gateway limiter degrades to an in-memory window if Redis is down (no API outage on a cache blip); the Helm chart ships an opt-in NetworkPolicy restricting the AI plane to web + workers                                   |
 
-A full write-up of the v2.0.9 hardening pass — findings, fixes, and verification —
-is in [`docs/security/audit-2.0.9.md`](./docs/security/audit-2.0.9.md).
+A full write-up of each hardening pass — findings, fixes, and verification — is
+in `docs/security/`: the latest is
+[`audit-2.1.0.md`](./docs/security/audit-2.1.0.md) (cross-tenant analytics and
+idempotency fixes plus the live OWASP ZAP baseline), preceded by
+[`audit-2.0.9.md`](./docs/security/audit-2.0.9.md).
 
 ### In-app update sidecar (one-click update)
 
