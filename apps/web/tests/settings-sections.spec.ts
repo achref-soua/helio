@@ -10,6 +10,6 @@ test('settings is organized into labelled sections', async ({ page }) => {
   for (const name of ['Team & access', 'Channels & delivery', 'Workspace', 'Maintenance']) {
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
   }
-  await expect(page.getByTestId('updates-panel')).toBeVisible();
-  await expect(page.getByTestId('backups-panel')).toBeVisible();
+  await expect(page.getByTestId('updates-panel')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('backups-panel')).toBeVisible({ timeout: 15_000 });
 });

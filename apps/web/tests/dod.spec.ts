@@ -1,5 +1,6 @@
 import { type APIRequestContext, expect, type Page, test } from '@playwright/test';
 
+import { openDialog } from './dialog';
 import { mailpitUrl } from './mailpit';
 
 async function mailLink(request: APIRequestContext, to: string, pattern: RegExp) {
@@ -43,7 +44,10 @@ test('owner invites a teammate who joins as viewer', async ({ page, browser, req
   // Owner (authenticated via the setup project) sends a viewer invitation.
   await page.goto('/settings');
   await expect(page.getByText('Members', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Invite' }).click();
+  await openDialog(
+    page.getByRole('button', { name: 'Invite' }),
+    page.getByLabel('Email', { exact: true }),
+  );
   // exact: the credentials empty-state on this page exposes a select
   // labeled "Add a Email sending credential", which substring-matches.
   await page.getByLabel('Email', { exact: true }).fill(memberEmail);

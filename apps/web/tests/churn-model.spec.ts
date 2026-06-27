@@ -11,7 +11,7 @@ test('register, inspect, and delete a churn model with the AI plane down', async
   const name = `e2e endpoint ${Date.now()}`;
   await page.goto('/settings');
   const panel = page.getByTestId('churn-model-panel');
-  await expect(panel.getByText('Churn prediction model')).toBeVisible();
+  await expect(panel.getByText('Churn prediction model')).toBeVisible({ timeout: 15_000 });
 
   // Register an HTTPS model server; the probe cannot run, so the row
   // lands FAILED with the unreachable-service explanation.

@@ -2,6 +2,8 @@ import { execFileSync } from 'node:child_process';
 
 import { expect, test } from '@playwright/test';
 
+import { openDialog } from './dialog';
+
 /**
  * The /admin audit viewer (G3): list, filter, export. The spec seeds its
  * own audited action first (an invitation — lands via the auth-kernel
@@ -11,7 +13,10 @@ import { expect, test } from '@playwright/test';
 test('audit viewer lists, filters, and exports the trail', async ({ page }) => {
   const email = `admin-audit-${Date.now()}@example.com`;
   await page.goto('/settings');
-  await page.getByRole('button', { name: 'Invite' }).click();
+  await openDialog(
+    page.getByRole('button', { name: 'Invite' }),
+    page.getByLabel('Email', { exact: true }),
+  );
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByRole('button', { name: 'Send invitation' }).click();
   await expect(page.getByText('Invitation sent')).toBeVisible();

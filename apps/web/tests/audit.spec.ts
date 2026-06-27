@@ -2,6 +2,8 @@ import { execFileSync } from 'node:child_process';
 
 import { expect, test } from '@playwright/test';
 
+import { openDialog } from './dialog';
+
 /**
  * G2 audit expansion: auth-kernel events (here: an invitation, sent
  * through Better-Auth's /organization/invite-member) land in the
@@ -30,7 +32,10 @@ test('inviting a member writes an auth-kernel audit row', async ({ page }) => {
   const email = `audit-invite-${Date.now()}@example.com`;
   await page.goto('/settings');
   await expect(page.getByText('Members', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Invite' }).click();
+  await openDialog(
+    page.getByRole('button', { name: 'Invite' }),
+    page.getByLabel('Email', { exact: true }),
+  );
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByRole('button', { name: 'Send invitation' }).click();
   await expect(page.getByText('Invitation sent')).toBeVisible();
