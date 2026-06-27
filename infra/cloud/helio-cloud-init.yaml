@@ -1,0 +1,35 @@
+#cloud-config
+# Helio — one-paste cloud deploy.
+#
+# Paste this whole file into the "User data" / "Cloud-init" / "Startup script"
+# box when you create a Linux VM (DigitalOcean, Hetzner, Vultr, Linode, Akamai,
+# AWS EC2, Google Cloud, Azure, …). On first boot the VM installs Docker and
+# Helio and brings the dashboard up at  http://<your-server-ip>:3000  — no SSH
+# and no Docker knowledge needed.
+#
+# Pick a VM size: 4 GB RAM for the default "core" profile, 8 GB for "--full"
+# (campaign sending, ingestion, tracking, analytics). Ubuntu/Debian recommended.
+# Open inbound TCP 3000 (dashboard) — and 4000 (REST API) if you use it — in the
+# provider's firewall / security group.
+#
+# After it is up, SSH in and manage it like any other install:
+#   ~/.helio/helio status | logs | update | stop
+#
+# For the full profile, change the last line to:
+#   curl -fsSL https://github.com/achref-soua/helio/releases/latest/download/install.sh | sh -s -- install --full
+package_update: true
+packages:
+  - curl
+  - ca-certificates
+runcmd:
+  - |
+    set -eu
+    # Serve the dashboard at the VM's public IP so logins work (auth checks the
+    # request origin; localhost would reject a remote browser). Fall back through
+    # a couple of echo services, then the primary interface address.
+    PUBLIC_IP="$(curl -fsS --max-time 10 https://api.ipify.org 2>/dev/null \
+      || curl -fsS --max-time 10 https://ifconfig.me 2>/dev/null \
+      || hostname -I | awk '{print $1}')"
+    export HELIO_APP_URL="http://${PUBLIC_IP}:3000"
+    export HELIO_YES=1 HELIO_NO_BROWSER=1
+    curl -fsSL https://github.com/achref-soua/helio/releases/latest/download/install.sh | sh

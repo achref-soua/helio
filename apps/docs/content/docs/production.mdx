@@ -10,12 +10,41 @@ and managed datastores.
 
 ## Choosing a topology
 
-| Topology          | Good for                 | How                                         |
-| ----------------- | ------------------------ | ------------------------------------------- |
-| Docker Compose    | A single VM / evaluation | `docker compose --profile full up -d`       |
-| Kubernetes (Helm) | Production, scaling, HA  | the `helio` Helm chart + managed datastores |
+| Topology          | Good for                 | How                                            |
+| ----------------- | ------------------------ | ---------------------------------------------- |
+| Cloud VM          | The fastest hosted start | paste the cloud-init file when creating the VM |
+| Docker Compose    | A single VM / evaluation | `docker compose --profile full up -d`          |
+| Kubernetes (Helm) | Production, scaling, HA  | the `helio` Helm chart + managed datastores    |
 
-The rest of this page walks through the Kubernetes path on a managed cloud.
+The cloud-VM path is below; the rest of this page walks through the Kubernetes
+path on a managed cloud.
+
+## Deploy on a cloud VM (one paste)
+
+The lowest-friction hosted deploy: spin up a Linux VM at any provider
+(DigitalOcean, Hetzner, Vultr, Linode, AWS EC2, Google Cloud, Azure, …) and
+paste one file into its **User data** / **Cloud-init** / **Startup script** box.
+On first boot the VM installs Docker and Helio and serves the dashboard at
+`http://<your-server-ip>:3000` — no SSH, no Docker knowledge.
+
+1. Create a VM. **4 GB RAM** for the default `core` profile, **8 GB** for
+   `--full`. Ubuntu or Debian is the smoothest base.
+2. Paste
+   [`infra/cloud/helio-cloud-init.yaml`](https://github.com/achref-soua/helio/blob/main/infra/cloud/helio-cloud-init.yaml)
+   as the instance's user data. It detects the VM's public IP, sets `APP_URL`
+   to it (so logins work — the dashboard checks the request origin), and runs
+   the installer non-interactively.
+3. Open inbound **TCP 3000** (dashboard) — and **4000** if you use the REST API
+   — in the provider's firewall / security group.
+4. Browse to `http://<your-server-ip>:3000` and create the first account; it
+   becomes the administrator. (First boot takes a few minutes while images
+   pull.)
+
+Manage it afterwards over SSH like any install: `~/.helio/helio status | logs |
+update | stop`. To put it behind a domain with HTTPS, point an A record at the
+VM, terminate TLS with a reverse proxy (Caddy/nginx/Traefik) or the provider's
+load balancer, and set `HELIO_APP_URL=https://your-domain` before installing (or
+edit `APP_URL` in `~/.helio/.env` and run `~/.helio/helio stop && ~/.helio/helio start`).
 
 ## Managed-cloud walkthrough
 

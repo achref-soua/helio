@@ -211,7 +211,7 @@ for service in web api ingest tracking workers intelligence; do
 done
 ```
 
-Compose profiles cover local/self-host topologies. For Kubernetes, a Helm chart lives in [`infra/helm/helio`](infra/helm/helio) — `helm install helio ./infra/helm/helio` brings up all six services with health probes, optional Ingress and autoscaling, and (for evaluation) bundled Postgres + Redis; point it at managed datastores for production. The managed-cloud walkthrough lives in [`apps/docs/content/docs/production.mdx`](apps/docs/content/docs/production.mdx).
+Compose profiles cover local/self-host topologies. For the fastest hosted start, paste [`infra/cloud/helio-cloud-init.yaml`](infra/cloud/helio-cloud-init.yaml) into a new Linux VM's user-data on any provider (DigitalOcean, Hetzner, EC2, …) — it installs Docker and Helio on first boot and serves the dashboard at `http://<server-ip>:3000`, no SSH needed. For Kubernetes, a Helm chart lives in [`infra/helm/helio`](infra/helm/helio) — `helm install helio ./infra/helm/helio` brings up all six services with health probes, optional Ingress and autoscaling, and (for evaluation) bundled Postgres + Redis; point it at managed datastores for production. The managed-cloud walkthrough lives in [`apps/docs/content/docs/production.mdx`](apps/docs/content/docs/production.mdx).
 
 ## Performance
 
