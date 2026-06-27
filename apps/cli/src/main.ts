@@ -31,9 +31,17 @@ async function main(): Promise<void> {
   // Clear a Windows self-update leftover from a previous run (no-op elsewhere).
   cleanupSelfUpdateLeftover();
   const [command, ...rest] = process.argv.slice(2);
-  if (!command || command === 'help' || command === '--help' || command === '-h') {
+  if (command === 'help' || command === '--help' || command === '-h') {
     help();
-    process.exit(command ? 0 : 1);
+    process.exit(0);
+  }
+  if (!command) {
+    // No command on a terminal → the interactive wizard (install / operate).
+    // Piped or scripted use (no TTY) gets the help text and a nonzero exit.
+    const menu = getCommand('menu');
+    if (process.stdin.isTTY && menu) process.exit(await menu.run([]));
+    help();
+    process.exit(1);
   }
   if (command === '--version' || command === '-v') {
     console.log(`helio ${CLI_VERSION}`);

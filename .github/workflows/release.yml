@@ -6,9 +6,12 @@
 #   1. `gh release create vX.Y.Z --target main --notes …` creates the tag
 #      and the release (use --prerelease for RCs).
 #   2. The tag event runs this workflow, which publishes the images and
-#      uploads the CLI binaries + install bundle to that existing release.
+#      uploads the install bundle + install scripts to that existing release.
 # Everything here is also reproducible locally without Actions:
-# `task release:images`, `task release:binaries`, `task release:bundle`.
+# `task release:images`, `task release:bundle`.
+#
+# Install is script-based (scripts/install.sh, scripts/install.ps1) — no
+# compiled binary to be flagged by antivirus/SmartScreen.
 
 name: release
 
@@ -65,10 +68,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      - uses: oven-sh/setup-bun@v2
       - run: pnpm install --frozen-lockfile
-      - name: Build the CLI binaries
-        run: bash scripts/release/build-binaries.sh ${{ github.ref_name }}
       - name: Build the install bundle
         run: pnpm exec tsx scripts/release/build-bundle.ts --version ${{ github.ref_name }}
       - name: Upload release assets

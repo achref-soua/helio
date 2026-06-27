@@ -114,11 +114,6 @@ tasks:
           docker push ghcr.io/achref-soua/helio-$svc:$VERSION
         done
 
-  release:binaries:
-    desc: 'Cross-compile the helio CLI for all platforms (needs bun; VERSION=vX.Y.Z)'
-    cmds:
-      - bash scripts/release/build-binaries.sh {{.VERSION | default "vDEV"}}
-
   release:bundle:
     desc: 'Build the pinned self-host install bundle (dist/helio-bundle-<v>.tar.gz)'
     cmds:
