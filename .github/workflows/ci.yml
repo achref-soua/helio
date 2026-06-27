@@ -52,6 +52,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
+      # The intelligence RLS data-isolation tests build their schema by shelling
+      # out to `pnpm --filter @helio/db exec prisma migrate deploy` against a
+      # Testcontainers Postgres, so this job needs node + pnpm too.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - name: Intelligence — lint, types, tests
         working-directory: apps/intelligence
         run: uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
