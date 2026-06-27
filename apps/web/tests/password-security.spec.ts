@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 
 import { expect, test } from '@playwright/test';
 
+import { checkUntil } from './dialog';
 import { mailpitUrl } from './mailpit';
 
 function psql(query: string): string {
@@ -86,8 +87,10 @@ test('the sessions list shows this device', async ({ page }) => {
 
 test('org-required 2FA steers unenrolled members to Security', async ({ page }) => {
   await page.goto('/settings');
-  await page.getByTestId('require-2fa-toggle').check();
-  await expect(page.locator('[data-sonner-toast]').first()).toBeVisible();
+  await checkUntil(
+    page.getByTestId('require-2fa-toggle'),
+    page.locator('[data-sonner-toast]').first(),
+  );
 
   // Any navigation lands back on settings, with the banner explaining why.
   await page.goto('/contacts');

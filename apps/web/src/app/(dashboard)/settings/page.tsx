@@ -5,39 +5,31 @@ import type { ReactNode } from 'react';
 
 import { auth } from '@/lib/auth';
 
-// /settings is one long page that renders ~19 interactive client panels at once.
-// Importing them statically put every panel's JS in the route's first-load
-// bundle, so a weak machine had to download, parse, and hydrate all of them
-// before any single panel — e.g. clicking "Create" in one — became responsive.
-// The interactive panels are now lazy client boundaries (see ./panels): the
-// server-rendered HTML is identical (no UI/UX change, no skeleton flash), but
-// each is its own async chunk, so React hydrates them independently and
-// prioritizes the one you interact with. Measured: docs/perf/settings-code-split.md.
-//
-// AboutPanel is the lone SERVER panel (it awaits getTranslations) — it must stay
-// a direct server import. Routing it through ./panels (a 'use client' module)
-// would render it in the client tree and throw "getTranslations is not supported
-// in Client Components", breaking the page. Its client cost is ~zero anyway.
+// /settings renders ~19 interactive panels in one page. They were briefly
+// code-split (each a next/dynamic async chunk) to trim first-load JS, but that
+// deferred the lowest panels' hydration enough to break interaction on weak
+// machines — a clicked control was a no-op until its chunk loaded — so the
+// panels are statically imported again. React's selective hydration already
+// replays a click made mid-hydration when the code is present, which is the
+// faster-to-interactive behaviour the split was meant to buy.
 import { AboutPanel } from './about-panel';
-import {
-  AnalyticsPanel,
-  ApiKeysPanel,
-  BackupsPanel,
-  BrandingPanel,
-  ChurnModelPanel,
-  CredentialsPanel,
-  CurrencyPanel,
-  DeliverabilityPanel,
-  IntegrationsPanel,
-  MembersPanel,
-  PasswordPolicyPanel,
-  ScimPanel,
-  SecurityPanel,
-  SsoPanel,
-  SupportPanel,
-  UpdatesPanel,
-  WebhooksPanel,
-} from './panels';
+import { AnalyticsPanel } from './analytics-panel';
+import { ApiKeysPanel } from './api-keys-panel';
+import { BackupsPanel } from './backups-panel';
+import { BrandingPanel } from './branding-panel';
+import { ChurnModelPanel } from './churn-model-panel';
+import { CredentialsPanel } from './credentials-panel';
+import { CurrencyPanel } from './currency-panel';
+import { DeliverabilityPanel } from './deliverability-panel';
+import { IntegrationsPanel } from './integrations-panel';
+import { MembersPanel } from './members-panel';
+import { PasswordPolicyPanel } from './password-policy-panel';
+import { ScimPanel } from './scim-panel';
+import { SecurityPanel } from './security-panel';
+import { SsoPanel } from './sso-panel';
+import { SupportPanel } from './support-panel';
+import { UpdatesPanel } from './updates-panel';
+import { WebhooksPanel } from './webhooks-panel';
 
 /**
  * One labelled band of related settings. The cards still flow two-up on wide
