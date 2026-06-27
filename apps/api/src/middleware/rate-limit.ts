@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { FixedWindowRateLimiter } from '@helio/core';
 import { trace } from '@opentelemetry/api';
 import { createMiddleware } from 'hono/factory';
@@ -26,6 +28,8 @@ export function rateLimit(redis: RedisLike, options: { max: number; windowSecond
       c.req.header('x-forwarded-for') ??
       c.req.header('x-real-ip') ??
       'anonymous';
+    // Never persist the live API secret in a Redis key — fingerprint it.
+    const caller = createHash('sha256').update(credential).digest('hex').slice(0, 32);
 
     let exceeded: boolean;
     let remaining: number;
@@ -33,7 +37,7 @@ export function rateLimit(redis: RedisLike, options: { max: number; windowSecond
 
     try {
       const window = Math.floor(Date.now() / 1000 / options.windowSeconds);
-      const key = `ratelimit:${window}:${credential}`;
+      const key = `ratelimit:${window}:${caller}`;
       const count = await redis.incr(key);
       if (count === 1) {
         await redis.expire(key, options.windowSeconds);
@@ -47,7 +51,7 @@ export function rateLimit(redis: RedisLike, options: { max: number; windowSecond
       trace.getActiveSpan()?.addEvent('ratelimit.redis_unavailable', {
         error: error instanceof Error ? error.message : String(error),
       });
-      const decision = fallback.check(credential);
+      const decision = fallback.check(caller);
       exceeded = !decision.allowed;
       remaining = decision.remaining;
       retryAfter = decision.retryAfterSeconds;

@@ -44,6 +44,11 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  // Isolate the dashboard's browsing context (cross-origin window.opener
+  // attacks); `-allow-popups` keeps OAuth/SSO popups working. COEP/CORP are
+  // deliberately omitted — they would break the cross-origin widget, embeds,
+  // and tracking pixel that this product is built to serve.
+  { key: 'Cross-Origin-Opener-Policy', value: 'same-origin-allow-popups' },
   // Only meaningful (and only honored by browsers) over TLS.
   ...(process.env.APP_URL?.startsWith('https://')
     ? [{ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' }]
@@ -64,6 +69,8 @@ const embeddableHeaders = securityHeaders.map((header) =>
 const nextConfig: NextConfig = {
   // Self-contained server output for the Docker image.
   output: 'standalone',
+  // Don't advertise the framework (drops the X-Powered-By header).
+  poweredByHeader: false,
   // The dev-mode overlay badge is cosmetic tooling; hiding it keeps
   // generated screenshots and the demo video clean. No production effect.
   devIndicators: false,

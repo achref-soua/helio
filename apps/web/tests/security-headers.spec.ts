@@ -11,6 +11,9 @@ test('dashboard responses carry the security headers', async ({ request }) => {
   expect(headers['x-content-type-options']).toBe('nosniff');
   expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
   expect(headers['permissions-policy']).toContain('camera=()');
+  expect(headers['cross-origin-opener-policy']).toBe('same-origin-allow-popups');
+  // The framework banner must not be advertised.
+  expect(headers['x-powered-by']).toBeUndefined();
 
   const csp = headers['content-security-policy'] ?? '';
   expect(csp).toContain("default-src 'self'");
