@@ -127,7 +127,18 @@ jobs:
         run: pnpm --filter @helio/db exec prisma migrate deploy
       - name: Build the web app
         # next start serves whatever build is on disk, so build current code.
-        run: pnpm turbo build --filter=@helio/web
+        # env.ts validates the runtime schema at build time (it's imported when
+        # collecting page data), so provide build-time placeholders — the real
+        # values are read at runtime by next start. Build directly via pnpm (db
+        # first, then web; ui/core are transpiled from source) rather than turbo,
+        # mirroring infra/docker/web.Dockerfile so the build env is unfiltered.
+        run: |
+          pnpm --filter @helio/db build
+          BETTER_AUTH_SECRET=build-time-placeholder-secret-000000 \
+          DATABASE_URL=postgresql://build:build@localhost:5432/build \
+          DATABASE_ADMIN_URL=postgresql://build:build@localhost:5432/build \
+          UNSUBSCRIBE_SECRET=build-time-placeholder-secret-000000 \
+            pnpm --filter @helio/web build
       - name: Install the Playwright browser
         run: pnpm --filter @helio/web exec playwright install --with-deps chromium
       - name: Wait for Mailpit
