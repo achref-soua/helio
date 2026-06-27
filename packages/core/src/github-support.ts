@@ -176,3 +176,63 @@ export async function createGitHubIssue(
   }
   return { url: created.html_url, number: created.number };
 }
+
+/** The status a filer sees for their report, derived from its GitHub issue. */
+export type SupportReportStatus = 'SUBMITTED' | 'RESOLVED' | 'DECLINED';
+
+export interface GithubIssueState {
+  state: 'open' | 'closed';
+  /** GitHub's close reason: 'completed' | 'not_planned' | 'reopened' | null. */
+  stateReason: string | null;
+  url: string;
+}
+
+/**
+ * Map a GitHub issue's state to the status a filer sees. An open issue is still
+ * SUBMITTED; a closed-as-not-planned is DECLINED; any other close (completed, or
+ * a close with no reason) is RESOLVED — the owner fixed it.
+ */
+export function supportStatusFromIssue(
+  state: 'open' | 'closed',
+  stateReason: string | null,
+): SupportReportStatus {
+  if (state !== 'closed') return 'SUBMITTED';
+  return stateReason === 'not_planned' ? 'DECLINED' : 'RESOLVED';
+}
+
+/**
+ * Read a single issue's open/closed state via the GitHub REST API (injected
+ * `fetch`, so it stubs cleanly). Returns null when the issue is gone (404) or
+ * the API errors — the caller leaves the report's status unchanged.
+ */
+export async function fetchGitHubIssue(
+  fetchImpl: FetchLike,
+  args: { token: string; repo: GithubRepo; number: number },
+): Promise<GithubIssueState | null> {
+  let response: Response;
+  try {
+    response = await fetchImpl(
+      `https://api.github.com/repos/${args.repo.owner}/${args.repo.repo}/issues/${args.number}`,
+      {
+        method: 'GET',
+        headers: {
+          accept: 'application/vnd.github+json',
+          authorization: `Bearer ${args.token}`,
+          'x-github-api-version': '2022-11-28',
+        },
+      },
+    );
+  } catch {
+    return null;
+  }
+  if (!response.ok) return null;
+  const issue = (await response.json().catch(() => null)) as {
+    state?: string;
+    state_reason?: string | null;
+    html_url?: string;
+  } | null;
+  if (!issue || (issue.state !== 'open' && issue.state !== 'closed') || !issue.html_url) {
+    return null;
+  }
+  return { state: issue.state, stateReason: issue.state_reason ?? null, url: issue.html_url };
+}
