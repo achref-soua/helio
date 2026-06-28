@@ -42,3 +42,12 @@ overrides:
   # js-yaml < 4.1.2: quadratic-complexity DoS in merge-key handling via
   # repeated aliases (GHSA-h67p-54hq-rp68) — dev-only, via openapi-typescript.
   js-yaml: ^4.1.2
+  # undici < 7.28.0: TLS cert-validation bypass, WebSocket DoS, cross-origin
+  # request routing. Reaches the prod tree only through better-auth's
+  # mis-declared vitest → jsdom (test tooling, not a runtime path); unify it
+  # to a patched copy regardless.
+  undici: ^7.28.0
+  # hono < 4.12.25: CORS middleware reflects any Origin with credentials +
+  # serve-static path traversal. Direct api/ingest/tracking already declare
+  # ^4.12.25; this lifts the lingering transitive copy too.
+  hono: ^4.12.25
