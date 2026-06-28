@@ -1,0 +1,15 @@
+---
+title: Predictive scoring / churn
+---
+flowchart LR
+  UP["Model upload<br/>(ONNX / XGBoost)"]
+  FEAT["Feature mapping<br/>(event features · ClickHouse)"]
+  FB{"Model present?"}
+  INF["Inference<br/>(apps/intelligence)"]
+  BUILTIN["Built-in heuristic<br/>fallback"]
+  SCORE["Score → contact trait<br/>(Postgres · RLS)"]
+  USE["Segments · routing · journeys"]
+  UP --> FB
+  FEAT --> INF
+  FB -->|yes| INF --> SCORE --> USE
+  FB -->|no| BUILTIN --> SCORE

@@ -1,0 +1,16 @@
+---
+title: Meeting scheduler (CRM-lite)
+---
+flowchart TB
+  AV["Owner availability<br/>(rules + calendar)"]
+  TZ["Visitor timezone<br/>normalization"]
+  SLOTS["Open slots"]
+  PICK["Visitor picks slot"]
+  CONF{"Conflict check<br/>(atomic)"}
+  T["Temporal booking workflow"]
+  BOOK[("meeting_slot<br/>Postgres (RLS)")]
+  NOTIFY["Confirmations + reminders<br/>(email / SMS)"]
+  AV --> SLOTS
+  TZ --> SLOTS --> PICK --> CONF
+  CONF -->|free| T --> BOOK --> NOTIFY
+  CONF -->|taken| SLOTS

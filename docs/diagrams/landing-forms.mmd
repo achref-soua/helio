@@ -1,0 +1,13 @@
+---
+title: Landing pages & forms → CDP
+---
+flowchart LR
+  B["Block builder<br/>(apps/web)"]
+  PUB["Publish<br/>/p/:id · /f/:id"]
+  VIS["Visitor submit<br/>(progressive profiling)"]
+  UPS["Contact upsert<br/>(identity resolution)"]
+  PG[("Postgres · contacts (RLS)")]
+  SEG["List / segment<br/>membership update"]
+  EVT["Conversion event<br/>→ apps/ingest"]
+  B --> PUB --> VIS --> UPS --> PG --> SEG
+  VIS --> EVT

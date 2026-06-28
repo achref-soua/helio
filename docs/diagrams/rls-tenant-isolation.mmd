@@ -1,0 +1,19 @@
+---
+title: Multi-tenant isolation (Postgres RLS)
+---
+flowchart TB
+  REQ["Org-scoped request"]
+  subgraph app["apps/web · apps/api · apps/workers"]
+    FT["forTenant(orgId)<br/>packages/db"]
+    TX["BEGIN; SET LOCAL app.org_id"]
+  end
+  subgraph pg["PostgreSQL 16"]
+    APPROLE["helio_app role<br/>(FORCE ROW LEVEL SECURITY)"]
+    POL["RLS policy:<br/>org_id = current_setting('app.org_id')"]
+    DATA[("tenant tables")]
+    IDENT[("identity / auth tables<br/>REVOKED from app role")]
+  end
+  ADMIN["Auth kernel<br/>(admin connection · apps/web)"]
+  REQ --> FT --> TX --> APPROLE --> POL --> DATA
+  ADMIN --> IDENT
+  POL -. "blocks cross-tenant rows" .-> DATA
