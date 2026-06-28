@@ -219,7 +219,15 @@ Compose profiles cover local/self-host topologies. For the fastest hosted start,
 
 Measured on the development reference (WSL2, core profile, production build, v2.0 tree): warm server-rendered responses for the dashboard's key routes land at **24–44 ms** (`/contacts` 24 ms, `/deals` 28 ms, `/admin/audit` 30 ms, `/settings` 36 ms; first-hit ≤ 530 ms including route compilation warm-up). The journey canvas (React Flow) is code-split and loads only when an editor opens. Journey sends run on Temporal with explicit retry policies (5 attempts on sends, 3 on short activities) and raise in-app system alerts on exhaustion.
 
-Hot-path budgets (ingestion ≥ 5k events/s, API reads p95 < 150 ms) have a committed k6 harness in [`infra/k6/`](infra/k6) — `task loadtest` drives a 6 000 events/s firehose at the ingestion endpoint with thresholds asserted. Run it against the full stack and record the summary in [`infra/k6/README.md`](infra/k6/README.md).
+Hot-path ingestion is load-tested with the committed k6 harness in [`infra/k6/`](infra/k6) (`task loadtest`). Measured 2026-06-28 against the full stack on the development reference (WSL2, 20 vCPU, 15 GiB, all services co-located on one host — production separates them and runs multiple ingest replicas, so these understate it):
+
+| Offered rate | Sustained events/s | Accept | p95 latency | Errors |
+| ------------ | ------------------ | ------ | ----------- | ------ |
+| 6 000/s      | 6 063              | 100 %  | 5.4 ms      | 0 %    |
+| 15 000/s     | 15 435             | 100 %  | 23 ms       | 0 %    |
+| 20 000/s     | 20 259             | 100 %  | 81 ms       | 0 %    |
+
+Sustains **~20 000 events/s at p95 81 ms — 4× the ≥ 5 000 events/s budget**, within the < 150 ms target; a single ingest process saturates at ~23.5k events/s. End to end, 3.0 M events drained through Redpanda into ClickHouse with the consumer group at **zero lag**. The per-workspace rate limit (`INGEST_RATE_LIMIT_MAX`, default 600/60 s) correctly sheds excess with `429 + Retry-After`; raise it to measure raw capacity. Full method and the API-read budget (not yet load-tested) are in [`docs/production-readiness/v2.2.3.md`](docs/production-readiness/v2.2.3.md) and [`infra/k6/README.md`](infra/k6/README.md).
 
 For horizontal scale, the RLS app connection can be fronted by an opt-in transaction-mode PgBouncer — safe by design, since Helio sets the tenant id transaction-locally ([ADR-0022](docs/adr/0022-pgbouncer-transaction-pooling.md)) — and ingestion resolves write keys through a shared Redis cache ([ADR-0023](docs/adr/0023-write-key-shared-cache.md)).
 
