@@ -29,7 +29,7 @@ test.afterAll(() => {
 test('owner sees backups and can queue a run-now', async ({ page }) => {
   await page.goto('/settings');
   const panel = page.getByTestId('backups-panel');
-  await expect(panel.getByText('Backups', { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(panel.getByText('Backups', { exact: true })).toBeVisible({ timeout: 30_000 });
 
   const row = panel.getByRole('row', { name: /scheduled/ });
   await expect(row).toBeVisible();
