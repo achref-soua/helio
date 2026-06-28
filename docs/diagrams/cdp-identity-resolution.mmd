@@ -1,0 +1,14 @@
+---
+title: CDP identity resolution & merge
+---
+flowchart TB
+  ANON["Anonymous visitor<br/>(device id)"]
+  EVT["Events (apps/ingest)"]
+  IDF["identify(email / userId)"]
+  MATCH{"Existing profile?"}
+  NEW["Create contact"]
+  MERGE["Merge profiles<br/>(events + traits + consent)"]
+  UNI[("Unified profile<br/>Postgres (RLS)")]
+  ANON --> EVT --> IDF --> MATCH
+  MATCH -->|no| NEW --> UNI
+  MATCH -->|yes| MERGE --> UNI

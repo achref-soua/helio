@@ -1,0 +1,27 @@
+---
+title: Deployment profiles (docker compose)
+---
+flowchart TB
+  subgraph core["task up — core"]
+    WEB["web :3000"]
+    API2["api"]
+    PG2[("Postgres")]
+    RD[("Redis")]
+    MP["Mailpit"]
+  end
+  subgraph full["task up:full — adds"]
+    CH2[("ClickHouse")]
+    RP2[("Redpanda")]
+    TMP["Temporal"]
+    MO[("MinIO")]
+    ING2["ingest"]
+    TRK2["tracking"]
+    WRK2["workers"]
+    INT2["intelligence"]
+  end
+  subgraph obs["task up:observability"]
+    OTEL["OTel collector"]
+    PROM["Prometheus"]
+    GRAF["Grafana"]
+  end
+  core --> full --> obs

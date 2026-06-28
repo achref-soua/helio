@@ -1,0 +1,15 @@
+---
+title: MCP server (agent-driven campaigns)
+---
+flowchart LR
+  AGENT["External AI agent<br/>(Claude · owner's assistant)"]
+  MCP["MCP server<br/>(apps/intelligence · /v1/mcp)"]
+  subgraph tools["Exposed tools"]
+    T1["create_segment"]
+    T2["launch_journey"]
+    T3["send_campaign"]
+    T4["query_analytics"]
+  end
+  GW["REST gateway<br/>(apps/api · scoped key)"]
+  DB[("Postgres / ClickHouse<br/>RLS + scopes")]
+  AGENT -->|MCP protocol| MCP --> tools --> GW --> DB

@@ -1,0 +1,19 @@
+---
+title: AI copilot — NL → segment / journey / content
+---
+sequenceDiagram
+  actor U as Operator
+  participant W as apps/web
+  participant I as apps/intelligence
+  participant G as LLM gateway
+  participant P as Provider (Anthropic / OpenAI / local)
+  participant DB as Postgres (RLS)
+  U->>W: "Build a 5-step trial-conversion journey"
+  W->>I: POST /v1/copilot (org-scoped service token)
+  I->>G: prompt + tools + brand-voice RAG
+  G->>P: completion (streamed)
+  P-->>G: tokens
+  G-->>I: structured draft (segment / journey / email)
+  I-->>W: stream draft + preview
+  U->>W: accept
+  W->>DB: persist via forTenant()

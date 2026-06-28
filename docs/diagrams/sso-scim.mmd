@@ -1,0 +1,16 @@
+---
+title: SSO (OIDC / SAML) + SCIM provisioning
+---
+sequenceDiagram
+  actor U as User
+  participant IdP as Identity provider
+  participant W as apps/web (auth kernel)
+  participant DB as Identity tables (admin conn)
+  U->>W: login (email domain)
+  W->>W: route domain to org SSO config
+  W->>IdP: OIDC / SAML auth request
+  IdP-->>W: assertion (verified)
+  W->>DB: bind session to org membership
+  Note over IdP,W: SCIM token (separate scope)
+  IdP->>W: SCIM provision / deprovision
+  W->>DB: sync memberships (org-isolated)

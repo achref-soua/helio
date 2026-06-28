@@ -1,0 +1,29 @@
+---
+title: Multi-channel delivery adapter layer
+---
+flowchart LR
+  SEND["Send<br/>journey · campaign · transactional"]
+  SUP{"Suppression &<br/>consent check"}
+  FC{"Frequency cap /<br/>quiet hours"}
+  FAC["Channel adapter factory"]
+  subgraph email["Email"]
+    SMTP[SMTP]
+    SES[AWS SES]
+    PM[Postmark]
+    RES[Resend]
+    MG[Mailgun]
+  end
+  SMS["SMS<br/>Twilio · Vonage"]
+  WA["WhatsApp<br/>Cloud API"]
+  PUSH["Web push<br/>VAPID"]
+  TRACK["Open/click tracking<br/>(apps/tracking)"]
+  DROP["Drop + log"]
+  SEND --> SUP
+  SUP -->|allowed| FC
+  SUP -->|suppressed| DROP
+  FC -->|allowed| FAC
+  FAC --> email
+  FAC --> SMS
+  FAC --> WA
+  FAC --> PUSH
+  email --> TRACK

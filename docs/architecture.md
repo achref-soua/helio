@@ -55,4 +55,7 @@ C4Container
 | Python intelligence plane                          | `apps/intelligence` |
 | Compose profiles, Dockerfiles, observability stack | `infra/`            |
 
+Per-subsystem diagrams (ingestion, journeys, RLS, delivery, AI, vault, SSO, …):
+[`docs/diagrams.md`](./diagrams.md).
+
 Decision log: [`docs/adr/`](./adr/).

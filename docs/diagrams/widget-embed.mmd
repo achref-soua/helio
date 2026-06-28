@@ -1,0 +1,13 @@
+---
+title: On-site widget embed lifecycle
+---
+flowchart TB
+  SITE["Customer site<br/>&lt;script src=/widget.js&gt;"]
+  WJS["/widget.js<br/>(zero-dep · apps/api)"]
+  WK{"Write-key validation<br/>+ CORS"}
+  INJ["Inject form / banner / popup"]
+  TRK["Track impressions / clicks<br/>→ apps/ingest"]
+  NOOP["No-op"]
+  SITE --> WJS --> WK
+  WK -->|valid| INJ --> TRK
+  WK -->|invalid| NOOP
