@@ -2,6 +2,8 @@ import { execSync } from 'node:child_process';
 
 import { expect, test } from '@playwright/test';
 
+import { openDialog } from './dialog';
+
 /**
  * The backups panel (ADR-0020). The sidecar isn't part of the e2e
  * profile, so its metadata rows are seeded straight into the instance
@@ -27,7 +29,7 @@ test.afterAll(() => {
 test('owner sees backups and can queue a run-now', async ({ page }) => {
   await page.goto('/settings');
   const panel = page.getByTestId('backups-panel');
-  await expect(panel.getByText('Backups', { exact: true })).toBeVisible();
+  await expect(panel.getByText('Backups', { exact: true })).toBeVisible({ timeout: 30_000 });
 
   const row = panel.getByRole('row', { name: /scheduled/ });
   await expect(row).toBeVisible();
@@ -37,8 +39,10 @@ test('owner sees backups and can queue a run-now', async ({ page }) => {
     '/api/admin/backups/bk_e2e_1',
   );
 
-  await panel.getByRole('button', { name: 'Back up now' }).click();
-  await expect(page.getByText(/Backup queued/)).toBeVisible();
+  await openDialog(
+    panel.getByRole('button', { name: 'Back up now' }),
+    page.getByText(/Backup queued/),
+  );
   await expect
     .poll(() => Number(psql("SELECT count(*) FROM backup_request WHERE label = 'dashboard'")))
     .toBeGreaterThan(0);

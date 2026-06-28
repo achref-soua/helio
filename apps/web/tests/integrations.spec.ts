@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { openDialog } from './dialog';
+
 /**
  * The integrations panel (Shopify / Salesforce): connecting stores a
  * credential row (secrets sealed in the vault), the row can be toggled,
@@ -13,7 +15,7 @@ test('connect, toggle, and disconnect a Shopify integration', async ({ page }) =
   const panel = page.getByTestId('integrations-panel');
   await expect(panel).toBeVisible();
 
-  await panel.getByTestId('integration-connect').click();
+  await openDialog(panel.getByTestId('integration-connect'), page.getByTestId('integration-shop'));
   await page.getByTestId('integration-shop').fill(shop);
   await page.getByTestId('integration-secret').fill('shpss_e2e_secret_0123456789');
   await page.getByTestId('integration-save').click();
@@ -33,7 +35,10 @@ test('connect and disconnect a Salesforce integration', async ({ page }) => {
   await page.goto('/settings');
   const panel = page.getByTestId('integrations-panel');
 
-  await panel.getByTestId('integration-connect-sf').click();
+  await openDialog(
+    panel.getByTestId('integration-connect-sf'),
+    page.getByTestId('integration-instance'),
+  );
   await page.getByTestId('integration-instance').fill(instance);
   await page.getByTestId('integration-token').fill('00De2e_access_token');
   await page.getByTestId('integration-save-sf').click();

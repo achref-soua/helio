@@ -266,7 +266,7 @@ describe('journeyRunWorkflow v2 nodes', () => {
       sendJourneySms,
     } as Partial<JourneyActivities>);
     await runV2(activities);
-    expect(sendJourneySms).toHaveBeenCalledWith('contact_2', 'Hi {{firstName}}');
+    expect(sendJourneySms).toHaveBeenCalledWith('contact_2', 'Hi {{firstName}}', 'run_2', 'sms');
   });
 
   it('messages the contact at a send_whatsapp node', async () => {
@@ -289,7 +289,12 @@ describe('journeyRunWorkflow v2 nodes', () => {
       sendJourneyWhatsApp,
     } as Partial<JourneyActivities>);
     await runV2(activities);
-    expect(sendJourneyWhatsApp).toHaveBeenCalledWith('contact_2', 'Hi {{firstName}}');
+    expect(sendJourneyWhatsApp).toHaveBeenCalledWith(
+      'contact_2',
+      'Hi {{firstName}}',
+      'run_2',
+      'wa',
+    );
   });
 
   it('queues an in-app message at a send_in_app node', async () => {

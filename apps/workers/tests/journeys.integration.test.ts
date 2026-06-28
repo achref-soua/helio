@@ -245,11 +245,12 @@ describe('journey activities + trigger enrollment against Postgres', () => {
       });
       push.gone.add('https://push.test/dead');
 
-      const result = await pushActivities.sendJourneyPush(adaId, {
-        title: 'Hi',
-        body: 'There',
-        url: 'https://app.test',
-      });
+      const result = await pushActivities.sendJourneyPush(
+        adaId,
+        { title: 'Hi', body: 'There', url: 'https://app.test' },
+        'run-push',
+        'node-push',
+      );
       expect(result.sent).toBe(1);
       expect(push.sent[0]!.notification).toEqual({
         title: 'Hi',
@@ -261,13 +262,19 @@ describe('journey activities + trigger enrollment against Postgres', () => {
       expect(remaining.map((row) => row.endpoint)).toEqual(['https://push.test/live']);
 
       // Suppressed contact gets nothing.
-      expect((await pushActivities.sendJourneyPush(goneId, { title: 'x', body: 'y' })).sent).toBe(
-        0,
-      );
+      expect(
+        (await pushActivities.sendJourneyPush(goneId, { title: 'x', body: 'y' }, 'run-g', 'node-g'))
+          .sent,
+      ).toBe(0);
     });
 
     it('no-ops without a push provider configured', async () => {
-      const result = await activities.sendJourneyPush(adaId, { title: 'x', body: 'y' });
+      const result = await activities.sendJourneyPush(
+        adaId,
+        { title: 'x', body: 'y' },
+        'run-n',
+        'node-n',
+      );
       expect(result.sent).toBe(0);
     });
   });

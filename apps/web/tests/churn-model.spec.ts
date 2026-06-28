@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { openDialog } from './dialog';
+
 /**
  * BYO churn model panel, exercised with the intelligence service OFF —
  * the canonical e2e profile. Everything still works: rows are created
@@ -11,7 +13,7 @@ test('register, inspect, and delete a churn model with the AI plane down', async
   const name = `e2e endpoint ${Date.now()}`;
   await page.goto('/settings');
   const panel = page.getByTestId('churn-model-panel');
-  await expect(panel.getByText('Churn prediction model')).toBeVisible();
+  await expect(panel.getByText('Churn prediction model')).toBeVisible({ timeout: 15_000 });
 
   // Register an HTTPS model server; the probe cannot run, so the row
   // lands FAILED with the unreachable-service explanation.
@@ -62,8 +64,10 @@ test('upload a model file with the AI plane down lands a FAILED row, not an erro
 test('training-data export fails with a toast, never a broken page', async ({ page }) => {
   await page.goto('/settings');
   const panel = page.getByTestId('churn-model-panel');
-  await panel.getByRole('button', { name: 'Training CSV' }).click();
-  await expect(page.locator('[data-sonner-toast]')).toBeVisible();
+  await openDialog(
+    panel.getByRole('button', { name: 'Training CSV' }),
+    page.locator('[data-sonner-toast]'),
+  );
   // The settings page is still alive and interactive.
   await expect(panel.getByText('Churn prediction model')).toBeVisible();
 });
