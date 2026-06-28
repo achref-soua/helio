@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 
 import { expect, test } from '@playwright/test';
 
-import { checkUntil } from './dialog';
+import { checkUntil, fillStable } from './dialog';
 import { mailpitUrl } from './mailpit';
 
 function psql(query: string): string {
@@ -157,9 +157,14 @@ test.describe('forced rotation', () => {
     // Owner of a fresh org: turn the policy on (7 days)…
     await page.goto('/settings');
     const panel = page.getByTestId('password-policy-panel');
-    await panel.getByLabel('Days').fill('7');
-    await panel.getByRole('checkbox', { name: /Require a password change/ }).check();
-    await expect(page.locator('[data-sonner-toast]').first()).toBeVisible();
+    // Both are client-controlled: the days value must stick past hydration, and
+    // toggling the policy on must actually fire React's onChange (a single
+    // pre-hydration .check() is silently dropped), so retry until the save lands.
+    await fillStable(panel.getByLabel('Days'), '7');
+    await checkUntil(
+      panel.getByRole('checkbox', { name: /Require a password change/ }),
+      page.locator('[data-sonner-toast]').first(),
+    );
 
     // …and make this user's password a month old.
     psql(

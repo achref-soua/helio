@@ -250,15 +250,26 @@ export function SchedulingView() {
                 {upsert.isPending ? t('saving') : t('save')}
               </Button>
               {page && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={copyLink}
-                  data-testid="sched-copy-link"
-                >
-                  <Copy aria-hidden /> {t('copyLink')}
-                </Button>
+                <>
+                  <a
+                    href={`/m/${page.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    data-testid="sched-public-link"
+                    className="text-muted-foreground text-sm underline underline-offset-4"
+                  >
+                    {`/m/${page.id}`}
+                  </a>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={copyLink}
+                    data-testid="sched-copy-link"
+                  >
+                    <Copy aria-hidden /> {t('copyLink')}
+                  </Button>
+                </>
               )}
             </div>
           </form>
