@@ -10,7 +10,7 @@
 
 </div>
 
-> ☀️ **v2.0.0 — Helio for humans.** v1 proved the engine; v2 makes it yours without a terminal career. Install on any machine with [one command](#install-in-one-command) — the `helio` CLI drives Docker for you, the app installs to your desktop or phone (PWA), and a setup wizard takes you from blank box to working organization in minutes. Every channel sends for real, per organization: bring your own SMTP/Postmark/Resend/Mailgun, Twilio SMS, WhatsApp — and your own AI key (OpenAI, Anthropic, Groq, or a local model server), every secret sealed in an encrypted vault and shown only masked. Admins get a control room: a filterable audit trail, reports, live system health, a validated Database Studio over your own tables, and scheduled backups with one-command restore. The CRM closes the loop — contact & deal pages, companies, notes, a draggable board, sales reports — and the migration wizard pulls contacts straight from the HubSpot, Mailchimp, or Klaviyo APIs. If your data team trains its own churn model, upload it (ONNX or XGBoost; pickle refused by design) or point Helio at your model server, with automatic fallback if it ever fails. Security got the deep pass: TOTP 2FA with any authenticator app, org-enforced 2FA and password-rotation policies, scoped API keys, strict headers and rate limits everywhere. And billing is gone for good — Helio is **free forever**: no plans, no contact caps, no metering. The [roadmap](#roadmap) tells the story.
+> ☀️ **v2.0.0 — Helio for humans.** v1 proved the engine; v2 makes it yours without a terminal career. Install on any machine with [one command](#install-in-one-command) — the `helio` CLI drives Docker for you, the app installs to your desktop or phone (PWA), and a setup wizard takes you from blank box to working organization in minutes. Every channel sends for real, per organization: bring your own SMTP/Postmark/Resend/Mailgun, Twilio SMS, WhatsApp — and your own AI key (OpenAI, Anthropic, Groq, NVIDIA NIM, or a local model server), every secret sealed in an encrypted vault and shown only masked. Admins get a control room: a filterable audit trail, reports, live system health, a validated Database Studio over your own tables, and scheduled backups with one-command restore. The CRM closes the loop — contact & deal pages, companies, notes, a draggable board, sales reports — and the migration wizard pulls contacts straight from the HubSpot, Mailchimp, or Klaviyo APIs. If your data team trains its own churn model, upload it (ONNX or XGBoost; pickle refused by design) or point Helio at your model server, with automatic fallback if it ever fails. Security got the deep pass: TOTP 2FA with any authenticator app, org-enforced 2FA and password-rotation policies, scoped API keys, strict headers and rate limits everywhere. And billing is gone for good — Helio is **free forever**: no plans, no contact caps, no metering. The [roadmap](#roadmap) tells the story.
 
 <p align="center">
   <a href="https://github.com/achref-soua/helio/releases/latest/download/helio-demo.mp4">
@@ -58,7 +58,7 @@ Marketing automation today forces a bad choice:
 - ✅ **On-site widgets** — banners and popups composed against a live preview and shown on your own site via a one-line, zero-dependency embed (`/widget.js`) that pulls live widgets from a write-key-scoped, CORS-enabled endpoint
 - ✅ **In-app messages** — per-contact messages queued by a journey's _Send in-app_ step and drained by the tracking SDK (`helio.inApp()`), resolved by the visitor's identity and scoped to the write key's workspace
 - ✅ **AI copilot** — describe a segment, journey, or on-brand email in a sentence and get a working draft; predictive lead scoring & churn (with per-workspace conversion events); send-time optimization; autonomous A/B winner selection — all grounded in your own org's data
-- ✅ **Bring your own AI** — each organization picks its provider (OpenAI, Anthropic, Groq, Ollama, or any OpenAI-compatible local server) and pastes its own key in Settings; keys are sealed with AES-256-GCM, shown only masked, and never logged
+- ✅ **Bring your own AI** — each organization picks its provider (OpenAI, Anthropic, Groq, NVIDIA NIM, Ollama, or any OpenAI-compatible local server) and pastes its own key in Settings; keys are sealed with AES-256-GCM, shown only masked, and never logged
 - ✅ **Bring your own churn model** — upload an ONNX or XGBoost model (pickle refused by design) or connect your own model server; the feature mapping is automatic (train on the one-click CSV and it plugs straight in); validated in a locked-down sandbox, one click to activate, automatic fallback to the built-in model if yours ever fails — plus a one-click training-data CSV
 - ✅ **Agent-ready** — an MCP server exposes Helio's capabilities as tools, so external AI agents can drive campaigns programmatically
 - ✅ **CRM-lite** — pipelines with configurable stages and a deal board, a task list (calls, emails, meetings, to-dos) grouped by due date, and a meeting scheduler with public booking pages (timezone-correct slots, server-validated, double-book-proof) that file meetings into the CRM; all tenant-isolated
@@ -154,7 +154,7 @@ irm https://github.com/achref-soua/helio/releases/latest/download/install.ps1 | 
 
 The installer is a plain script — nothing for antivirus or SmartScreen to flag — that checks Docker (and offers to set it up on Windows/Linux), generates this installation's secrets, verifies the release bundle's checksum, pulls release-pinned images, runs migrations, starts the stack, and opens the dashboard; create the first account there and it becomes the administrator. It also saves itself as `~/.helio/helio`, so day 2 is just as boring: run it with no argument for an interactive menu, or pass a command — `helio status`, `helio logs`, `helio update` (which takes a safety backup first), `helio stop`. Leaving is one command too: `helio uninstall` stops and removes the stack but keeps your data; `helio uninstall --purge-data` erases everything (both ask you to type `uninstall` first).
 
-Everything lives under `~/.helio` (compose file, `.env` with your secrets, backups). The default **core** profile (~2.5 GB RAM) runs the dashboard, REST API, and AI service; `helio up --full` adds campaign sending, event ingestion, tracking, and analytics for bigger hosts. Mail goes to the bundled [Mailpit](https://mailpit.axllent.org/) test inbox until an organization connects its real provider under **Settings → Provider credentials** — so you can explore without sending anyone anything.
+Everything lives under `~/.helio` (compose file, `.env` with your secrets, backups). The install runs the **full stack** by default (~8 GB RAM) — dashboard, REST API, AI copilot, campaign sending, event ingestion, tracking, analytics, and journeys all work out of the box. On a small host, pass `--core` (`-Core` on Windows) for the minimal ~2.5 GB profile (dashboard, REST API, and AI service only). Mail goes to the bundled [Mailpit](https://mailpit.axllent.org/) test inbox until an organization connects its real provider under **Settings → Provider credentials** — so you can explore without sending anyone anything.
 
 Docker is where most install problems happen, so the installer (and `helio doctor`) diagnoses the common ones and fixes the safe cases automatically — Linux socket permissions and a stopped daemon, and on Windows a missing WSL2 backend (it offers to run `wsl --install`) or CPU virtualization disabled in the BIOS. If an install stalls, run `helio doctor`: it names exactly what's wrong and the command to fix it. See [`self-hosting.mdx`](apps/docs/content/docs/self-hosting.mdx) for the full list.
 
@@ -165,17 +165,16 @@ git clone https://github.com/achref-soua/helio.git
 cd helio
 cp .env.example .env       # set BETTER_AUTH_SECRET (openssl rand -hex 32) + HELIO_ENCRYPTION_KEY (openssl rand -base64 32)
 task setup                 # install dependencies + git hooks
-task up                    # Postgres (+pgvector), Redis, Mailpit
+task up                    # full stack: Postgres (+pgvector), Redis, Mailpit, ClickHouse, Redpanda, Temporal, MinIO
 task db:migrate && task db:seed
 pnpm --filter @helio/web dev
 ```
 
 Open `http://localhost:3000`, sign up, and verify your email at Mailpit (`http://localhost:8025`) — onboarding creates your organization, and the seed provisions a ready-to-explore demo workspace: contacts (with lead scores and AI predictions), lists, segments, email templates, a campaign, an active welcome journey, lead-scoring rules, a CRM pipeline with deals and tasks, and a demo write key. Dev email never leaves your machine.
 
-**Want the full loop (campaigns, journeys, event analytics)?**
+`task up` already runs the campaign/journey/analytics infrastructure. For hot-reload on those services, run them from source too:
 
 ```bash
-task up:full               # adds ClickHouse, Redpanda, Temporal, MinIO
 pnpm --filter @helio/ingest dev      # event ingestion :4100
 pnpm --filter @helio/tracking dev    # open/click tracking :4200
 pnpm --filter @helio/workers dev     # Temporal worker (sends + journeys)
@@ -185,17 +184,17 @@ Create a template under **Emails**, a campaign under **Campaigns**, hit Send —
 
 ### Everything you can run
 
-| Command                                                                          | What it does                                                                                 |
-| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `task up` / `task up:full` / `task up:observability`                             | core infra / + ClickHouse, Redpanda, Temporal, MinIO / + Prometheus, Grafana, OTel collector |
-| `task db:migrate` · `db:seed` · `db:studio` · `db:reset`                         | schema & data lifecycle                                                                      |
-| `task lint` · `typecheck` · `test` · `format` · `build`                          | the quality pipeline (same as CI)                                                            |
-| `pnpm --filter @helio/web dev` / `@helio/api dev`                                | dashboard :3000 / gateway :4000                                                              |
-| `pnpm --filter @helio/ingest dev` / `@helio/tracking dev` / `@helio/workers dev` | ingestion :4100 / tracking :4200 / Temporal worker                                           |
-| `task ch:migrate`                                                                | apply ClickHouse migrations standalone (the ingest service also applies them at boot)        |
-| `cd apps/intelligence && uv run uvicorn helio_intelligence.app:app --reload`     | intelligence :8000                                                                           |
-| `cd apps/web && pnpm test:e2e`                                                   | Playwright suite incl. the full signup→invite→accept journey                                 |
-| `task screenshots`                                                               | regenerate `docs/assets` from a running app                                                  |
+| Command                                                                          | What it does                                                                          |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `task up` / `task up:core` / `task up:observability`                             | full stack (everything) / minimal infra only / + Prometheus, Grafana, OTel collector  |
+| `task db:migrate` · `db:seed` · `db:studio` · `db:reset`                         | schema & data lifecycle                                                               |
+| `task lint` · `typecheck` · `test` · `format` · `build`                          | the quality pipeline (same as CI)                                                     |
+| `pnpm --filter @helio/web dev` / `@helio/api dev`                                | dashboard :3000 / gateway :4000                                                       |
+| `pnpm --filter @helio/ingest dev` / `@helio/tracking dev` / `@helio/workers dev` | ingestion :4100 / tracking :4200 / Temporal worker                                    |
+| `task ch:migrate`                                                                | apply ClickHouse migrations standalone (the ingest service also applies them at boot) |
+| `cd apps/intelligence && uv run uvicorn helio_intelligence.app:app --reload`     | intelligence :8000                                                                    |
+| `cd apps/web && pnpm test:e2e`                                                   | Playwright suite incl. the full signup→invite→accept journey                          |
+| `task screenshots`                                                               | regenerate `docs/assets` from a running app                                           |
 
 Details: [local-dev runbook](docs/runbooks/local-dev.md).
 

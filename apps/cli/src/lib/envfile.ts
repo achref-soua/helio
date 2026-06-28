@@ -137,9 +137,9 @@ export function setEnvValue(
   return { content: `${body}${line}\n`, changed: true };
 }
 
-/** The COMPOSE_PROFILES list (comma-separated, trimmed); defaults to `core`. */
+/** The COMPOSE_PROFILES list (comma-separated, trimmed); defaults to `full`. */
 export function composeProfiles(content: string): string[] {
-  return (envValue(content, 'COMPOSE_PROFILES') ?? 'core')
+  return (envValue(content, 'COMPOSE_PROFILES') ?? 'full')
     .split(',')
     .map((profile) => profile.trim())
     .filter(Boolean);

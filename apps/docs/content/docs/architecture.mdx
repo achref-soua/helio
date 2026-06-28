@@ -19,12 +19,12 @@ for analytics; Redpanda is the backbone between them.
 
 ## System context (C4 level 1)
 
-| Actor / system          | Relationship to Helio                                                       |
-| ----------------------- | --------------------------------------------------------------------------- |
-| Marketing operator      | Builds segments, journeys, and campaigns via the dashboard and API.         |
-| Tracked end-user        | Receives messages; generates events via the tracking SDK; opens and clicks. |
-| Email relay (external)  | SMTP / SES / Postmark / Resend / Mailgun — Helio sends through it.          |
-| LLM provider (external) | Anthropic / OpenAI / Groq / local — powers copilot, generation, scoring.    |
+| Actor / system          | Relationship to Helio                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| Marketing operator      | Builds segments, journeys, and campaigns via the dashboard and API.                   |
+| Tracked end-user        | Receives messages; generates events via the tracking SDK; opens and clicks.           |
+| Email relay (external)  | SMTP / SES / Postmark / Resend / Mailgun — Helio sends through it.                    |
+| LLM provider (external) | Anthropic / OpenAI / Groq / NVIDIA NIM / local — powers copilot, generation, scoring. |
 
 ## Containers (C4 level 2)
 

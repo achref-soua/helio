@@ -55,6 +55,19 @@ describe('probeRequestFor', () => {
     expect(local.headers.authorization).toBeUndefined();
   });
 
+  it('routes NVIDIA NIM to the hosted catalog or a self-hosted base URL', () => {
+    const hosted = probeRequestFor('LLM', { provider: 'nvidia', model: 'm' }, { apiKey: 'nvapi' })!;
+    expect(hosted.url).toBe('https://integrate.api.nvidia.com/v1/models');
+    expect(hosted.headers.authorization).toBe('Bearer nvapi');
+
+    const selfHosted = probeRequestFor(
+      'LLM',
+      { provider: 'nvidia', model: 'm', baseUrl: 'http://nim.internal:8000/v1' },
+      { apiKey: 'nvapi' },
+    )!;
+    expect(selfHosted.url).toBe('http://nim.internal:8000/v1/models');
+  });
+
   it('routes mailgun by region and rejects mailchimp keys without a dc', () => {
     expect(
       probeRequestFor('EMAIL_MAILGUN', { domain: 'mg.a.test', region: 'eu' }, { apiKey: 'k' })!.url,

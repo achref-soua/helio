@@ -13,12 +13,13 @@ from ..settings import Settings
 from .anthropic_provider import AnthropicProvider
 from .base import LLMProvider
 
-# Groq and Ollama are OpenAI-compatible; only the base URL differs.
+# Groq, NVIDIA NIM, and Ollama are OpenAI-compatible; only the base URL differs.
 _GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+_NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
 _OLLAMA_BASE_URL = "http://localhost:11434/v1"
 _LOCAL_KEY_SENTINEL = "local"  # OpenAI SDK requires a non-empty key string
 
-_HOSTED = {"openai", "anthropic", "groq"}
+_HOSTED = {"openai", "anthropic", "groq", "nvidia"}
 _LOCAL = {"ollama", "local"}
 
 
@@ -75,6 +76,8 @@ def build_provider(
             resolved_base: str | None = base_url
         elif name == "groq":
             resolved_base = _GROQ_BASE_URL
+        elif name == "nvidia":
+            resolved_base = _NVIDIA_BASE_URL
         elif name in _LOCAL:
             resolved_base = _OLLAMA_BASE_URL
         else:
@@ -89,7 +92,7 @@ def build_provider(
         )
 
     raise ValueError(
-        f"Unknown LLM provider '{name}'. Supported: openai, anthropic, groq, ollama, local."
+        f"Unknown LLM provider '{name}'. Supported: openai, anthropic, groq, nvidia, ollama, local."
     )
 
 

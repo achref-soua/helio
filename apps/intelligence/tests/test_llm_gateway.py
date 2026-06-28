@@ -167,6 +167,25 @@ def test_factory_selects_groq_with_default_base_url() -> None:
     assert provider.model == "llama-3.3-70b"
 
 
+def test_factory_selects_nvidia_nim_catalog() -> None:
+    # NVIDIA NIM is OpenAI-compatible; with no base URL it routes at the
+    # hosted catalog and (being hosted) requires a key.
+    provider = create_llm_provider(
+        _settings(
+            llm_provider="nvidia",
+            llm_api_key="test-key",
+            llm_model="meta/llama-3.3-70b-instruct",
+        )
+    )
+    assert provider.name == "nvidia"
+    assert "integrate.api.nvidia.com" in str(provider._client.base_url)  # type: ignore[attr-defined]
+
+
+def test_factory_requires_a_key_for_nvidia() -> None:
+    with pytest.raises(ValueError, match="INTEL_LLM_API_KEY"):
+        create_llm_provider(_settings(llm_provider="nvidia", llm_api_key=""))
+
+
 def test_factory_selects_anthropic() -> None:
     provider = create_llm_provider(
         _settings(llm_provider="anthropic", llm_api_key="test-key", llm_model="claude-x")

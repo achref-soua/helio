@@ -44,9 +44,10 @@ and never logged.
 
 Each organization can connect its **own** AI provider under
 **Settings → Provider credentials → AI copilot**: pick `openai`,
-`anthropic`, `groq`, `ollama`, or any OpenAI-compatible `local` server
-(vLLM, LM Studio, llama.cpp — enter its base URL), set the model, and paste
-the key (local servers need none). The key is sealed with AES-256-GCM in
+`anthropic`, `groq`, `nvidia` (NVIDIA NIM), `ollama`, or any OpenAI-compatible
+`local` server (vLLM, LM Studio, llama.cpp — enter its base URL), set the model,
+and paste the key (local servers need none). NVIDIA NIM uses the hosted catalog
+by default; point it at a self-hosted NIM with the base URL field. The key is sealed with AES-256-GCM in
 the [credential vault](/docs/security/credential-vault), shown only as a
 mask, decrypted at call time, and never logged. **Verify** runs a read-only
 models-list probe so you know the key works before the copilot uses it.

@@ -1,7 +1,7 @@
-"""OpenAI-compatible provider — serves OpenAI and Groq (and local servers).
+"""OpenAI-compatible provider — serves OpenAI, Groq, NVIDIA NIM (and local servers).
 
-Groq exposes the same Chat Completions surface as OpenAI, so a single
-implementation covers both; only ``base_url`` and the model id differ.
+Groq and NVIDIA NIM expose the same Chat Completions surface as OpenAI, so a
+single implementation covers them all; only ``base_url`` and the model id differ.
 """
 
 from __future__ import annotations
