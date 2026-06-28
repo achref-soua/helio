@@ -58,7 +58,7 @@ tasks:
       - cmd: cd packages/sdk-py && uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
 
   verify:e2e:
-    desc: 'End-to-end gate (requires: task up; WIPES the local database)'
+    desc: 'End-to-end gate (requires: task up:core, matching CI; WIPES the local database)'
     cmds:
       # CI mode serves `next start`, which silently serves whatever build
       # is on disk — build first so the gate always tests current code.
@@ -66,18 +66,23 @@ tasks:
       - cd apps/web && CI=1 pnpm test:e2e
 
   up:
-    desc: Start the local core stack (Postgres, Redis, Mailpit)
-    cmds:
-      - cmd: test -f .env || cp .env.example .env
-        silent: true
-      - '{{.COMPOSE}} --profile core up -d --wait'
-
-  up:full:
-    desc: Start the full stack (adds ClickHouse, Redpanda, Temporal, MinIO)
+    desc: Start the full stack — everything (Postgres, Redis, Mailpit, ClickHouse, Redpanda, Temporal, MinIO)
     cmds:
       - cmd: test -f .env || cp .env.example .env
         silent: true
       - '{{.COMPOSE}} --profile full up -d --wait'
+
+  up:full:
+    desc: Alias of `task up` — start the full stack
+    cmds:
+      - task: up
+
+  up:core:
+    desc: Start only the minimal stack (Postgres, Redis, Mailpit) for a low-memory host
+    cmds:
+      - cmd: test -f .env || cp .env.example .env
+        silent: true
+      - '{{.COMPOSE}} --profile core up -d --wait'
 
   up:observability:
     desc: Start the observability stack (OTel collector, Prometheus, Grafana)

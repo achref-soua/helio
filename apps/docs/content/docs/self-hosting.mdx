@@ -34,9 +34,11 @@ installation's secrets into `~/.helio/.env`, downloads the release-pinned
 compose bundle, pulls images, runs migrations, starts everything, and opens
 the dashboard. The first account you create becomes the administrator.
 
-Pick the **core** profile (default, ~2.5 GB RAM: dashboard, REST API, AI
-copilot) or **full** (adds campaign sending, event ingestion, tracking, and
-analytics — recommended on ≥ 8 GB hosts; switch later with `helio up --full`).
+The install runs the **full** stack by default (~8 GB RAM) — dashboard, REST
+API, AI copilot, campaign sending, event ingestion, tracking, analytics, and
+journeys, all working out of the box. On a small host, pass `--core` (`-Core` on
+Windows) for the minimal ~2.5 GB profile (dashboard, REST API, and AI copilot
+only).
 
 ### If Docker won't cooperate
 
@@ -190,7 +192,7 @@ git clone https://github.com/achref-soua/helio.git
 cd helio
 cp .env.example .env       # set BETTER_AUTH_SECRET (openssl rand -hex 32)
 task setup                 # install dependencies + git hooks
-task up                    # Postgres (+pgvector), Redis, Mailpit
+task up                    # full stack: Postgres (+pgvector), Redis, Mailpit, ClickHouse, Redpanda, Temporal, MinIO
 task db:migrate && task db:seed
 pnpm --filter @helio/web dev
 ```
@@ -209,11 +211,11 @@ provisions a ready-to-explore demo workspace.
 
 ## The full loop
 
-Campaigns, journeys, and event analytics need the full infrastructure profile —
-ClickHouse, Redpanda, Temporal, and MinIO:
+`task up` already runs the campaign/journey/analytics infrastructure (ClickHouse,
+Redpanda, Temporal, MinIO). For hot-reload on those services, run them from
+source too:
 
 ```bash
-task up:full                         # adds ClickHouse, Redpanda, Temporal, MinIO
 pnpm --filter @helio/ingest dev      # event ingestion :4100
 pnpm --filter @helio/tracking dev    # open/click tracking :4200
 pnpm --filter @helio/workers dev     # Temporal worker (sends + journeys)
@@ -225,15 +227,15 @@ stream into the dashboard.
 
 ## Everything you can run
 
-| Command                                                                          | What it does                                                                 |
-| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `task up` / `task up:full` / `task up:observability`                             | core infra / + ClickHouse, Redpanda, Temporal, MinIO / + Prometheus, Grafana |
-| `task db:migrate` · `db:seed` · `db:studio` · `db:reset`                         | schema & data lifecycle                                                      |
-| `task lint` · `typecheck` · `test` · `format` · `build`                          | the quality pipeline                                                         |
-| `pnpm --filter @helio/web dev` / `@helio/api dev`                                | dashboard :3000 / gateway :4000                                              |
-| `pnpm --filter @helio/ingest dev` / `@helio/tracking dev` / `@helio/workers dev` | ingestion :4100 / tracking :4200 / Temporal worker                           |
-| `cd apps/intelligence && uv run uvicorn helio_intelligence.app:app --reload`     | intelligence :8000                                                           |
-| `pnpm --filter @helio/docs dev`                                                  | this documentation site :3002                                                |
+| Command                                                                          | What it does                                                         |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `task up` / `task up:core` / `task up:observability`                             | full stack (everything) / minimal infra only / + Prometheus, Grafana |
+| `task db:migrate` · `db:seed` · `db:studio` · `db:reset`                         | schema & data lifecycle                                              |
+| `task lint` · `typecheck` · `test` · `format` · `build`                          | the quality pipeline                                                 |
+| `pnpm --filter @helio/web dev` / `@helio/api dev`                                | dashboard :3000 / gateway :4000                                      |
+| `pnpm --filter @helio/ingest dev` / `@helio/tracking dev` / `@helio/workers dev` | ingestion :4100 / tracking :4200 / Temporal worker                   |
+| `cd apps/intelligence && uv run uvicorn helio_intelligence.app:app --reload`     | intelligence :8000                                                   |
+| `pnpm --filter @helio/docs dev`                                                  | this documentation site :3002                                        |
 
 ## Deployment
 
@@ -249,10 +251,10 @@ done
 
 Compose profiles cover local and self-host topologies:
 
-- **`core`** — app + Postgres + Redis + Mailpit. Enough for auth, contacts,
-  segments, and email design.
-- **`full`** — adds ClickHouse, Redpanda, Temporal, and MinIO for the complete
-  campaign/journey/analytics loop.
+- **`full`** — the default: app + Postgres + Redis + Mailpit + ClickHouse,
+  Redpanda, Temporal, and MinIO. The complete campaign/journey/analytics product.
+- **`core`** — app + Postgres + Redis + Mailpit only, for a low-memory host.
+  Enough for auth, contacts, segments, and email design.
 - **`observability`** — adds the OpenTelemetry collector, Prometheus, and
   Grafana.
 

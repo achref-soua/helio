@@ -84,12 +84,14 @@ async function run(argv: string[]): Promise<number> {
   let profile = values.profile;
   if (!profile) {
     if (values.yes) {
-      profile = 'core';
+      profile = 'full';
     } else {
       step('Choose your stack');
-      say(`  ${bold('core')}   dashboard, REST API, AI copilot (~2.5 GB RAM) - right for most`);
-      say(`  ${bold('full')}   adds campaign sending, event tracking, analytics (~8 GB RAM)`);
-      profile = await prompt('Type core or full, then press Enter', 'core');
+      say(
+        `  ${bold('full')}   everything — sending, event tracking, analytics, journeys (~8 GB RAM) - recommended`,
+      );
+      say(`  ${bold('core')}   minimal host — dashboard, REST API, AI copilot only (~2.5 GB RAM)`);
+      profile = await prompt('Type full or core, then press Enter', 'full');
     }
   }
   if (profile !== 'core' && profile !== 'full') fail(`unknown profile "${profile}"`);

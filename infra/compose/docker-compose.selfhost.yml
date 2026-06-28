@@ -3,11 +3,13 @@
 # is reproducible and `helio update` is an explicit, backed-up step.
 #
 # Profiles:
-#   core  (default) — dashboard, REST API, AI service, Postgres, Redis, and
-#                     Mailpit as the fallback test inbox. ~2.5 GB RAM.
-#   full            — adds event ingestion + tracking + journey/campaign
-#                     workers and their stores (ClickHouse, Redpanda,
-#                     Temporal). Recommended ≥ 8 GB RAM.
+#   full  (default) — the whole product: dashboard, REST API, AI service,
+#                     Postgres, Redis, Mailpit, plus event ingestion + tracking
+#                     + journey/campaign workers and their stores (ClickHouse,
+#                     Redpanda, Temporal). ~8 GB RAM.
+#   core            — minimal host: dashboard, REST API, AI service, Postgres,
+#                     Redis, and Mailpit only. ~2.5 GB RAM (no tracking,
+#                     analytics, or journeys).
 #
 # Postgres and Redis are deliberately NOT exposed to the host; the admin
 # surfaces for them live inside Helio (Database Studio, backups).

@@ -27,8 +27,8 @@ paste one file into its **User data** / **Cloud-init** / **Startup script** box.
 On first boot the VM installs Docker and Helio and serves the dashboard at
 `http://<your-server-ip>:3000` — no SSH, no Docker knowledge.
 
-1. Create a VM. **4 GB RAM** for the default `core` profile, **8 GB** for
-   `--full`. Ubuntu or Debian is the smoothest base.
+1. Create a VM. **8 GB RAM** for the default full stack; **4 GB** if you install
+   with `--core` (minimal). Ubuntu or Debian is the smoothest base.
 2. Paste
    [`infra/cloud/helio-cloud-init.yaml`](https://github.com/achref-soua/helio/blob/main/infra/cloud/helio-cloud-init.yaml)
    as the instance's user data. It detects the VM's public IP, sets `APP_URL`
@@ -212,9 +212,9 @@ schedule, and never sends real email.
 
 The fastest path. Paste
 [`infra/cloud/helio-demo-cloud-init.yaml`](https://github.com/achref-soua/helio/blob/main/infra/cloud/helio-demo-cloud-init.yaml)
-as a Linux VM's user-data (4 GB RAM is plenty for the demo's `core` profile). On
-first boot it installs Helio and installs a cron that restores a **golden
-snapshot** every 6 hours.
+as a Linux VM's user-data (give it **8 GB RAM** — the demo runs the full stack so
+every feature works). On first boot it installs Helio and installs a cron that
+restores a **golden snapshot** every 6 hours.
 
 The reset reuses Helio's own backup/restore (a full `pg_dump` / `pg_restore`),
 so the snapshot captures everything — the demo login and the sample data

@@ -49,7 +49,7 @@ registerCommand('restore', 'Restore a backup (DESTROYS current data)', async (ar
   }
 
   const env = readFileSync(paths.envFile, 'utf8');
-  const profiles = (envValue(env, 'COMPOSE_PROFILES') ?? 'core').split(',').filter(Boolean);
+  const profiles = (envValue(env, 'COMPOSE_PROFILES') ?? 'full').split(',').filter(Boolean);
 
   say('stopping services…');
   await compose(paths, ['down'], { profiles });
