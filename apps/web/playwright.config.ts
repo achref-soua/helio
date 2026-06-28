@@ -12,7 +12,12 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 3 : 0,
+  // The CI runner is a 2-core box also running the compose stack + the app, so
+  // hydration and the heaviest /settings panels are slower there than locally.
+  // Give each test more headroom in CI so resource contention isn't read as a
+  // failure (a real bug still fails — the assertion just gets longer to wait).
+  timeout: process.env.CI ? 60_000 : 30_000,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL: BASE_URL,
