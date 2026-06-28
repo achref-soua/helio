@@ -96,19 +96,20 @@ export async function journeyRunWorkflow(input: JourneyRunInput): Promise<{ step
           break;
         }
         case 'send_push':
-          await activities.sendJourneyPush(input.contactId, {
-            title: node.title,
-            body: node.body,
-            url: node.url,
-          });
+          await activities.sendJourneyPush(
+            input.contactId,
+            { title: node.title, body: node.body, url: node.url },
+            input.runId,
+            node.id,
+          );
           currentId = nextNodeId(definition, node.id);
           break;
         case 'send_sms':
-          await activities.sendJourneySms(input.contactId, node.body);
+          await activities.sendJourneySms(input.contactId, node.body, input.runId, node.id);
           currentId = nextNodeId(definition, node.id);
           break;
         case 'send_whatsapp':
-          await activities.sendJourneyWhatsApp(input.contactId, node.body);
+          await activities.sendJourneyWhatsApp(input.contactId, node.body, input.runId, node.id);
           currentId = nextNodeId(definition, node.id);
           break;
         case 'send_in_app':

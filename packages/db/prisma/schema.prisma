@@ -84,8 +84,35 @@ model Organization {
   importJobs          ImportJob[]
   emailAssets         EmailAsset[]
   supportReports      SupportReport[]
+  journeyDeliveries   JourneyDelivery[]
 
   @@map("organization")
+}
+
+/// Idempotency marker for a journey SMS / WhatsApp / web-push send. One contact's
+/// pass through one send node maps to one row on a deterministic id, so a
+/// Temporal retry after a delivered send claims the same row and short-circuits
+/// instead of sending again. Email and in-app have their own delivery rows
+/// (email_send, in_app_delivery); this covers the provider channels that used to
+/// persist nothing, closing the at-least-once double-send window on a worker
+/// crash. Tenant-scoped and RLS-isolated.
+model JourneyDelivery {
+  id             String    @id
+  organizationId String    @map("organization_id")
+  workspaceId    String    @map("workspace_id")
+  contactId      String    @map("contact_id")
+  /// SMS | WHATSAPP | PUSH
+  channel        String
+  /// PENDING | SENT | FAILED
+  status         String    @default("PENDING")
+  error          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  sentAt         DateTime? @map("sent_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("journey_delivery")
 }
 
 /// A bug report / feedback item a user filed from the dashboard. The report
