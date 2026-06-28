@@ -21,7 +21,7 @@
     "@opentelemetry/auto-instrumentations-node": "^0.76.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.218.0",
     "@opentelemetry/sdk-node": "^0.218.0",
-    "hono": "^4.12.23",
+    "hono": "^4.12.25",
     "kafkajs": "^2.2.4",
     "pino": "^10.3.1",
     "prom-client": "^15.1.3",
