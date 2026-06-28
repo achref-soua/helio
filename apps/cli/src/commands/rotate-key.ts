@@ -29,7 +29,7 @@ async function run(): Promise<number> {
   env = env.replace(/^#?\s*HELIO_ENCRYPTION_KEY_PREVIOUS=.*$/m, '').trimEnd();
   env += `\nHELIO_ENCRYPTION_KEY_PREVIOUS=${currentKey}\n`;
   writeFileSync(paths.envFile, env);
-  const profiles = (envValue(env, 'COMPOSE_PROFILES') ?? 'core').split(',').filter(Boolean);
+  const profiles = (envValue(env, 'COMPOSE_PROFILES') ?? 'full').split(',').filter(Boolean);
   say('restarting with both keys readable…');
   await compose(paths, ['up', '-d', '--wait'], { profiles });
 

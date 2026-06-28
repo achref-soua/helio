@@ -11,8 +11,11 @@
 #
 # Or download it and run a command:
 #   ./install.sh                 # interactive menu
-#   ./install.sh install [--full] [--version vX.Y.Z] [--yes]
+#   ./install.sh install [--core] [--version vX.Y.Z] [--yes]
 #   ./install.sh update | uninstall | start | stop | status | logs
+#
+# Installs the full stack by default (every feature works out of the box).
+# Pass --core for a minimal host (no event tracking, analytics, or journeys).
 #
 # Windows: use install.ps1 (or run this under WSL).
 set -eu
@@ -263,7 +266,7 @@ download_bundle() { # tag -> extracts compose + .env.template + manifest into $H
 
 bring_up() { # profile
   prof="$1"
-  step "Pulling images (the first install downloads 1-2 GB)"
+  step "Pulling images (the first install downloads a few GB)"
   compose --profile "$prof" pull || die "image pull failed — is this release published?"
   step "Starting databases"
   compose up -d --wait postgres redis mailpit || die "datastores failed to start (try: $0 logs)"
@@ -337,7 +340,14 @@ cmd_update() {
   compose down || true
   merge_new_env_keys "$HELIO_HOME/.env.template"
   cp "$HELIO_HOME/manifest.json" "$MANIFEST_FILE" 2>/dev/null || true
-  prof=$(get_env COMPOSE_PROFILES); [ -n "$prof" ] || prof=core
+  prof=$(get_env COMPOSE_PROFILES); [ -n "$prof" ] || prof=full
+  # Upgrade a legacy core install to the full stack so every feature works
+  # after an update (event tracking, analytics, journeys).
+  case "$prof" in
+    *core*) prof=$(printf '%s' "$prof" | sed 's/core/full/')
+            set_env COMPOSE_PROFILES "$prof"
+            ok "upgraded this install to the full stack (all features on)" ;;
+  esac
   compose --profile "$prof" pull || die "image pull failed"
   compose up -d --wait postgres redis mailpit || die "datastores failed to start"
   compose --profile ops run --rm migrate deploy || die "migration failed — restore the pre-update backup (see $HELIO_HOME/backups)"
@@ -367,7 +377,7 @@ cmd_uninstall() {
   fi
 }
 
-cmd_start()  { [ -f "$MANIFEST_FILE" ] || die "no installation — run: $0 install"; prof=$(get_env COMPOSE_PROFILES); [ -n "$prof" ] || prof=core; compose --profile "$prof" up -d --wait; }
+cmd_start()  { [ -f "$MANIFEST_FILE" ] || die "no installation — run: $0 install"; prof=$(get_env COMPOSE_PROFILES); [ -n "$prof" ] || prof=full; compose --profile "$prof" up -d --wait; }
 cmd_stop()   { [ -f "$MANIFEST_FILE" ] || die "no installation at $HELIO_HOME"; compose --profile core --profile full --profile update down; }
 cmd_logs()   { [ -f "$MANIFEST_FILE" ] || die "no installation at $HELIO_HOME"; compose logs --tail 200 --follow "$@"; }
 cmd_status() {
@@ -480,12 +490,13 @@ menu() {
 }
 
 # ── arg parsing ─────────────────────────────────────────────────────────────
-PROFILE=core
+PROFILE=full
 CMD=''
 while [ $# -gt 0 ]; do
   case "$1" in
     install|update|uninstall|start|stop|status|logs|backup|restore|doctor|selftest) CMD="$1"; shift ;;
-    --full) PROFILE=full; shift ;;
+    --core) PROFILE=core; shift ;;
+    --full) PROFILE=full; shift ;;  # default; accepted for back-compat
     --version) VERSION="${2:-}"; shift 2 ;;
     --yes|-y) HELIO_YES=1; shift ;;
     --purge-data) PURGE=--purge-data; shift ;;

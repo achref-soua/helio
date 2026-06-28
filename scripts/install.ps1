@@ -7,11 +7,14 @@
 # the stack up.
 #
 #   irm https://raw.githubusercontent.com/achref-soua/helio/main/scripts/install.ps1 | iex
-#   # or, downloaded:  .\install.ps1 [install|update|uninstall|start|stop|status] [-Full] [-Version vX.Y.Z] [-Yes]
+#   # or, downloaded:  .\install.ps1 [install|update|uninstall|start|stop|status] [-Core] [-Version vX.Y.Z] [-Yes]
+#   Installs the full stack by default; pass -Core for a minimal host (no event
+#   tracking, analytics, or journeys).
 param(
   [ValidateSet('install','update','uninstall','start','stop','status','backup','restore','doctor','menu')]
   [string]$Command = 'menu',
-  [switch]$Full,
+  [switch]$Core,
+  [switch]$Full,  # default; accepted for back-compat
   [string]$Version,
   [string]$File,
   [switch]$Yes,
@@ -221,11 +224,11 @@ function Cmd-Install {
   # Serve the dashboard at a public address (domain / VM IP) when set — logins
   # check the request origin, so a remote install must use its real URL.
   if ($env:HELIO_APP_URL) { Set-Env 'APP_URL' $env:HELIO_APP_URL }
-  Set-Env 'COMPOSE_PROFILES' $(if ($Full) { 'full' } else { 'core' })
+  Set-Env 'COMPOSE_PROFILES' $(if ($Core) { 'core' } else { 'full' })
   Copy-Item (Join-Path $HelioHome 'manifest.json') $ManifestFile -Force -ErrorAction SilentlyContinue
   Ok "configuration written to $EnvFile (keep this file with your backups)"
-  $prof = if ($Full) { 'full' } else { 'core' }
-  Step 'Pulling images (the first install downloads 1-2 GB)'; Compose --profile $prof pull; if ($LASTEXITCODE) { Die 'image pull failed' }
+  $prof = if ($Core) { 'core' } else { 'full' }
+  Step 'Pulling images (the first install downloads a few GB)'; Compose --profile $prof pull; if ($LASTEXITCODE) { Die 'image pull failed' }
   Step 'Starting databases'; Compose up -d --wait postgres redis mailpit; if ($LASTEXITCODE) { Die 'datastores failed to start' }
   Step 'Preparing the database'; Compose --profile ops run --rm migrate deploy; if ($LASTEXITCODE) { Die 'database migration failed' }
   Step 'Starting Helio'; Compose --profile $prof up -d --wait; if ($LASTEXITCODE) { Die 'services did not become healthy (try: status)' }
@@ -251,7 +254,9 @@ function Cmd-Update {
   Step 'Applying the update'
   Compose down | Out-Null
   Copy-Item (Join-Path $HelioHome 'manifest.json') $ManifestFile -Force -ErrorAction SilentlyContinue
-  $prof = (Get-Env 'COMPOSE_PROFILES'); if (-not $prof) { $prof = 'core' }
+  $prof = (Get-Env 'COMPOSE_PROFILES'); if (-not $prof) { $prof = 'full' }
+  # Upgrade a legacy core install to the full stack so every feature works after an update.
+  if ($prof -match 'core') { $prof = $prof -replace 'core','full'; Set-Env 'COMPOSE_PROFILES' $prof; Ok 'upgraded this install to the full stack (all features on)' }
   Compose --profile $prof pull; if ($LASTEXITCODE) { Die 'image pull failed' }
   Compose up -d --wait postgres redis mailpit; if ($LASTEXITCODE) { Die 'datastores failed to start' }
   Compose --profile ops run --rm migrate deploy; if ($LASTEXITCODE) { Die "migration failed - restore the pre-update backup in $HelioHome\backups" }
@@ -273,7 +278,7 @@ function Cmd-Uninstall {
   }
 }
 
-function Cmd-Start  { if (-not (Test-Path $ManifestFile)) { Die 'no installation - run install' }; $p = (Get-Env 'COMPOSE_PROFILES'); if (-not $p) { $p = 'core' }; Compose --profile $p up -d --wait }
+function Cmd-Start  { if (-not (Test-Path $ManifestFile)) { Die 'no installation - run install' }; $p = (Get-Env 'COMPOSE_PROFILES'); if (-not $p) { $p = 'full' }; Compose --profile $p up -d --wait }
 function Cmd-Stop   { if (-not (Test-Path $ManifestFile)) { Die "no installation at $HelioHome" }; Compose --profile core --profile full --profile update down }
 function Cmd-Status {
   if (-not (Test-Path $ManifestFile)) { Die "no installation at $HelioHome - run install" }

@@ -4,18 +4,18 @@
 
 ```bash
 task setup          # pnpm install + git hooks; uv sync runs per-service
-task up             # Postgres(+pgvector), Redis, Mailpit — the core profile
+task up             # full stack: Postgres(+pgvector), Redis, Mailpit, ClickHouse, Redpanda, Temporal, MinIO
 task db:migrate     # apply migrations (admin role)
 task db:seed        # demo org acme/growth
 pnpm --filter @helio/web dev        # dashboard on :3000
 pnpm --filter @helio/api dev        # gateway on :4000
-pnpm --filter @helio/ingest dev     # event ingestion on :4100 (needs up:full)
-pnpm --filter @helio/tracking dev   # open/click tracking on :4200 (needs up:full)
-pnpm --filter @helio/workers dev    # Temporal worker for campaign sends (needs up:full)
+pnpm --filter @helio/ingest dev     # event ingestion on :4100
+pnpm --filter @helio/tracking dev   # open/click tracking on :4200
+pnpm --filter @helio/workers dev    # Temporal worker for campaign sends
 cd apps/intelligence && uv run uvicorn helio_intelligence.app:app --reload   # :8000
 ```
 
-Heavier stacks: `task up:full` (ClickHouse, Redpanda, Temporal+UI, MinIO), `task up:observability` (collector, Prometheus :9090, Grafana :3001). `task down` stops every profile, keeping volumes.
+`task up:core` brings up only Postgres, Redis, and Mailpit for a low-memory host (no event tracking, analytics, or journeys). `task up:observability` adds the collector, Prometheus :9090, Grafana :3001. `task down` stops every profile, keeping volumes.
 
 The ingest service applies ClickHouse migrations at startup; `task ch:migrate` applies them standalone. Smoke-test ingestion with the seeded demo write key:
 
@@ -36,7 +36,7 @@ web 3000 · api 4000 · ingest 4100 · tracking 4200 · intelligence 8000 · Pos
 
 All dev mail lands in Mailpit (`http://localhost:8025`). Nothing leaves the machine.
 
-Campaign sends run durably: `task up:full` (Temporal), start the worker, create a campaign in the dashboard, hit Send, and watch the mail arrive in Mailpit — opens/clicks fire through the tracking service into ClickHouse.
+Campaign sends run durably on Temporal (up by default with `task up`): start the worker, create a campaign in the dashboard, hit Send, and watch the mail arrive in Mailpit — opens/clicks fire through the tracking service into ClickHouse.
 
 ## E2E
 

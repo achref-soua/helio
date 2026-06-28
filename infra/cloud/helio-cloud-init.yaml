@@ -7,16 +7,16 @@
 # Helio and brings the dashboard up at  http://<your-server-ip>:3000  — no SSH
 # and no Docker knowledge needed.
 #
-# Pick a VM size: 4 GB RAM for the default "core" profile, 8 GB for "--full"
-# (campaign sending, ingestion, tracking, analytics). Ubuntu/Debian recommended.
-# Open inbound TCP 3000 (dashboard) — and 4000 (REST API) if you use it — in the
-# provider's firewall / security group.
+# Pick a VM size: the default install runs the full stack (campaign sending,
+# ingestion, tracking, analytics, journeys) — give it 8 GB RAM. Ubuntu/Debian
+# recommended. Open inbound TCP 3000 (dashboard) — and 4000 (REST API) if you
+# use it — in the provider's firewall / security group.
 #
 # After it is up, SSH in and manage it like any other install:
 #   ~/.helio/helio status | logs | update | stop
 #
-# For the full profile, change the last line to:
-#   curl -fsSL https://github.com/achref-soua/helio/releases/latest/download/install.sh | sh -s -- install --full
+# For a minimal 4 GB host (no tracking/analytics/journeys), change the last line to:
+#   curl -fsSL https://github.com/achref-soua/helio/releases/latest/download/install.sh | sh -s -- install --core
 package_update: true
 packages:
   - curl

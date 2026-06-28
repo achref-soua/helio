@@ -109,8 +109,8 @@ describe('setEnvValue', () => {
 });
 
 describe('composeProfiles', () => {
-  it('defaults to core when unset', () => {
-    expect(composeProfiles('A=1\n')).toEqual(['core']);
+  it('defaults to full when unset', () => {
+    expect(composeProfiles('A=1\n')).toEqual(['full']);
   });
 
   it('parses and trims a comma list', () => {

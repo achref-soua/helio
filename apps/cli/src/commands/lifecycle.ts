@@ -24,7 +24,7 @@ function requireInstall(): { paths: InstallPaths; env: string; profiles: string[
     fail(`no installation at ${paths.home} — run "helio install" first`);
   }
   const env = readFileSync(paths.envFile, 'utf8');
-  const profiles = (envValue(env, 'COMPOSE_PROFILES') ?? 'core').split(',').filter(Boolean);
+  const profiles = (envValue(env, 'COMPOSE_PROFILES') ?? 'full').split(',').filter(Boolean);
   return { paths, env, profiles };
 }
 
