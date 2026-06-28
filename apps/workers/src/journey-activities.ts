@@ -38,7 +38,7 @@ export interface LoadedJourney {
  * and worker restarts. Derived (not the raw ids) so it is short and URL-safe
  * for the open/click tracking that embeds it.
  */
-function journeyDeliveryId(prefix: 'snd' | 'iad', runId: string, nodeId: string): string {
+function journeyDeliveryId(prefix: 'snd' | 'iad' | 'jd', runId: string, nodeId: string): string {
   const digest = createHash('sha256').update(`${runId} ${nodeId}`).digest('hex').slice(0, 32);
   return `${prefix}_${digest}`;
 }
@@ -55,6 +55,31 @@ export function createJourneyActivities(
   resolveSms?: SmsResolver,
   resolveWhatsApp?: WhatsAppResolver,
 ) {
+  // Atomically claim the idempotency row for a provider-channel (SMS/WhatsApp/
+  // push) send. Returns whether a prior attempt already delivered, so a Temporal
+  // retry short-circuits instead of sending again — the same guarantee email and
+  // in-app already have via their own delivery rows.
+  async function claimDelivery(
+    contact: { id: string; organizationId: string; workspaceId: string },
+    channel: 'SMS' | 'WHATSAPP' | 'PUSH',
+    runId: string,
+    nodeId: string,
+  ): Promise<{ id: string; alreadySent: boolean }> {
+    const id = journeyDeliveryId('jd', runId, nodeId);
+    const row = await prisma.journeyDelivery.upsert({
+      where: { id },
+      update: {},
+      create: {
+        id,
+        organizationId: contact.organizationId,
+        workspaceId: contact.workspaceId,
+        contactId: contact.id,
+        channel,
+      },
+    });
+    return { id, alreadySent: row.status === 'SENT' };
+  }
+
   return {
     async loadJourney(journeyId: string): Promise<LoadedJourney> {
       const journey = await prisma.journey.findUniqueOrThrow({
@@ -254,9 +279,14 @@ export function createJourneyActivities(
     async sendJourneyPush(
       contactId: string,
       notification: { title: string; body: string; url?: string },
+      runId: string,
+      nodeId: string,
     ): Promise<{ sent: number }> {
       const contact = await prisma.contact.findUnique({ where: { id: contactId } });
       if (!contact || contact.status !== 'ACTIVE' || !pushProvider) return { sent: 0 };
+      // Claim this node's send; a retry after it already fired short-circuits.
+      const claim = await claimDelivery(contact, 'PUSH', runId, nodeId);
+      if (claim.alreadySent) return { sent: 0 };
       const subscriptions = await prisma.pushSubscription.findMany({ where: { contactId } });
       let sent = 0;
       for (const subscription of subscriptions) {
@@ -269,6 +299,10 @@ export function createJourneyActivities(
           await prisma.pushSubscription.delete({ where: { id: subscription.id } });
         }
       }
+      await prisma.journeyDelivery.update({
+        where: { id: claim.id },
+        data: { status: 'SENT', sentAt: new Date() },
+      });
       return { sent };
     },
 
@@ -277,13 +311,21 @@ export function createJourneyActivities(
      * suppressed, have no phone number, or when no provider is configured.
      * The body supports {{token}} personalization.
      */
-    async sendJourneySms(contactId: string, body: string): Promise<{ sent: number }> {
+    async sendJourneySms(
+      contactId: string,
+      body: string,
+      runId: string,
+      nodeId: string,
+    ): Promise<{ sent: number }> {
       const contact = await prisma.contact.findUnique({ where: { id: contactId } });
       if (!contact || contact.status !== 'ACTIVE' || !contact.phone || !resolveSms) {
         return { sent: 0 };
       }
       const smsProvider = await resolveSms(contact.organizationId);
       if (!smsProvider) return { sent: 0 };
+      // A retry after a delivered text claims the same row and does not re-send.
+      const claim = await claimDelivery(contact, 'SMS', runId, nodeId);
+      if (claim.alreadySent) return { sent: 1 };
       const rendered = renderTokens(body, {
         email: contact.email,
         firstName: contact.firstName,
@@ -291,20 +333,33 @@ export function createJourneyActivities(
         attributes: (contact.attributes ?? {}) as Record<string, unknown>,
       });
       const result = await smsProvider.send(contact.phone, rendered);
-      return { sent: result === 'sent' ? 1 : 0 };
+      const sent = result === 'sent' ? 1 : 0;
+      await prisma.journeyDelivery.update({
+        where: { id: claim.id },
+        data: sent ? { status: 'SENT', sentAt: new Date() } : { status: 'FAILED' },
+      });
+      return { sent };
     },
 
     /**
      * Message a contact on WhatsApp. Same suppression and personalization
      * rules as SMS; no-ops when the channel is unconfigured.
      */
-    async sendJourneyWhatsApp(contactId: string, body: string): Promise<{ sent: number }> {
+    async sendJourneyWhatsApp(
+      contactId: string,
+      body: string,
+      runId: string,
+      nodeId: string,
+    ): Promise<{ sent: number }> {
       const contact = await prisma.contact.findUnique({ where: { id: contactId } });
       if (!contact || contact.status !== 'ACTIVE' || !contact.phone || !resolveWhatsApp) {
         return { sent: 0 };
       }
       const whatsappProvider = await resolveWhatsApp(contact.organizationId);
       if (!whatsappProvider) return { sent: 0 };
+      // A retry after a delivered message claims the same row and does not re-send.
+      const claim = await claimDelivery(contact, 'WHATSAPP', runId, nodeId);
+      if (claim.alreadySent) return { sent: 1 };
       const rendered = renderTokens(body, {
         email: contact.email,
         firstName: contact.firstName,
@@ -312,7 +367,12 @@ export function createJourneyActivities(
         attributes: (contact.attributes ?? {}) as Record<string, unknown>,
       });
       const result = await whatsappProvider.send(contact.phone, rendered);
-      return { sent: result === 'sent' ? 1 : 0 };
+      const sent = result === 'sent' ? 1 : 0;
+      await prisma.journeyDelivery.update({
+        where: { id: claim.id },
+        data: sent ? { status: 'SENT', sentAt: new Date() } : { status: 'FAILED' },
+      });
+      return { sent };
     },
 
     /**
