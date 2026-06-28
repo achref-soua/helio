@@ -84,18 +84,18 @@ Pick **one** LLM provider. The copilot is scoped to your own organization's
 data only — see the [AI copilot guide](/docs/guides/ai-copilot) and
 [security model](#ai-security).
 
-| Variable                          | Default                   | Purpose                                                  |
-| --------------------------------- | ------------------------- | -------------------------------------------------------- |
-| `INTEL_LLM_PROVIDER`              | `groq`                    | `groq` · `openai` · `anthropic` · `ollama` · `local`.    |
-| `INTEL_LLM_MODEL`                 | `llama-3.3-70b-versatile` | Model id for the provider.                               |
-| `INTEL_LLM_API_KEY`               | —                         | Provider key (read as a secret, never logged).           |
-| `INTEL_LLM_BASE_URL`              | —                         | Endpoint override for self-hosted / proxied models.      |
-| `INTEL_LLM_REQUIRE_TLS`           | `true`                    | Refuse plaintext HTTP to remote hosts.                   |
-| `INTEL_DATABASE_URL`              | RLS app role              | Copilot RAG reads org data over the tenant-bound role.   |
-| `INTEL_MCP_ORGANIZATION_ID`       | —                         | Organization the [MCP server](/docs/api/mcp) may drive.  |
-| `INTEL_MCP_WORKSPACE_ID`          | —                         | Workspace the MCP server may drive.                      |
-| `INTEL_CLICKHOUSE_*`              | compose stack             | Feature reads for predictive scoring.                    |
-| `INTEL_SCORING_CONVERSION_EVENTS` | `["Converted", …]`        | Event names that count as a conversion (positive label). |
+| Variable                          | Default                   | Purpose                                                          |
+| --------------------------------- | ------------------------- | ---------------------------------------------------------------- |
+| `INTEL_LLM_PROVIDER`              | `groq`                    | `groq` · `openai` · `anthropic` · `nvidia` · `ollama` · `local`. |
+| `INTEL_LLM_MODEL`                 | `llama-3.3-70b-versatile` | Model id for the provider.                                       |
+| `INTEL_LLM_API_KEY`               | —                         | Provider key (read as a secret, never logged).                   |
+| `INTEL_LLM_BASE_URL`              | —                         | Endpoint override for self-hosted / proxied models.              |
+| `INTEL_LLM_REQUIRE_TLS`           | `true`                    | Refuse plaintext HTTP to remote hosts.                           |
+| `INTEL_DATABASE_URL`              | RLS app role              | Copilot RAG reads org data over the tenant-bound role.           |
+| `INTEL_MCP_ORGANIZATION_ID`       | —                         | Organization the [MCP server](/docs/api/mcp) may drive.          |
+| `INTEL_MCP_WORKSPACE_ID`          | —                         | Workspace the MCP server may drive.                              |
+| `INTEL_CLICKHOUSE_*`              | compose stack             | Feature reads for predictive scoring.                            |
+| `INTEL_SCORING_CONVERSION_EVENTS` | `["Converted", …]`        | Event names that count as a conversion (positive label).         |
 
 ### AI security
 

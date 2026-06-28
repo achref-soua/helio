@@ -32,6 +32,15 @@ function llmProbe(config: Record<string, unknown>, apiKey: string | undefined): 
       return { url: 'https://api.openai.com/v1/models', method: 'GET', headers: bearer };
     case 'groq':
       return { url: 'https://api.groq.com/openai/v1/models', method: 'GET', headers: bearer };
+    case 'nvidia': {
+      // NVIDIA NIM is OpenAI-compatible; default to the hosted catalog, but
+      // honor a base URL when the operator runs a self-hosted NIM.
+      const base =
+        typeof config.baseUrl === 'string' && config.baseUrl
+          ? config.baseUrl
+          : 'https://integrate.api.nvidia.com/v1';
+      return { url: `${base.replace(/\/$/, '')}/models`, method: 'GET', headers: bearer };
+    }
     case 'ollama':
     case 'local': {
       const base =

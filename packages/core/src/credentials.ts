@@ -64,7 +64,7 @@ const fromFields = {
   fromName: z.string().trim().min(1).max(80).optional(),
 };
 
-export const LLM_PROVIDERS = ['openai', 'anthropic', 'groq', 'ollama', 'local'] as const;
+export const LLM_PROVIDERS = ['openai', 'anthropic', 'groq', 'nvidia', 'ollama', 'local'] as const;
 export type LlmProvider = (typeof LLM_PROVIDERS)[number];
 
 const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
@@ -334,7 +334,7 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
         type: 'select',
         options: [...LLM_PROVIDERS],
         required: true,
-        hint: 'Your LLM vendor — or “ollama”/“local” for a self-hosted, OpenAI-compatible server.',
+        hint: 'Your LLM vendor — “nvidia” for NVIDIA NIM, or “ollama”/“local” for a self-hosted, OpenAI-compatible server.',
       },
       {
         name: 'model',
@@ -342,14 +342,14 @@ const REGISTRY: Record<CredentialKind, CredentialKindSpec> = {
         type: 'text',
         placeholder: 'llama-3.3-70b-versatile',
         required: true,
-        hint: 'The provider’s model id, e.g. gpt-4o-mini, claude-3-5-sonnet, llama-3.3-70b-versatile.',
+        hint: 'The provider’s model id, e.g. gpt-4o-mini, claude-3-5-sonnet, llama-3.3-70b-versatile, or a NIM model like meta/llama-3.3-70b-instruct.',
       },
       {
         name: 'baseUrl',
         label: 'Base URL (self-hosted)',
         type: 'text',
         placeholder: 'http://localhost:11434/v1',
-        hint: 'Only for local/self-hosted models: your OpenAI-compatible endpoint. Leave blank for a hosted provider.',
+        hint: 'Only for a self-hosted/local model (including a self-hosted NIM): your OpenAI-compatible endpoint. Leave blank for a hosted provider — NVIDIA NIM defaults to the hosted catalog.',
       },
       {
         name: 'temperature',

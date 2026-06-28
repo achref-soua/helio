@@ -35,9 +35,10 @@ class Settings(BaseSettings):
     # it's opt-in and off by default.
     database_pgbouncer: bool = False
 
-    # LLM gateway (provider-agnostic: openai | anthropic | groq | ollama
-    # | local). Test target is Llama 3 via Groq; local/ollama point at a
-    # self-hosted OpenAI-compatible server for full data sovereignty.
+    # LLM gateway (provider-agnostic: openai | anthropic | groq | nvidia
+    # | ollama | local). Test target is Llama 3 via Groq; nvidia uses the
+    # NVIDIA NIM hosted catalog (or a self-hosted NIM via INTEL_LLM_BASE_URL);
+    # local/ollama point at a self-hosted OpenAI-compatible server.
     # The key is a SecretStr so it never lands in logs or reprs. Never
     # commit a real key — set INTEL_LLM_API_KEY in the environment.
     llm_provider: str = "groq"
