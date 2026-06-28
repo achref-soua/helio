@@ -49,6 +49,10 @@ export default defineConfig({
     env: {
       // The e2e server answers on :3100; auth callbacks must match.
       APP_URL: BASE_URL,
+      // Render the backups panel (backups.spec / settings-sections.spec). It is
+      // off by default and only set in the dev .env, which next start does not
+      // read in CI — so enable it here to keep the suite self-contained.
+      BACKUPS_PANEL_ENABLED: 'true',
       // Exercise the Updates panel's enabled path (no sidecar in e2e, so the
       // state dir just reads empty — see updates.spec.ts).
       HELIO_INAPP_UPDATE: 'true',
