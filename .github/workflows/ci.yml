@@ -8,13 +8,13 @@
 # against a real core stack (Postgres + Redis + Mailpit) — it used to be out of
 # CI entirely, which is exactly how a red e2e suite reached a release.
 #
-# e2e runs on every PR but is NON-BLOCKING for now: it's not in the branch
-# ruleset's required checks, so a red shard surfaces the failure without blocking
-# the merge. A few heavy /settings dialog specs still flake (Playwright clicks a
-# control before React attaches its handler) — a retry-until-open test helper is
-# the follow-up; once the suite is reliably green, add the `e2e` shards to the
-# develop/main required-status-checks ruleset to promote it to a blocking gate.
-# Locally it stays `task verify:e2e`.
+# e2e runs on every PR and push and is a hard gate: a red shard fails the run.
+# It was informational while four specs failed under the 2-core shard for
+# environment/correctness reasons (a dev-only env flag the CI app never read, a
+# test reading a button label instead of the booking link); those are fixed and
+# the suite has been green with zero retries across consecutive runs. To make a
+# red shard also block the merge, add the `e2e (1..4)` contexts to the develop/
+# main required-status-checks ruleset. Locally it stays `task verify:e2e`.
 name: ci
 
 on:
@@ -78,15 +78,6 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
-    # Informational, not a hard gate yet: the full suite runs on every PR and a
-    # red shard is visible in the Actions UI, but it does not fail the workflow
-    # run (so it never blocks a merge or sends a run-failure email). A handful of
-    # heavy /settings specs (the lowest panels, the scheduling and forced-rotation
-    # flows) still fail under the constrained 2-core shard while passing locally —
-    # an environment difference, not a regression. Once those are stabilized,
-    # drop continue-on-error and add the e2e shards to the branch ruleset's
-    # required checks to promote it to a blocking gate.
-    continue-on-error: true
     # Shard the serial suite across parallel runners. The single-worker run took
     # ~20 min, and the contention made heavy /settings dialogs flake; sharding
     # cuts wall-clock and per-runner load. Each shard brings up its own stack and
