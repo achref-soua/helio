@@ -1,0 +1,22 @@
+---
+title: Journey execution on Temporal (durable, no double-send)
+---
+flowchart TB
+  T["Trigger<br/>event · segment-entry · schedule · webhook"]
+  EN["Enroll contact<br/>(dedup claim, idempotent)"]
+  WF["Temporal workflow<br/>(versioned, per enrollment)"]
+  subgraph nodes["Journey nodes"]
+    SEND["Send activity<br/>(channel adapter)"]
+    WAIT["Wait / wait-for-event<br/>(durable timer)"]
+    BR{"Branch / A·B split"}
+    GOAL["Goal / conversion"]
+  end
+  PG[("Postgres · journey_run<br/>state (RLS)")]
+  T --> EN --> WF --> SEND
+  WF --> WAIT
+  WF --> BR
+  BR -->|path A| SEND
+  BR -->|path B| GOAL
+  SEND -->|"send-key upsert (exactly-once)"| PG
+  WAIT -. "survives worker restart" .-> WF
+  WF --> PG

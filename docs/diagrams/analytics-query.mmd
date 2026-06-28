@@ -1,0 +1,15 @@
+---
+title: Analytics query pipeline (ClickHouse)
+---
+flowchart LR
+  REQ["Dashboard request<br/>funnel · cohort · attribution · segment"]
+  DSL["Segment rule DSL /<br/>report spec"]
+  COMP["SQL compiler<br/>(segment_compiler.py)"]
+  CH[("ClickHouse · events")]
+  PG[("Postgres · contacts / membership")]
+  RES["Charts + tables<br/>(TanStack · Recharts)"]
+  REQ --> DSL --> COMP
+  COMP -->|event aggregation| CH
+  COMP -->|profile join| PG
+  CH --> RES
+  PG --> RES

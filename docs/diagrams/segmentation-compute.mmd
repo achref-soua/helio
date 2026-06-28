@@ -1,0 +1,18 @@
+---
+title: Segmentation (visual builder → SQL)
+---
+flowchart LR
+  UI["Visual builder<br/>nested AND/OR (apps/web)"]
+  RULE["Segment rule DSL<br/>(packages/core)"]
+  COMP["segment_compiler.py<br/>(apps/intelligence)"]
+  STATIC["Static list"]
+  DYN["Dynamic / computed<br/>(batch + real-time)"]
+  PG[("Postgres · contacts (RLS)")]
+  CH[("ClickHouse · events")]
+  TRIG["Journey segment-entry trigger"]
+  UI --> RULE --> COMP
+  COMP --> PG
+  COMP --> CH
+  COMP --> STATIC
+  COMP --> DYN
+  DYN --> TRIG

@@ -1,0 +1,21 @@
+---
+title: Outbound webhook delivery (HMAC + durable retry)
+---
+sequenceDiagram
+  participant EV as Domain event
+  participant API as apps/api
+  participant T as Temporal (apps/workers)
+  participant EP as Customer endpoint
+  participant DB as Postgres webhook_delivery (RLS)
+  EV->>API: event matches subscription
+  API->>T: start delivery workflow
+  T->>T: sign HMAC-SHA256 + timestamp
+  T->>EP: POST payload + signature
+  alt 2xx
+    EP-->>T: 200
+    T->>DB: mark delivered
+  else failure / timeout
+    EP-->>T: 5xx
+    T->>T: exponential backoff retry
+    T->>DB: dead-letter after N attempts
+  end

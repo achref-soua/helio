@@ -1,0 +1,16 @@
+---
+title: Event ingestion → ClickHouse
+---
+flowchart LR
+  SDK["Tracking SDK<br/>(sdk-js · /widget.js)"]
+  subgraph edge["apps/ingest"]
+    AUTH["Write-key auth"]
+    RL["Redis rate limit<br/>(per workspace)"]
+    VAL["Zod validate +<br/>idempotency key"]
+  end
+  RP[("Redpanda<br/>events topic")]
+  CONS["Consumer / sink<br/>(apps/workers)"]
+  CH[("ClickHouse · events<br/>ReplacingMergeTree")]
+  AN["Analytics &<br/>segment compute"]
+  SDK --> AUTH --> RL --> VAL --> RP --> CONS --> CH --> AN
+  VAL -. "reject 4xx" .-> SDK
