@@ -9,11 +9,13 @@ Each entry links to its full release notes on GitHub. Versions are tagged on
 
 ## [Unreleased]
 
+## [2.3.1] — 2026-06-29
+
 ### Added
 
-- Community health files: `SUPPORT.md`, `CITATION.cff`, and
-  `.github/FUNDING.yml`; this `CHANGELOG.md`; and a project wiki (Home, FAQ,
-  navigation).
+- Repo completeness: community health files (`SUPPORT.md`, `CITATION.cff`,
+  `.github/FUNDING.yml`), this `CHANGELOG.md`, GitHub Discussions, and a project
+  wiki (Home, Quickstart, FAQ, navigation).
 
 ## [2.3.0] — 2026-06-28
 
@@ -109,7 +111,8 @@ Each entry links to its full release notes on GitHub. Versions are tagged on
 
 - Phase 0: Foundation — monorepo, CI/CD, auth, multi-tenancy, observability.
 
-[Unreleased]: https://github.com/achref-soua/helio/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/achref-soua/helio/compare/v2.3.1...HEAD
+[2.3.1]: https://github.com/achref-soua/helio/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/achref-soua/helio/releases/tag/v2.3.0
 [2.2.5]: https://github.com/achref-soua/helio/releases/tag/v2.2.5
 [2.2.4]: https://github.com/achref-soua/helio/releases/tag/v2.2.4
