@@ -265,6 +265,9 @@ The **[v2.0.9 security audit](docs/security/audit-2.0.9.md)** documents the late
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) — dev setup, branching model, commit conventions, PR rules
 - [SECURITY.md](SECURITY.md) — how to report vulnerabilities (privately, please)
+- [SUPPORT.md](SUPPORT.md) — where to ask questions and get help · [Discussions](https://github.com/achref-soua/helio/discussions) · [Wiki](https://github.com/achref-soua/helio/wiki)
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — the community standard we hold each other to
+- [CHANGELOG.md](CHANGELOG.md) — notable changes, release by release
 - [Privacy Policy](apps/docs/content/docs/legal/privacy.mdx) — the project collects nothing; here is exactly what that means
 - [Terms of Use](apps/docs/content/docs/legal/terms.mdx) — AGPL-3.0 is the contract; plain-words expectations around it
 - [Data & Compliance](apps/docs/content/docs/legal/data-and-compliance.mdx) — where deployment data lives, the GDPR/email tooling, and the operator checklist
