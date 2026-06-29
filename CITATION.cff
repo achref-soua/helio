@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: 'If you use Helio in your research or product, please cite it as below.'
+title: 'Helio: the open-source, AI-native growth platform'
+abstract: >-
+  Helio is an open-source, self-hostable marketing-automation and
+  customer-engagement platform. It unifies customer data (CDP), segments
+  audiences, orchestrates cross-channel journeys on a durable workflow engine
+  (Temporal), sends email/SMS/push/WhatsApp, and exposes AI-native features —
+  natural-language segments and journeys, predictive scoring, brand-voice
+  content generation, and an MCP server for AI agents — on a modern TypeScript
+  and Python stack.
+type: software
+authors:
+  - family-names: Soua
+    given-names: Achref
+    email: achref.soua@outlook.com
+repository-code: 'https://github.com/achref-soua/helio'
+url: 'https://github.com/achref-soua/helio'
+license: AGPL-3.0-only
+keywords:
+  - marketing-automation
+  - customer-data-platform
+  - customer-engagement
+  - email-marketing
+  - hubspot-alternative
+  - mautic-alternative
+  - self-hosted
+  - temporal
+  - nextjs
+  - ai
